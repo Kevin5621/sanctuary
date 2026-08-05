@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-/// Jarak & radius standar. Dipakai seluruh widget agar ritme visual konsisten.
+/// Jarak & radius standar untuk antarmuka cartoon minimalis.
 class AppSpacing {
   const AppSpacing._();
 
@@ -15,9 +16,8 @@ class AppSpacing {
   static const radiusSm = 16.0;
   static const radiusMd = 24.0;
   static const radiusLg = 32.0;
+  static const radiusPill = 999.0;
 
-  /// Lebar konten maksimum pada layar lebar (tablet/desktop) supaya baris teks
-  /// tidak terlalu panjang untuk dibaca.
   static const maxContentWidth = 720.0;
   static const tabletBreakpoint = 720.0;
   static const desktopBreakpoint = 1100.0;
@@ -29,37 +29,33 @@ class AppTheme {
   static ThemeData get light => _build(
         brightness: Brightness.light,
         scheme: const ColorScheme.light(
-          primary: AppColors.sage,
+          primary: AppColors.midnight,
           onPrimary: Colors.white,
-          primaryContainer: AppColors.sageLight,
-          onPrimaryContainer: AppColors.sageDark,
-          secondary: AppColors.lavender,
+          primaryContainer: AppColors.lavenderBg,
+          onPrimaryContainer: AppColors.midnight,
+          secondary: AppColors.moodHappiness,
           onSecondary: Colors.white,
-          secondaryContainer: AppColors.lavenderLight,
-          onSecondaryContainer: AppColors.lavenderDark,
-          tertiary: AppColors.calmingBlue,
-          tertiaryContainer: AppColors.calmingBlueLight,
-          surface: AppColors.cream,
-          onSurface: AppColors.warmGreyDark,
+          secondaryContainer: AppColors.moodHappinessBg,
+          onSecondaryContainer: AppColors.midnight,
+          tertiary: AppColors.moodFear,
+          tertiaryContainer: AppColors.moodFearBg,
+          surface: AppColors.creamBg,
+          onSurface: AppColors.midnight,
           surfaceContainerHighest: AppColors.creamAlt,
           error: AppColors.ewsIntervention,
         ),
-        surface: AppColors.cream,
-        secondaryText: AppColors.warmGrey,
+        surface: AppColors.creamBg,
+        secondaryText: AppColors.warmTextSecondary,
       );
 
   static ThemeData get dark => _build(
         brightness: Brightness.dark,
         scheme: const ColorScheme.dark(
-          primary: AppColors.sage,
-          onPrimary: Color(0xFF14200F),
-          primaryContainer: AppColors.sageDark,
-          onPrimaryContainer: AppColors.sageLight,
-          secondary: AppColors.lavender,
-          onSecondary: Color(0xFF1A1424),
-          secondaryContainer: AppColors.lavenderDark,
-          onSecondaryContainer: AppColors.lavenderLight,
-          tertiary: AppColors.calmingBlue,
+          primary: AppColors.lavender,
+          onPrimary: AppColors.darkBackground,
+          primaryContainer: AppColors.darkSurfaceAlt,
+          onPrimaryContainer: AppColors.darkTextPrimary,
+          secondary: AppColors.moodHappiness,
           surface: AppColors.darkSurface,
           onSurface: AppColors.darkTextPrimary,
           surfaceContainerHighest: AppColors.darkSurfaceAlt,
@@ -75,12 +71,66 @@ class AppTheme {
     required Color surface,
     required Color secondaryText,
   }) {
+    // Quicksand untuk Headings & Titles (Playful Cartoon Feel)
+    final quicksandText = GoogleFonts.quicksandTextTheme();
+    // DM Sans untuk Body & Button (Clean Readable Sans)
+    final dmSansText = GoogleFonts.dmSansTextTheme();
+
+    final textTheme = quicksandText.copyWith(
+      displayLarge: quicksandText.displayLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+        fontSize: 32,
+      ),
+      displayMedium: quicksandText.displayMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+        fontSize: 28,
+      ),
+      headlineMedium: quicksandText.headlineMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+        fontSize: 24,
+        height: 1.25,
+      ),
+      titleLarge: quicksandText.titleLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+        fontSize: 20,
+      ),
+      titleMedium: quicksandText.titleMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+        fontSize: 16,
+      ),
+      bodyLarge: dmSansText.bodyLarge?.copyWith(
+        color: scheme.onSurface,
+        fontSize: 16,
+        height: 1.5,
+      ),
+      bodyMedium: dmSansText.bodyMedium?.copyWith(
+        color: scheme.onSurface,
+        fontSize: 14,
+        height: 1.45,
+      ),
+      bodySmall: dmSansText.bodySmall?.copyWith(
+        color: secondaryText,
+        fontSize: 12,
+        height: 1.4,
+      ),
+      labelLarge: dmSansText.labelLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        fontSize: 14,
+        letterSpacing: 0.2,
+      ),
+    );
+
     final base = ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
       scaffoldBackgroundColor: surface,
-      fontFamily: 'Nunito', // fallback ke font sistem bila belum ditambahkan
+      textTheme: textTheme,
     );
 
     return base.copyWith(
@@ -89,87 +139,90 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: base.textTheme.titleLarge?.copyWith(
+        titleTextStyle: textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w700,
           color: scheme.onSurface,
         ),
       ),
-      textTheme: base.textTheme
-          .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface)
-          .copyWith(
-            headlineMedium: base.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              height: 1.25,
-            ),
-            titleMedium: base.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-            bodyMedium: base.textTheme.bodyMedium?.copyWith(height: 1.5),
-            bodySmall: base.textTheme.bodySmall?.copyWith(
-              color: secondaryText,
-              height: 1.45,
-            ),
-          ),
-      // Bidang input mengikuti bahasa clay: tanpa garis tegas, latar lembut.
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: brightness == Brightness.light
-            ? AppColors.creamAlt
+            ? Colors.white
             : AppColors.darkSurfaceAlt,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.md,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderSide: BorderSide(color: AppColors.cartoonBorder, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderSide: BorderSide(color: AppColors.cartoonBorder, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          borderSide: BorderSide(color: scheme.primary, width: 1.6),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderSide: BorderSide(color: AppColors.midnight, width: 2.0),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          borderSide: BorderSide(color: scheme.error, width: 1.2),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderSide: BorderSide(color: scheme.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          borderSide: BorderSide(color: scheme.error, width: 1.6),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderSide: BorderSide(color: scheme.error, width: 2.0),
         ),
         hintStyle: TextStyle(color: secondaryText),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: brightness == Brightness.light
-            ? AppColors.cream
+            ? Colors.white
             : AppColors.darkSurface,
-        indicatorColor: scheme.primaryContainer,
+        indicatorColor: AppColors.midnight,
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        height: 68,
+        elevation: 10,
+        shadowColor: AppColors.cartoonShadow,
+        height: 72,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return GoogleFonts.dmSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.midnight,
+            );
+          }
+          return GoogleFonts.dmSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppColors.warmTextSecondary,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: Colors.white, size: 24);
+          }
+          return const IconThemeData(color: AppColors.warmTextSecondary, size: 24);
+        }),
       ),
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: brightness == Brightness.light
-            ? AppColors.cream
+      cardTheme: CardThemeData(
+        color: brightness == Brightness.light
+            ? AppColors.cardBg
             : AppColors.darkSurface,
-        indicatorColor: scheme.primaryContainer,
         elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          side: BorderSide(color: AppColors.cartoonBorder, width: 1.2),
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: scheme.onSurface,
-        contentTextStyle: TextStyle(color: scheme.surface),
+        backgroundColor: AppColors.midnight,
+        contentTextStyle: GoogleFonts.dmSans(color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
         ),
-      ),
-      dividerTheme: DividerThemeData(
-        color: scheme.onSurface.withValues(alpha: 0.08),
-        thickness: 1,
       ),
     );
   }
