@@ -34,7 +34,7 @@ func New(cfg *config.Config, db *gorm.DB, redisClient *goredis.Client) *gin.Engi
 		middleware.SecurityHeaders(cfg),
 		middleware.CORS(cfg),
 		middleware.BodyLimit(),
-		middleware.CSRF(),
+		middleware.CSRF("/api/v1/auth/login"),
 		middleware.AccessLog(),
 	)
 

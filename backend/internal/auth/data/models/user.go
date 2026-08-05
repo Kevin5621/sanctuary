@@ -37,7 +37,12 @@ type User struct {
 	StudyProgramID *string       `gorm:"type:uuid;index" json:"study_program_id,omitempty"`
 	StudyProgram   *StudyProgram `gorm:"foreignKey:StudyProgramID" json:"study_program,omitempty"`
 
-	IsActive    bool       `gorm:"not null;default:true;index" json:"is_active"`
+	// Tanpa tag "default:" secara sengaja: GORM membuang field bool bernilai
+	// false (zero-value Go) dari INSERT saat ada tag default pada Create()
+	// berbasis struct, sehingga false diam-diam tertulis sebagai true.
+	// Default true tetap berlaku di level SQL (lihat migrations/*.sql);
+	// kode aplikasi selalu meng-set nilai ini eksplisit sebelum Create.
+	IsActive    bool       `gorm:"not null;index" json:"is_active"`
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
 }
 

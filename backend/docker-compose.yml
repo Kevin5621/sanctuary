@@ -1,0 +1,70 @@
+# Orkestrasi development lokal: `docker compose up -d`
+# Menjalankan PostgreSQL + Redis + API (hot reload via air).
+#
+# Migrasi & seed TIDAK dijalankan otomatis oleh compose ini — jalankan
+# eksplisit setelah db sehat (lihat Makefile: `make migrate`, `make seed`),
+# selaras dengan aturan seeding di api-configuration-standards.md.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sanctuary
+      POSTGRES_PASSWORD: sanctuary
+      POSTGRES_DB: sanctuary
+    ports:
+      # Host 5434 (bukan 5432 default) — mesin ini sering menjalankan proyek
+      # lain yang sudah memakai 5432. Di dalam network compose, service lain
+      # tetap mengaksesnya sebagai db:5432 (lihat DB_DSN pada service api).
+      - "5434:5432"
+    volumes:
+      - sanctuary_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sanctuary -d sanctuary"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      # Host 6380 — port 6379 default sudah dipakai proyek lain di mesin ini.
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      APP_ENV: development
+      HTTP_PORT: "8080"
+      LOG_LEVEL: debug
+      APP_TIMEZONE: Asia/Jakarta
+      # Nama host mengacu ke service compose, bukan localhost.
+      DB_DSN: postgres://sanctuary:sanctuary@db:5432/sanctuary?sslmode=disable
+      DB_AUTO_MIGRATE: "true"
+      REDIS_ADDR: redis:6379
+      JWT_SECRET: dev-only-secret-change-me-32-characters-min
+      COOKIE_SECURE: "false"
+      ALLOW_ORIGINS: http://localhost:3000,http://localhost:8081
+      RATE_LIMIT_FAIL_CLOSED: "false"
+      SEED_DEFAULT_PASSWORD: Sanctuary123!
+    volumes:
+      - .:/app
+      - sanctuary_go_mod_cache:/go/pkg/mod
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  sanctuary_db_data:
+  sanctuary_go_mod_cache:

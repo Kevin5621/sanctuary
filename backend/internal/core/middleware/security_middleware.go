@@ -91,11 +91,20 @@ func CORS(cfg *config.Config) gin.HandlerFunc {
 // CSRF menerapkan double-submit cookie pattern untuk request mutasi.
 // Request dengan Bearer token (klien native) dilewati karena tidak memakai
 // ambient credentials sehingga tidak dapat menjadi target CSRF.
-func CSRF() gin.HandlerFunc {
+//
+// exemptPaths mengecualikan endpoint yang secara sah belum memiliki sesi/
+// cookie CSRF untuk dicocokkan — saat ini hanya /auth/login: endpoint ini
+// justru YANG MENERBITKAN cookie csrf_token, sehingga tidak mungkin
+// mensyaratkan token tersebut pada request yang sama. Endpoint mutasi
+// lain (termasuk /auth/refresh, /auth/logout) tetap wajib menyertakannya
+// karena cookie csrf_token sudah ada sejak login.
+func CSRF(exemptPaths ...string) gin.HandlerFunc {
 	safeMethods := []string{http.MethodGet, http.MethodHead, http.MethodOptions}
 
 	return func(c *gin.Context) {
-		if slices.Contains(safeMethods, c.Request.Method) || UsesBearerAuth(c) {
+		if slices.Contains(safeMethods, c.Request.Method) ||
+			UsesBearerAuth(c) ||
+			slices.Contains(exemptPaths, c.FullPath()) {
 			c.Next()
 			return
 		}

@@ -1,0 +1,8 @@
+.git
+.env
+tmp/
+build/
+*.md
+.air.toml
+docker-compose*.yml
+Dockerfile*

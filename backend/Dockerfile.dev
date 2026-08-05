@@ -1,0 +1,21 @@
+# Image development — hot reload via air. Source di-mount sebagai volume
+# oleh docker-compose.yml; image ini hanya menyediakan toolchain.
+FROM golang:1.25-alpine
+
+RUN apk add --no-cache git ca-certificates
+
+# Versi dipin (bukan @latest): rilis air terbaru mensyaratkan toolchain Go
+# yang lebih baru daripada base image ini.
+RUN go install github.com/air-verse/air@v1.61.7
+
+WORKDIR /app
+
+# Cache dependency layer terpisah dari source agar rebuild cepat.
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+EXPOSE 8080
+
+CMD ["air", "-c", ".air.toml"]
