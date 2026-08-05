@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/floating_cartoon_navbar.dart';
 import 'bimbingan_tab.dart';
 import 'dosen_profil_tab.dart';
 import 'kondisi_tab.dart';
@@ -19,37 +20,40 @@ class _DosenShellPageState extends State<DosenShellPage> {
     DosenProfilTab(),
   ];
 
+  final List<FloatingCartoonNavbarItem> _navItems = const [
+    FloatingCartoonNavbarItem(
+      icon: Icons.groups_outlined,
+      selectedIcon: Icons.groups_rounded,
+      label: 'Bimbingan',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.analytics_outlined,
+      selectedIcon: Icons.analytics_rounded,
+      label: 'Kondisi',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.person_outline_rounded,
+      selectedIcon: Icons.person_rounded,
+      label: 'Profil',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
         children: _tabs,
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: FloatingCartoonNavbar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (idx) {
+        onTap: (idx) {
           setState(() {
             _currentIndex = idx;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups_rounded),
-            label: 'Bimbingan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics_rounded),
-            label: 'Kondisi',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Profil',
-          ),
-        ],
+        items: _navItems,
       ),
     );
   }

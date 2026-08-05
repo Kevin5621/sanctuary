@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/floating_cartoon_navbar.dart';
 import 'admin_profil_tab.dart';
 import 'bantuan_tab.dart';
 
@@ -17,32 +18,35 @@ class _AdminShellPageState extends State<AdminShellPage> {
     AdminProfilTab(),
   ];
 
+  final List<FloatingCartoonNavbarItem> _navItems = const [
+    FloatingCartoonNavbarItem(
+      icon: Icons.support_agent_outlined,
+      selectedIcon: Icons.support_agent_rounded,
+      label: 'Bantuan',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.person_outline_rounded,
+      selectedIcon: Icons.person_rounded,
+      label: 'Profil',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
         children: _tabs,
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: FloatingCartoonNavbar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (idx) {
+        onTap: (idx) {
           setState(() {
             _currentIndex = idx;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.support_agent_outlined),
-            selectedIcon: Icon(Icons.support_agent_rounded),
-            label: 'Bantuan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Profil',
-          ),
-        ],
+        items: _navItems,
       ),
     );
   }

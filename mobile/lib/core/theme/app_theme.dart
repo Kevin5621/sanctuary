@@ -177,9 +177,9 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: brightness == Brightness.light
-            ? Colors.white
+            ? AppColors.midnight
             : AppColors.darkSurface,
-        indicatorColor: AppColors.midnight,
+        indicatorColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 10,
         shadowColor: AppColors.cartoonShadow,
@@ -196,14 +196,14 @@ class AppTheme {
           return GoogleFonts.dmSans(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: AppColors.warmTextSecondary,
+            color: Colors.white70,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: Colors.white, size: 24);
+            return const IconThemeData(color: AppColors.midnight, size: 24);
           }
-          return const IconThemeData(color: AppColors.warmTextSecondary, size: 24);
+          return const IconThemeData(color: Colors.white70, size: 24);
         }),
       ),
       cardTheme: CardThemeData(

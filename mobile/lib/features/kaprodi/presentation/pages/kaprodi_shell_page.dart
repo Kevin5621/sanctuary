@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/floating_cartoon_navbar.dart';
 import 'dashboard_tab.dart';
 import 'kaprodi_profil_tab.dart';
 import 'laporan_tab.dart';
@@ -21,42 +22,45 @@ class _KaprodiShellPageState extends State<KaprodiShellPage> {
     KaprodiProfilTab(),
   ];
 
+  final List<FloatingCartoonNavbarItem> _navItems = const [
+    FloatingCartoonNavbarItem(
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard_rounded,
+      label: 'Dashboard',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.school_outlined,
+      selectedIcon: Icons.school_rounded,
+      label: 'Pembimbing',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.description_outlined,
+      selectedIcon: Icons.description_rounded,
+      label: 'Laporan',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.person_outline_rounded,
+      selectedIcon: Icons.person_rounded,
+      label: 'Profil',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
         children: _tabs,
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: FloatingCartoonNavbar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (idx) {
+        onTap: (idx) {
           setState(() {
             _currentIndex = idx;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school_rounded),
-            label: 'Pembimbing',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.description_outlined),
-            selectedIcon: Icon(Icons.description_rounded),
-            label: 'Laporan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Profil',
-          ),
-        ],
+        items: _navItems,
       ),
     );
   }

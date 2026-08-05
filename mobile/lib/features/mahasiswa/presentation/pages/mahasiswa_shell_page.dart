@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/floating_cartoon_navbar.dart';
 import 'beranda_tab.dart';
 import 'jurnal_tab.dart';
 import 'mood_tab.dart';
@@ -26,6 +26,34 @@ class _MahasiswaShellPageState extends State<MahasiswaShellPage> {
     ProfilTab(),
   ];
 
+  final List<FloatingCartoonNavbarItem> _navItems = const [
+    FloatingCartoonNavbarItem(
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
+      label: 'Beranda',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.mood_outlined,
+      selectedIcon: Icons.mood_rounded,
+      label: 'Mood',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.menu_book_outlined,
+      selectedIcon: Icons.menu_book_rounded,
+      label: 'Jurnal',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.forum_outlined,
+      selectedIcon: Icons.forum_rounded,
+      label: 'Terapis AI',
+    ),
+    FloatingCartoonNavbarItem(
+      icon: Icons.person_outline_rounded,
+      selectedIcon: Icons.person_rounded,
+      label: 'Profil',
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -35,55 +63,19 @@ class _MahasiswaShellPageState extends State<MahasiswaShellPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Allows body content to scroll smoothly behind floating navbar
       body: IndexedStack(
         index: _currentIndex,
         children: _tabs,
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.cartoonShadow,
-              offset: Offset(0, -4),
-              blurRadius: 10,
-            )
-          ],
-        ),
-        child: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded),
-              label: 'Beranda',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.mood_outlined),
-              selectedIcon: Icon(Icons.mood_rounded),
-              label: 'Mood',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.menu_book_outlined),
-              selectedIcon: Icon(Icons.menu_book_rounded),
-              label: 'Jurnal',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.forum_outlined),
-              selectedIcon: Icon(Icons.forum_rounded),
-              label: 'Terapis AI',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded),
-              label: 'Profil',
-            ),
-          ],
-        ),
+      bottomNavigationBar: FloatingCartoonNavbar(
+        selectedIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: _navItems,
       ),
     );
   }
