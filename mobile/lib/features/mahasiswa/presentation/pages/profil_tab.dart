@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 import 'bantuan_darurat_page.dart';
 import 'dass21_screening_page.dart';
 import 'edukasi_model_page.dart';
@@ -161,8 +163,30 @@ class ProfilTab extends StatelessWidget {
           // Tombol Keluar Sesi
           ElevatedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Keluar dari akun Mahasiswa')),
+              showDialog(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Keluar Sesi'),
+                  content: const Text(
+                      'Apakah Anda yakin ingin keluar dari akun Mahasiswa?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Batal'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.ewsIntervention,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        context.read<AuthCubit>().logout();
+                      },
+                      child: const Text('Keluar'),
+                    ),
+                  ],
+                ),
               );
             },
             icon: const Icon(Icons.logout_rounded, color: AppColors.midnight),

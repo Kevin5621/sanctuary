@@ -28,9 +28,12 @@ class AuthRemoteDataSource {
     return result.data;
   }
 
-  Future<void> logout() async {
+  Future<void> logout({String? refreshToken}) async {
     await _client.post<void>(
       '/auth/logout',
+      body: refreshToken != null && refreshToken.isNotEmpty
+          ? {'refresh_token': refreshToken}
+          : null,
       parser: (_) {},
     );
   }
