@@ -10,10 +10,8 @@ import '../../data/repositories/daily_metric_repository.dart';
 import '../../domain/entities/daily_metric.dart';
 import '../cubit/beranda_cubit.dart';
 import 'dass21_screening_page.dart';
-import 'jurnal_tab.dart';
 import 'latihan_napas_page.dart';
 import 'mahasiswa_shell_page.dart';
-import 'terapis_ai_tab.dart';
 
 class BerandaTab extends StatelessWidget {
   const BerandaTab({super.key});
@@ -180,9 +178,7 @@ class _BerandaViewState extends State<_BerandaView> {
                                     subtitle: 'Catat rasa syukurmu',
                                     icon: Icons.edit_note_rounded,
                                     color: AppColors.moodHappinessBg,
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(builder: (_) => const JurnalTab()),
-                                    ),
+                                    onTap: () => MahasiswaShellPage.switchTab(context, 2),
                                   ),
                                 ),
                               ],
@@ -399,7 +395,7 @@ class _BerandaViewState extends State<_BerandaView> {
         'sub': 'Jurnal',
         'icon': Icons.edit_note_rounded,
         'bg': AppColors.moodHappinessBg,
-        'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JurnalTab())),
+        'onTap': () => MahasiswaShellPage.switchTab(context, 2),
       },
       {
         'label': 'Skrining',
@@ -413,7 +409,7 @@ class _BerandaViewState extends State<_BerandaView> {
         'sub': 'Terapis',
         'icon': Icons.psychology_rounded,
         'bg': AppColors.moodSadnessBg,
-        'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TerapisAiTab())),
+        'onTap': () => MahasiswaShellPage.switchTab(context, 3),
       },
     ];
 
