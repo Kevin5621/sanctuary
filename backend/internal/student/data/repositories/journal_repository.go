@@ -21,6 +21,10 @@ type JournalRepository interface {
 	DeleteForUser(ctx context.Context, id, userID string) error
 	// CountCrisisFlaggedForUser dipakai layar profil mahasiswa (riwayat analisis).
 	CountCrisisFlaggedForUser(ctx context.Context, userID string) (int64, error)
+	// ListAnalyzedByUser dipakai layar "Riwayat Analisis Emosi" milik pemilik
+	// akun. Sama seperti method lain di sini, userID wajib — tidak ada jalur
+	// yang dapat membaca hasil analisis milik orang lain.
+	ListAnalyzedByUser(ctx context.Context, userID string, limit int) ([]models.StudentJournal, error)
 }
 
 type journalRepository struct{ db *gorm.DB }
@@ -107,6 +111,19 @@ func (r *journalRepository) DeleteForUser(ctx context.Context, id, userID string
 		return utils.NewError(utils.CodeNotFound)
 	}
 	return nil
+}
+
+func (r *journalRepository) ListAnalyzedByUser(ctx context.Context, userID string, limit int) ([]models.StudentJournal, error) {
+	ctx, cancel := utils.DBContext(ctx)
+	defer cancel()
+
+	var journals []models.StudentJournal
+	err := r.db.WithContext(ctx).
+		Where("user_id = ? AND analyzed_at IS NOT NULL", userID).
+		Order("analyzed_at DESC").
+		Limit(limit).
+		Find(&journals).Error
+	return journals, utils.TranslateDBError(err, "")
 }
 
 func (r *journalRepository) CountCrisisFlaggedForUser(ctx context.Context, userID string) (int64, error) {

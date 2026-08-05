@@ -157,6 +157,12 @@ func clamp(v, min, max float64) float64 { return math.Min(math.Max(v, min), max)
 
 func round3(v float64) float64 { return math.Round(v*1000) / 1000 }
 
+// CopingFor mengembalikan saran coping untuk sebuah label emosi.
+// Dipakai layar riwayat analisis agar saran yang muncul di sana identik
+// dengan yang muncul tepat setelah analisis — bukan daftar terpisah yang
+// bisa menyimpang seiring waktu.
+func CopingFor(label string) []string { return copingByEmotion[label] }
+
 // EmotionLabelText memberi teks bahasa Indonesia untuk label emosi.
 func EmotionLabelText(label string) string {
 	switch label {

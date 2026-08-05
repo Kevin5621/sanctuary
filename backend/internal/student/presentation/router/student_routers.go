@@ -17,20 +17,43 @@ func RegisterPrivacyRoutes(rg *gin.RouterGroup, h *handler.PrivacyHandler) {
 
 // RegisterJournalRoutes — seluruh route berada di bawah PrivateContentGuard,
 // sehingga tidak ada peran selain STUDENT yang bisa menyentuhnya.
+//
+// Catatan urutan: "emotion-history" didaftarkan sebelum "/:id" agar Gin tidak
+// memperlakukannya sebagai id jurnal.
 func RegisterJournalRoutes(rg *gin.RouterGroup, h *handler.JournalHandler) {
 	g := rg.Group("/journals", middleware.PrivateContentGuard())
 	g.POST("", h.Create)
 	g.GET("", h.List)
+	g.GET("/emotion-history", h.EmotionHistory)
 	g.GET("/:id", h.Detail)
 	g.POST("/:id/analyze", h.Analyze)
 	g.DELETE("/:id", h.Delete)
 }
 
-// RegisterDailyMetricRoutes — ringkasan check-in mood milik mahasiswa sendiri
-// (kuantitatif saja), dipakai kartu ringkasan & kalender mood di Beranda.
+// RegisterDailyMetricRoutes — check-in mood harian dan riwayatnya
+// (kuantitatif saja), dipakai Beranda dan tab Mood.
 func RegisterDailyMetricRoutes(rg *gin.RouterGroup, h *handler.DailyMetricHandler) {
 	g := rg.Group("/daily-metrics")
+	g.GET("/options", h.Options)
 	g.GET("/weekly-summary", h.WeeklySummary)
+	g.GET("/monthly", h.Monthly)
+	g.GET("/stats", h.Stats)
 	g.POST("", h.SaveMetric)
 }
 
+// RegisterDassRoutes — skrining DASS-21 milik mahasiswa sendiri.
+// Skoring dilakukan server; klien hanya mengirim jawaban mentah.
+func RegisterDassRoutes(rg *gin.RouterGroup, h *handler.DassHandler) {
+	g := rg.Group("/dass21")
+	g.GET("/questions", h.Questionnaire)
+	g.GET("", h.History)
+	g.POST("", h.Submit)
+}
+
+// RegisterContactRequestRoutes — tombol "minta dihubungi".
+func RegisterContactRequestRoutes(rg *gin.RouterGroup, h *handler.ContactRequestHandler) {
+	g := rg.Group("/contact-requests")
+	g.GET("", h.State)
+	g.POST("", h.Create)
+	g.DELETE("", h.Cancel)
+}

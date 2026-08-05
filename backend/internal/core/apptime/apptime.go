@@ -3,12 +3,14 @@
 package apptime
 
 import (
+	"strconv"
 	"sync"
 	"time"
 )
 
 const (
 	LayoutDate     = "2006-01-02"
+	LayoutMonth    = "2006-01"
 	LayoutDateTime = time.RFC3339
 	LayoutDisplay  = "02 Jan 2006"
 )
@@ -68,6 +70,45 @@ func StartOfWeek(t time.Time) time.Time {
 // EndOfWeek mengembalikan Minggu (00:00) dari minggu yang memuat t.
 func EndOfWeek(t time.Time) time.Time { return StartOfWeek(t).AddDate(0, 0, 6) }
 
+// StartOfMonth mengembalikan tanggal 1 (00:00) dari bulan yang memuat t.
+func StartOfMonth(t time.Time) time.Time {
+	t = t.In(Location())
+	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, Location())
+}
+
+// EndOfMonth mengembalikan hari terakhir (00:00) dari bulan yang memuat t.
+func EndOfMonth(t time.Time) time.Time {
+	return StartOfMonth(t).AddDate(0, 1, -1)
+}
+
+// DaysInMonth dipakai kalender mood bulanan untuk menggambar sel kosong.
+func DaysInMonth(t time.Time) int { return EndOfMonth(t).Day() }
+
+// SameMonth membandingkan dua waktu pada tingkat bulan (timezone aplikasi).
+func SameMonth(a, b time.Time) bool {
+	a, b = a.In(Location()), b.In(Location())
+	return a.Year() == b.Year() && a.Month() == b.Month()
+}
+
+// indonesianMonths dipakai label yang dilihat pengguna; nama bulan bawaan Go
+// selalu bahasa Inggris dan tidak dapat dilokalkan tanpa paket tambahan.
+var indonesianMonths = [...]string{
+	"Januari", "Februari", "Maret", "April", "Mei", "Juni",
+	"Juli", "Agustus", "September", "Oktober", "November", "Desember",
+}
+
+// FormatMonthLabel mengembalikan "Agustus 2026".
+func FormatMonthLabel(t time.Time) string {
+	t = t.In(Location())
+	return indonesianMonths[int(t.Month())-1] + " " + strconv.Itoa(t.Year())
+}
+
+// ParseMonth mem-parse "YYYY-MM" menjadi tanggal 1 bulan tersebut.
+func ParseMonth(s string) (time.Time, error) {
+	return time.ParseInLocation(LayoutMonth, s, Location())
+}
+
+func FormatMonth(t time.Time) string    { return t.In(Location()).Format(LayoutMonth) }
 func FormatDate(t time.Time) string     { return t.In(Location()).Format(LayoutDate) }
 func FormatDateTime(t time.Time) string { return t.In(Location()).Format(LayoutDateTime) }
 

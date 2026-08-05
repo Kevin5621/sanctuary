@@ -79,6 +79,12 @@ const (
 	CodeMetricAlreadyExists = "METRIC_ALREADY_EXISTS"
 	// 422 - backdate check-in tidak boleh ke masa depan.
 	CodeFutureDateNotAllowed = "FUTURE_DATE_NOT_ALLOWED"
+	// 422 - pengisian mundur melewati batas hari yang diizinkan.
+	CodeBackdateLimitExceeded = "BACKDATE_LIMIT_EXCEEDED"
+	// 409 - permintaan "minta dihubungi" yang masih terbuka sudah ada.
+	CodeContactRequestExists = "CONTACT_REQUEST_ALREADY_OPEN"
+	// 422 - mahasiswa belum memiliki dosen pembimbing.
+	CodeAdvisorNotAssigned = "ADVISOR_NOT_ASSIGNED"
 )
 
 var ErrorCodeMap = map[string]ErrorInfo{
@@ -127,6 +133,9 @@ var ErrorCodeMap = map[string]ErrorInfo{
 	CodeInsufficientData:          {http.StatusUnprocessableEntity, "Data belum cukup"},
 	CodeMetricAlreadyExists:       {http.StatusConflict, "Check-in untuk tanggal ini sudah ada"},
 	CodeFutureDateNotAllowed:      {http.StatusUnprocessableEntity, "Tanggal tidak boleh melebihi hari ini"},
+	CodeBackdateLimitExceeded:     {http.StatusUnprocessableEntity, "Tanggal terlalu jauh ke belakang"},
+	CodeContactRequestExists:      {http.StatusConflict, "Permintaan dihubungi sebelumnya masih terbuka"},
+	CodeAdvisorNotAssigned:        {http.StatusUnprocessableEntity, "Kamu belum memiliki dosen pembimbing"},
 }
 
 // FieldError mengikuti format field_errors pada standar error.

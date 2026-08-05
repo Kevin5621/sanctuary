@@ -25,6 +25,7 @@ type Config struct {
 	Pagination PaginationConfig
 	Privacy    PrivacyConfig
 	EWS        EWSConfig
+	Student    StudentConfig
 	Seeder     SeederConfig
 }
 
@@ -92,6 +93,19 @@ type EWSConfig struct {
 	LowSleepMinNights      int
 }
 
+// StudentConfig adalah aturan pengisian data milik mahasiswa sendiri.
+type StudentConfig struct {
+	// MaxBackdateDays membatasi seberapa jauh ke belakang check-in mood dan
+	// jurnal boleh diisi. Batas ini bukan teknis melainkan kualitas data:
+	// ingatan atas mood dan jam tidur memburuk cepat, dan entri lama yang
+	// dikarang belakangan ikut menggeser indikator EWS.
+	MaxBackdateDays int
+	// MoodStatsDefaultPeriod & MoodStatsMaxPeriod membatasi rentang statistik
+	// yang boleh diminta klien (mencegah query tanpa batas).
+	MoodStatsDefaultPeriod int
+	MoodStatsMaxPeriod     int
+}
+
 type SeederConfig struct {
 	DefaultPassword string
 }
@@ -152,6 +166,11 @@ func Load() (*Config, error) {
 			LowSleepHours:          getFloat("EWS_LOW_SLEEP_HOURS", 5),
 			LowSleepMinNights:      getInt("EWS_LOW_SLEEP_MIN_NIGHTS", 2),
 		},
+		Student: StudentConfig{
+			MaxBackdateDays:        getInt("STUDENT_MAX_BACKDATE_DAYS", 7),
+			MoodStatsDefaultPeriod: getInt("STUDENT_MOOD_STATS_DEFAULT_DAYS", 30),
+			MoodStatsMaxPeriod:     getInt("STUDENT_MOOD_STATS_MAX_DAYS", 365),
+		},
 		Seeder: SeederConfig{
 			DefaultPassword: getString("SEED_DEFAULT_PASSWORD", "Sanctuary123!"),
 		},
@@ -189,6 +208,12 @@ func (c *Config) validate() error {
 	if c.Privacy.KAnonymityMinGroup < 5 {
 		// Ambang privasi tidak boleh diturunkan di bawah standar dokumen Sanctuary.
 		return fmt.Errorf("K_ANONYMITY_MIN_GROUP must be >= 5")
+	}
+	if c.Student.MaxBackdateDays < 0 {
+		return fmt.Errorf("STUDENT_MAX_BACKDATE_DAYS must be >= 0")
+	}
+	if c.Student.MoodStatsMaxPeriod < c.Student.MoodStatsDefaultPeriod {
+		return fmt.Errorf("STUDENT_MOOD_STATS_MAX_DAYS must be >= STUDENT_MOOD_STATS_DEFAULT_DAYS")
 	}
 	return nil
 }

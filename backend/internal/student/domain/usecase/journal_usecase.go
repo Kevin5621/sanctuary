@@ -21,7 +21,13 @@ type JournalUsecase interface {
 	Detail(ctx context.Context, userID, journalID string) (dto.JournalResponse, error)
 	Analyze(ctx context.Context, userID, journalID string) (dto.AnalysisResponse, error)
 	Delete(ctx context.Context, userID, journalID string) error
+	// EmotionHistory melayani menu "Riwayat Analisis Emosi" di tab Profil.
+	EmotionHistory(ctx context.Context, userID string) (dto.EmotionHistoryResponse, error)
 }
+
+// EmotionHistoryLimit membatasi jumlah hasil analisis yang dikirim sekaligus.
+// Grafik tren tidak menjadi lebih terbaca di atas angka ini.
+const EmotionHistoryLimit = 50
 
 type journalUsecase struct {
 	repo     repositories.JournalRepository
@@ -93,6 +99,14 @@ func (u *journalUsecase) Analyze(ctx context.Context, userID, journalID string) 
 
 func (u *journalUsecase) Delete(ctx context.Context, userID, journalID string) error {
 	return u.repo.DeleteForUser(ctx, journalID, userID)
+}
+
+func (u *journalUsecase) EmotionHistory(ctx context.Context, userID string) (dto.EmotionHistoryResponse, error) {
+	journals, err := u.repo.ListAnalyzedByUser(ctx, userID, EmotionHistoryLimit)
+	if err != nil {
+		return dto.EmotionHistoryResponse{}, err
+	}
+	return mapper.ToEmotionHistory(journals), nil
 }
 
 // applyAnalysis menjalankan analisis emosi lalu menyimpan hasilnya.

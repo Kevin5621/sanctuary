@@ -26,13 +26,14 @@ type JournalResponse struct {
 // JournalListItemResponse sengaja TIDAK memuat `content` agar payload daftar
 // tetap ringan; konten hanya dikirim pada endpoint detail milik pemiliknya.
 type JournalListItemResponse struct {
-	ID              string  `json:"id"`
-	Title           string  `json:"title,omitempty"`
-	Preview         string  `json:"preview"`
-	JournalDate     string  `json:"journal_date"`
-	EmotionLabel    string  `json:"emotion_label,omitempty"`
-	IsCrisisFlagged bool    `json:"is_crisis_flagged"`
-	AnalyzedAt      *string `json:"analyzed_at,omitempty"`
+	ID               string  `json:"id"`
+	Title            string  `json:"title,omitempty"`
+	Preview          string  `json:"preview"`
+	JournalDate      string  `json:"journal_date"`
+	EmotionLabel     string  `json:"emotion_label,omitempty"`
+	EmotionLabelText string  `json:"emotion_label_text,omitempty"`
+	IsCrisisFlagged  bool    `json:"is_crisis_flagged"`
+	AnalyzedAt       *string `json:"analyzed_at,omitempty"`
 }
 
 // AnalysisResponse adalah hasil trigger "Analisis Emosi".
@@ -48,4 +49,54 @@ type AnalysisResponse struct {
 	AnalyzedAt        string   `json:"analyzed_at"`
 	// ModelVersion menjaga transparansi (layar "Edukasi Model" di profil).
 	ModelVersion string `json:"model_version"`
+}
+
+// ------------------------------------------------------------------
+// Riwayat Analisis Emosi (menu di tab Profil).
+//
+// Yang ditampilkan adalah HASIL analisis, bukan tulisan lengkapnya —
+// preview singkat disertakan hanya agar pemilik akun dapat mengenali
+// catatan mana yang dimaksud.
+// ------------------------------------------------------------------
+
+type EmotionHistoryItemResponse struct {
+	JournalID         string   `json:"journal_id"`
+	Title             string   `json:"title,omitempty"`
+	Preview           string   `json:"preview"`
+	JournalDate       string   `json:"journal_date"`
+	AnalyzedAt        string   `json:"analyzed_at"`
+	EmotionLabel      string   `json:"emotion_label"`
+	EmotionLabelText  string   `json:"emotion_label_text"`
+	EmotionConfidence float64  `json:"emotion_confidence"`
+	SentimentScore    float64  `json:"sentiment_score"`
+	IsCrisisFlagged   bool     `json:"is_crisis_flagged"`
+	CopingSuggestions []string `json:"coping_suggestions,omitempty"`
+}
+
+// EmotionTrendPointResponse adalah satu titik pada grafik perkembangan
+// sentimen, diurutkan dari yang paling lama.
+type EmotionTrendPointResponse struct {
+	Date             string  `json:"date"`
+	SentimentScore   float64 `json:"sentiment_score"`
+	EmotionLabel     string  `json:"emotion_label"`
+	EmotionLabelText string  `json:"emotion_label_text"`
+}
+
+type EmotionHistoryResponse struct {
+	Items        []EmotionHistoryItemResponse `json:"items"`
+	Distribution []EmotionShareResponse       `json:"distribution"`
+	Trend        []EmotionTrendPointResponse  `json:"trend"`
+
+	TotalAnalyzed      int     `json:"total_analyzed"`
+	CrisisFlaggedCount int     `json:"crisis_flagged_count"`
+	DominantEmotion    string  `json:"dominant_emotion,omitempty"`
+	DominantEmotionText string `json:"dominant_emotion_text,omitempty"`
+	NegativeRatio      float64 `json:"negative_ratio"`
+
+	// ModelVersion & Accuracy ikut dikirim agar layar riwayat dapat menyatakan
+	// batas ketelitian di tempat hasilnya dibaca, bukan hanya di layar edukasi.
+	ModelVersion string `json:"model_version"`
+
+	IsSufficient bool   `json:"is_sufficient"`
+	Message      string `json:"message,omitempty"`
 }

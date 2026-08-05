@@ -63,6 +63,16 @@ func (h *JournalHandler) Analyze(c *gin.Context) {
 	utils.OK(c, analysis)
 }
 
+// EmotionHistory godoc: GET /api/v1/students/me/journals/emotion-history
+func (h *JournalHandler) EmotionHistory(c *gin.Context) {
+	history, err := h.uc.EmotionHistory(c.Request.Context(), middleware.MustUserID(c))
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, history)
+}
+
 // Delete godoc: DELETE /api/v1/students/me/journals/:id
 func (h *JournalHandler) Delete(c *gin.Context) {
 	if err := h.uc.Delete(c.Request.Context(), middleware.MustUserID(c), c.Param("id")); err != nil {

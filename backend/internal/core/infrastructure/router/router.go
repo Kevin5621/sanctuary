@@ -74,14 +74,14 @@ func Register(
 	jwtManager *utils.JWTManager,
 	limiter *middleware.RateLimiter,
 ) {
-	_, auditRepo := authpresentation.RegisterRoutes(api, authpresentation.Deps{
+	userRepo, auditRepo := authpresentation.RegisterRoutes(api, authpresentation.Deps{
 		DB:      db,
 		Config:  cfg,
 		JWT:     jwtManager,
 		Limiter: limiter,
 	})
 
-	shared := studentpresentation.RegisterRoutes(api, db, jwtManager, auditRepo)
+	shared := studentpresentation.RegisterRoutes(api, db, cfg, jwtManager, userRepo, auditRepo)
 	ewsUC := mentorpresentation.RegisterRoutes(api, db, cfg, jwtManager, shared, auditRepo)
 	programpresentation.RegisterRoutes(api, db, jwtManager, shared, ewsUC, auditRepo)
 	supportpresentation.RegisterRoutes(api, db, jwtManager)
