@@ -13,6 +13,11 @@ import (
 //     layar Layanan Bantuan Darurat dan pada penanganan deteksi krisis).
 //   - Tulis: hanya ADMIN.
 func RegisterEmergencyContactRoutes(rg *gin.RouterGroup, h *handler.EmergencyContactHandler) {
+	// Daftar pilihan "jenis layanan" untuk form Admin (A-BAN-01).
+	// Sengaja di luar grup /emergency-contacts agar tidak bersaing dengan
+	// wildcard "/:id" pada router tree Gin.
+	rg.GET("/service-types", h.ServiceTypes)
+
 	g := rg.Group("/emergency-contacts")
 
 	g.GET("", h.List)

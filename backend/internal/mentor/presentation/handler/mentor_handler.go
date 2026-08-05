@@ -70,6 +70,31 @@ func (h *MentorHandler) GroupCondition(c *gin.Context) {
 	utils.OK(c, res)
 }
 
+// ListContactRequests godoc: GET /api/v1/mentors/me/contact-requests
+//
+// Response memuat nama mahasiswa + waktu permintaan SAJA.
+// SENGAJA TIDAK DISERTAKAN: kolom `student_contact_requests.note` (alasan) —
+// lihat D-6. Juga tidak ada indikator kondisi maupun EWS pada endpoint ini.
+func (h *MentorHandler) ListContactRequests(c *gin.Context) {
+	items, err := h.uc.ListContactRequests(c.Request.Context(), h.accessFrom(c))
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, items)
+}
+
+// Profile godoc: GET /api/v1/mentors/me/profile
+// Jumlah bimbingan + daftar batas akses (L-PRO-02..03). Tanpa data kondisi.
+func (h *MentorHandler) Profile(c *gin.Context) {
+	res, err := h.uc.Profile(c.Request.Context(), h.accessFrom(c))
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, res)
+}
+
 func (h *MentorHandler) accessFrom(c *gin.Context) usecase.AccessContext {
 	return usecase.AccessContext{
 		AdvisorID: middleware.MustUserID(c),

@@ -157,11 +157,11 @@ Titik-titik di mana dokumen fungsi, skema DB, dan kode belum sepakat. Rekomendas
 | M-PRO-01 | **Skrining DASS-21** — riwayat, tren, pengisian baru | ⬜ | 🟡 | UI kuesioner ada; **tidak ada endpoint** — jawaban belum tersimpan. Model & tabel siap |
 | M-PRO-02 | **Riwayat Analisis Emosi** — hasil + tren | 🟡 | 🟡 | data ada di `student_journals`; belum ada endpoint agregasi tren |
 | M-PRO-03 | **Tentang model ini** — IndoBERT, 4 label (D-2), akurasi ±77%, batasan | — | ✅ | teks wajib disesuaikan setelah D-2 |
-| M-PRO-04 | **Butuh bantuan sekarang** — nomor darurat & konseling | ✅ | 🟡 | `GET /support/emergency-contacts`; FE masih statis |
+| M-PRO-04 | **Butuh bantuan sekarang** — nomor darurat & konseling | ✅ | ✅ | tersambung API; empty state jujur (A-BAN-03) |
 | M-PRO-05 | **Latihan menenangkan diri** — napas, grounding, refleksi | — | 🟡 | latihan napas ✅; grounding & refleksi ⬜ (murni klien, tanpa backend) |
 | M-PRO-06 | **Privasi & Berbagi Data** | ✅ | ✅ | 3 tingkat + 2 izin; 5 test cubit lulus |
 | M-PRO-07 | Pengingat harian (nyala/mati + jam) | — | ⬜ | notifikasi lokal, tanpa backend |
-| M-PRO-08 | Mode gelap | — | 🟡 | tema light/dark ada, masih `ThemeMode.system` — belum bisa dipilih & disimpan |
+| M-PRO-08 | Mode gelap | — | 🟡 | `ThemeCubit` persisten sudah ada & dipakai tab Profil Dosen/Kaprodi/Admin; tab Profil Mahasiswa belum memasang `DarkModeCard` |
 | M-PRO-09 | Kebijakan privasi | — | ⬜ | wajib selaras D-1 dan D-5 |
 
 ### 5.5 Terapis AI — `M-AI` 🔒 diblokir D-5
@@ -192,29 +192,29 @@ Peran **pemantau, bukan pembaca**: yang diterima hasil hitungan, bukan tulisan.
 
 | ID | Fitur | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
-| L-BIM-01 | Daftar bimbingan terurut tingkat perhatian | ✅ | 🟡 | urutan: minta-dihubungi → prioritas EWS → nama. FE masih dummy |
-| L-BIM-02 | Status EWS per mahasiswa | ✅ | 🟡 | butuh `allow_early_warning` |
-| L-BIM-03 | Daftar "minta dihubungi" — **nama & waktu saja** | 🟡 | ⬜ | pastikan `note` tidak bocor (D-6) |
-| L-BIM-04 | Halaman detail per mahasiswa | ✅ | ⬜ | `GET /mentors/me/students/:id`, tunduk `share_level` |
-| L-BIM-05 | State `CLOSED` ditampilkan jujur ("mahasiswa memilih tidak berbagi"), bukan sebagai "Normal" | ✅ | ⬜ | |
+| L-BIM-01 | Daftar bimbingan terurut tingkat perhatian | ✅ | ✅ | urutan dari server, klien tidak mengurut ulang |
+| L-BIM-02 | Status EWS per mahasiswa | ✅ | ✅ | `EwsLevelBadge`; tanpa izin → badge "peringatan dini nonaktif", bukan Normal |
+| L-BIM-03 | Daftar "minta dihubungi" — **nama & waktu saja** | ✅ | ✅ | `note` dihentikan sejak repository Go & tidak diurai entitas Dart |
+| L-BIM-04 | Halaman detail per mahasiswa | ✅ | ✅ | `student_detail_page.dart` — tunduk `share_level`, grafik tren hanya SUMMARY_TREND |
+| L-BIM-05 | State `CLOSED` ditampilkan jujur ("mahasiswa memilih tidak berbagi"), bukan sebagai "Normal" | ✅ | ✅ | `ClosedShareCard`; dijaga `dosen_privacy_test.dart` |
 
 ### 6.2 Tab Kondisi — `L-KON` 🟡
 
 | ID | Fitur | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
-| L-KON-01 | Agregat kelompok bimbingan | ✅ | 🟡 | k ≥ 5, `is_sufficient:false` bila kurang |
-| L-KON-02 | Sebaran tingkat perhatian | ✅ | ⬜ | |
-| L-KON-03 | Sebaran emosi hasil analisis jurnal | ✅ | ⬜ | label saja, tidak pernah teksnya |
-| L-KON-04 | Pemilih periode 30 / 90 / 120 hari | ✅ | ⬜ | |
+| L-KON-01 | Agregat kelompok bimbingan | ✅ | ✅ | `InsufficientDataCard` bila k < 5 — null tidak pernah jadi 0 |
+| L-KON-02 | Sebaran tingkat perhatian | ✅ | ✅ | seeder ditambah 2 mahasiswa agar ambang EWS terpenuhi & fitur ini bisa diuji |
+| L-KON-03 | Sebaran emosi hasil analisis jurnal | ✅ | ✅ | label saja; entitas `EmotionShare` tidak punya slot untuk teks |
+| L-KON-04 | Pemilih periode 30 / 90 / 120 hari | ✅ | ✅ | |
 
 ### 6.3 Tab Profil — `L-PRO` 🟡
 
 | ID | Fitur | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
 | L-PRO-01 | Identitas akun | ✅ | ✅ | dari `/auth/me` |
-| L-PRO-02 | Jumlah mahasiswa bimbingan | ✅ | 🟡 | |
-| L-PRO-03 | Daftar batas akses yang berlaku | — | 🟡 | teks eksplisit: "Anda tidak dapat membaca jurnal" — menurunkan kecurigaan mahasiswa |
-| L-PRO-04 | Mode gelap | — | ⬜ | sama dengan M-PRO-08 |
+| L-PRO-02 | Jumlah mahasiswa bimbingan | ✅ | ✅ | `GET /mentors/me/profile` |
+| L-PRO-03 | Daftar batas akses yang berlaku | ✅ | ✅ | teks dari server (`access_limits`), dirender `AccessLimitsCard` |
+| L-PRO-04 | Mode gelap | — | ✅ | `ThemeCubit` + secure storage; persisten, bukan `ThemeMode.system` |
 
 ### 6.4 Early Warning System — `EWS` ✅
 
@@ -249,17 +249,17 @@ Kondisi prodi dalam angka, tanpa identitas siapa pun.
 
 | ID | Tab / Fitur | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
-| K-DAS-01 | Rata-rata mood prodi | ✅ | 🟡 | FE dummy |
-| K-DAS-02 | Jumlah perlu intervensi → **persentase** (D-9) | 🟡 | 🟡 | ubah dari hitungan mentah |
-| K-DAS-03 | Jumlah aktif 7 hari terakhir | ✅ | 🟡 | |
-| K-DAS-04 | Rata-rata tingkat stres | ✅ | 🟡 | |
-| K-DAS-05 | Rata-rata jam tidur | ✅ | 🟡 | |
-| K-DAS-06 | Jumlah yang sudah mengisi skrining | 🟡 | 🟡 | bergantung `M-PRO-01` |
-| K-DAS-07 | Sebaran tingkat perhatian | ✅ | ⬜ | |
-| K-PEM-01 | Daftar dosen + beban bimbingan | ✅ | 🟡 | jumlah bimbingan bukan data wellbeing → tidak kena k-anonymity |
-| K-LAP-01 | Ringkasan per angkatan | ✅ | ⬜ | angkatan < 5 → "Data belum cukup" |
+| K-DAS-01 | Rata-rata mood prodi | ✅ | ✅ | |
+| K-DAS-02 | Jumlah perlu intervensi → **persentase** (D-9) | ✅ | ✅ | kartu diberi penanda "persentase" agar tidak terbaca sebagai jumlah orang |
+| K-DAS-03 | Jumlah aktif 7 hari terakhir | ✅ | ✅ | |
+| K-DAS-04 | Rata-rata tingkat stres | ✅ | ✅ | |
+| K-DAS-05 | Rata-rata jam tidur | ✅ | ✅ | |
+| K-DAS-06 | Jumlah yang sudah mengisi skrining | 🟡 | ✅ | FE siap; angkanya tetap bergantung `M-PRO-01` |
+| K-DAS-07 | Sebaran tingkat perhatian | ✅ | ✅ | dikirim sebagai **persentase** — hitungan per level akan membatalkan D-9 lewat pintu belakang |
+| K-PEM-01 | Daftar dosen + beban bimbingan | ✅ | ✅ | jumlah bimbingan bukan data wellbeing → tidak kena k-anonymity. "Mahasiswa berisiko per dosen" pada versi dummy DIHAPUS — itu data kondisi kelompok kecil |
+| K-LAP-01 | Ringkasan per angkatan | ✅ | ✅ | angkatan < 5 → "Data belum cukup", tanpa jumlah anggota |
 | K-LAP-02 | Ekspor laporan | ⬜ | ⬜ | opsional; tetap tunduk k ≥ 5 |
-| K-PRO-01 | Identitas + jumlah mahasiswa terdaftar + batas akses | ✅ | 🟡 | |
+| K-PRO-01 | Identitas + jumlah mahasiswa terdaftar + batas akses | ✅ | ✅ | `GET /programs/me/profile` |
 
 **k-anonimitas.** Sebuah angka agregat tidak ditampilkan bila kelompoknya < 5 mahasiswa — pada kelompok kecil, rata-rata praktis menunjuk individu. Yang dikembalikan: `200` dengan `is_sufficient:false`, **tanpa satu angka pun**, termasuk ukuran kelompoknya sendiri. Config menolak nilai < 5.
 
@@ -271,11 +271,11 @@ Pengelola konfigurasi, bukan pengawas. Admin mengelola aturan, bukan orang.
 
 | ID | Fitur | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
-| A-BAN-01 | CRUD layanan bantuan: nama, telepon, keterangan, jenis, 24 jam, aktif, urutan | ✅ | 🟡 | FE masih statis. Kolom `service_type` belum ada di skema — perlu migrasi |
-| A-BAN-02 | Nonaktif hanya terlihat admin | ✅ | ⬜ | |
-| A-BAN-03 | Daftar kosong → mahasiswa melihat "nomor layanan belum diatur" | ✅ | ⬜ | **jangan** nomor tebakan yang mungkin sudah mati |
-| A-BAN-04 | Verifikasi nomor bertanda `[VERIFIKASI]` sebelum rilis | ⬜ | — | seed berisi placeholder kampus — **blocker rilis** |
-| A-PRO-01 | Identitas + daftar batas akses | ✅ | 🟡 | |
+| A-BAN-01 | CRUD layanan bantuan: nama, telepon, keterangan, jenis, 24 jam, aktif, urutan | ✅ | ✅ | form + list tersambung API; `service_type` lewat migrasi `20260806120000` + enum & CHECK constraint |
+| A-BAN-02 | Nonaktif hanya terlihat admin | ✅ | ✅ | berlaku juga pada `GET /:id` — non-Admin menerima `EMERGENCY_CONTACT_NOT_FOUND`, bukan datanya |
+| A-BAN-03 | Daftar kosong → mahasiswa melihat "nomor layanan belum diatur" | ✅ | ✅ | 4 nomor hardcoded di `bantuan_darurat_page.dart` DIHAPUS — sekarang murni dari API |
+| A-BAN-04 | Verifikasi nomor bertanda `[VERIFIKASI]` sebelum rilis | 🟡 | ✅ | `needs_verification` → badge di layar Admin & Mahasiswa + banner blocker. **Verifikasi nomornya sendiri tetap tugas manual — masih blocker rilis** |
+| A-PRO-01 | Identitas + daftar batas akses | ✅ | ✅ | batas akses ditulis klien: tidak ada endpoint profil admin, dan membuatnya berarti membangun jalur API untuk peran yang justru tidak boleh punya akses |
 
 Perubahan berlaku untuk seluruh pengguna begitu tersimpan (D-10: cakupan global).
 
@@ -294,12 +294,12 @@ Perubahan berlaku untuk seluruh pengguna begitu tersimpan (D-10: cakupan global)
 | C-07 | Audit log setiap pembukaan indikator & akses agregat | ✅ | tidak pernah memuat konten privat |
 | C-08 | `apptime` sebagai satu-satunya sumber waktu | ✅ | `time.Now()` terlarang — agar EWS dapat diuji |
 | C-09 | Ambang bisnis di config, bukan hardcode | ✅ | |
-| C-10 | Responsif: bottom nav (mobile) / NavigationRail (tablet & desktop) | ✅ | Android, iOS, Linux, Chrome |
+| C-10 | Responsif: bottom nav (mobile) / NavigationRail (tablet & desktop) | ✅ | Build terverifikasi: **Android** (APK debug+release, AAB), **Linux** (debug+release), **Web**. iOS belum dibuat — butuh mesin macOS |
 | C-11 | Claymorphism design system | ✅ | `ClayContainer`, `ClayCard`, `ClayButton` |
 | C-12 | Kode error khusus Sanctuary didokumentasikan | ⬜ | `PRIVATE_CONTENT_FORBIDDEN`, `INSUFFICIENT_GROUP_SIZE`, dll. belum masuk `api-error-codes.md` |
-| C-13 | URL staging/production sungguhan | ⬜ | masih placeholder `sanctuary.ac.id` |
+| C-13 | URL staging/production sungguhan | ⬜ | masih placeholder `sanctuary.ac.id`. Satu paket dengan `applicationId` Android yang masih `com.example.sanctuary` dan keystore release yang masih memakai kunci debug — ketiganya harus diganti sebelum rilis |
 | C-14 | Duplikat `privacy_settings_page.dart` (di `features/mahasiswa` dan `features/privacy`) | ⬜ | sisakan satu — versi `features/privacy` yang tersambung cubit |
-| C-15 | Test kebocoran privasi otomatis | ⬜ | test yang **gagal** bila konten privat muncul di response peran lain. Ini pengaman I-1 yang paling murah |
+| C-15 | Test kebocoran privasi otomatis | 🟡 | BE: `privacy_leak_test.go` memindai sumber (go/ast) DTO dosen & kaprodi + repository mentor. FE: `dosen_privacy_test.dart` (14 test) menjaga CLOSED≠Normal, null≠0, dan `note` tidak terurai. Belum mencakup permukaan mahasiswa |
 
 ---
 
@@ -325,10 +325,13 @@ Base `/api/v1`. `me` selalu berarti pemilik token — tidak ada endpoint yang me
 | GET | `/mentors/me/students` | Dosen | ✅ |
 | GET | `/mentors/me/students/:id` | Dosen (wajib pembimbingnya) | ✅ |
 | GET | `/mentors/me/condition?period_days=30\|90\|120` | Dosen (k ≥ 5) | ✅ |
-| GET | `/mentors/me/contact-requests` | Dosen | ⬜ L-BIM-03 |
+| GET | `/mentors/me/contact-requests` | Dosen | ✅ nama + waktu saja |
+| GET | `/mentors/me/profile` | Dosen | ✅ L-PRO-02..03 |
 | GET | `/programs/me/dashboard`, `/advisors`, `/reports/cohorts` | Kaprodi (k ≥ 5) | ✅ |
+| GET | `/programs/me/profile` | Kaprodi | ✅ K-PRO-01 |
 | GET | `/support/emergency-contacts` | semua peran | ✅ |
 | POST/PUT/DELETE | `/support/emergency-contacts[/:id]` | Admin | ✅ |
+| GET | `/support/service-types` | semua peran | ✅ pilihan `service_type` untuk form Admin |
 
 ---
 
@@ -349,7 +352,7 @@ Diurutkan berdasarkan apa yang membuka jalan bagi yang lain, bukan berdasarkan k
 `D-5` diputuskan → `M-AI-01..05` · `M-JUR-03` (IndoBERT sungguhan) · `M-PRO-05, 07, 08, 09` · `M-PRO-02`
 
 **Blocker rilis — tidak bisa dinegosiasikan.**
-`A-BAN-04` (nomor darurat terverifikasi) · `C-15` (test kebocoran) · `D-1` (copy privasi jujur) · `D-5` (consent AI) · `C-13` (URL sungguhan)
+`A-BAN-04` (nomor darurat terverifikasi) · `C-15` (test kebocoran) · `D-1` (copy privasi jujur) · `D-5` (consent AI) · `C-13` (URL sungguhan) · **signing Android** (`applicationId` masih `com.example.*`, release masih ditandatangani kunci debug)
 
 ---
 

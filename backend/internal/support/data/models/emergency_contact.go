@@ -1,6 +1,9 @@
 package models
 
-import "github.com/gilabs/sanctuary/internal/core/utils"
+import (
+	"github.com/gilabs/sanctuary/internal/core/constants"
+	"github.com/gilabs/sanctuary/internal/core/utils"
+)
 
 // EmergencyContact adalah layanan nomor darurat/krisis yang dikelola Admin
 // dan dibaca seluruh peran (khususnya layar Bantuan Darurat mahasiswa).
@@ -11,6 +14,11 @@ type EmergencyContact struct {
 	Name        string `gorm:"size:128;not null" json:"name"`
 	Phone       string `gorm:"size:32;not null" json:"phone"`
 	Description string `gorm:"size:500" json:"description,omitempty"`
+
+	// ServiceType (A-BAN-01) ditambahkan lewat migrasi
+	// 20260806120000_add_service_type_to_emergency_contacts.sql.
+	// Default 'OTHER' agar baris lama tetap valid tanpa tebakan klasifikasi.
+	ServiceType constants.ServiceType `gorm:"size:32;not null;default:'OTHER';index" json:"service_type"`
 
 	// column:is_24_hours eksplisit — naming strategy default GORM menghasilkan
 	// "is24_hours" (tanpa underscore sebelum angka), berbeda dari migrasi SQL

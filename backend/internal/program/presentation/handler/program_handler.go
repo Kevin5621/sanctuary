@@ -59,6 +59,18 @@ func (h *ProgramHandler) CohortReport(c *gin.Context) {
 	utils.OK(c, res)
 }
 
+// Profile godoc: GET /api/v1/programs/me/profile
+// Identitas prodi, populasi terdaftar, dan daftar batas akses (K-PRO-01).
+// Tidak memuat data kondisi apa pun, sehingga tidak tunduk k-anonymity.
+func (h *ProgramHandler) Profile(c *gin.Context) {
+	res, err := h.uc.Profile(c.Request.Context(), h.accessFrom(c))
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, res)
+}
+
 func (h *ProgramHandler) accessFrom(c *gin.Context) usecase.Access {
 	user, _ := middleware.CurrentUser(c)
 	return usecase.Access{

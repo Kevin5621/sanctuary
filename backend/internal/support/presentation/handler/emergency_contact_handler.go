@@ -34,9 +34,18 @@ func (h *EmergencyContactHandler) List(c *gin.Context) {
 	utils.OKWithMeta(c, items, utils.NewMeta(p.Page, p.PerPage, total))
 }
 
+// ServiceTypes godoc: GET /api/v1/support/service-types
+// Sumber tunggal daftar jenis layanan untuk dropdown form Admin (A-BAN-01).
+func (h *EmergencyContactHandler) ServiceTypes(c *gin.Context) {
+	utils.OK(c, dto.ServiceTypeOptions())
+}
+
 // Get godoc: GET /api/v1/support/emergency-contacts/:id
 func (h *EmergencyContactHandler) Get(c *gin.Context) {
-	contact, err := h.uc.Get(c.Request.Context(), c.Param("id"))
+	user, _ := middleware.CurrentUser(c)
+	activeOnly := user.Role != constants.RoleAdmin
+
+	contact, err := h.uc.Get(c.Request.Context(), c.Param("id"), activeOnly)
 	if err != nil {
 		utils.Fail(c, err)
 		return

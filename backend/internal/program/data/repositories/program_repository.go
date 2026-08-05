@@ -32,6 +32,8 @@ type ProgramRepository interface {
 	ConsentedStudentIDs(ctx context.Context, programID string, cohortYear *int) ([]string, error)
 	// TotalStudents adalah populasi prodi (dipakai layar Profil kaprodi).
 	TotalStudents(ctx context.Context, programID string) (int, error)
+	// ProgramName dipakai judul layar Profil kaprodi.
+	ProgramName(ctx context.Context, programID string) (string, error)
 	AdvisorLoads(ctx context.Context, programID string) ([]AdvisorLoad, error)
 	CohortCounts(ctx context.Context, programID string) ([]CohortCount, error)
 }
@@ -72,6 +74,18 @@ func (r *programRepository) TotalStudents(ctx context.Context, programID string)
 		Where("roles.code = ?", constants.RoleStudent).
 		Count(&count).Error
 	return int(count), utils.TranslateDBError(err, "")
+}
+
+func (r *programRepository) ProgramName(ctx context.Context, programID string) (string, error) {
+	ctx, cancel := utils.DBContext(ctx)
+	defer cancel()
+
+	var name string
+	err := r.db.WithContext(ctx).Model(&authmodels.StudyProgram{}).
+		Where("id = ?", programID).
+		Limit(1).
+		Pluck("name", &name).Error
+	return name, utils.TranslateDBError(err, "")
 }
 
 func (r *programRepository) AdvisorLoads(ctx context.Context, programID string) ([]AdvisorLoad, error) {

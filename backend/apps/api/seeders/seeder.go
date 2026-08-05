@@ -32,9 +32,13 @@ type SeededUsers struct {
 	Kaprodi   authmodels.User
 	Lecturer1 authmodels.User
 	Lecturer2 authmodels.User
-	// Students[0..4] dibimbing Lecturer1 (5 orang, memenuhi k-anonymity)
-	// Students[5..7] dibimbing Lecturer2 (3 orang, DI BAWAH ambang)
+	// Students[0..6] dibimbing Lecturer1 (7 orang, memenuhi k-anonymity)
+	// Students[7..9] dibimbing Lecturer2 (3 orang, DI BAWAH ambang)
 	Students []authmodels.User
+	// Profiles sejajar indeks dengan Students. Disimpan di sini supaya
+	// seedStudentData tidak perlu memelihara daftar profil kedua yang harus
+	// dijaga tetap sinkron secara manual.
+	Profiles []conditionProfile
 }
 
 func (s *Seeder) Run(ctx context.Context) error {
@@ -127,7 +131,11 @@ type studentSpec struct {
 	FullName      string
 	StudentNumber string
 	CohortYear    int
-	Profile       conditionProfile
+	// Advisor2 menandai mahasiswa bimbingan Dosen 2. Ditulis eksplisit per
+	// baris — bukan disimpulkan dari indeks — agar menambah/menggeser
+	// mahasiswa tidak diam-diam memindahkan bimbingan orang lain.
+	Advisor2 bool
+	Profile  conditionProfile
 }
 
 func (s *Seeder) seedUsers(
@@ -186,24 +194,44 @@ func (s *Seeder) seedUsers(
 		return SeededUsers{}, err
 	}
 
-	// 5 mahasiswa angkatan 2022 dibimbing Dosen 1 -> kelompok memenuhi k-anonymity.
-	// 3 mahasiswa angkatan 2023 dibimbing Dosen 2 -> kelompok DI BAWAH ambang,
-	// sehingga tab Kondisi dosen 2 harus menampilkan "Data belum cukup".
+	// Komposisi kelompok sengaja dirancang agar SETIAP cabang k-anonymity punya
+	// kasus uji nyata:
+	//
+	//   Dosen 1 — 7 bimbingan angkatan 2022
+	//     · 7 berbagi indikator            -> tab Kondisi TAMPIL (k >= 5)
+	//     · 6 mengizinkan peringatan dini  -> sebaran tingkat perhatian TAMPIL
+	//     · 1 berbagi tapi menolak EWS     -> menguji jalur "peringatan dini off"
+	//
+	//   Dosen 2 — 3 bimbingan angkatan 2023
+	//     · hanya 2 berbagi indikator      -> tab Kondisi "Data belum cukup"
+	//     · 1 Tertutup + 1 minta dihubungi -> menguji D-7 dan L-BIM-05
+	//
+	//   Kaprodi — 8 peserta statistik prodi -> dashboard TAMPIL
+	//     · angkatan 2022: 7 peserta       -> laporan angkatan TAMPIL
+	//     · angkatan 2023: 1 peserta       -> laporan angkatan "Data belum cukup"
+	//
+	// Mahasiswa 9 & 10 ada khusus untuk kasus kedua: tanpa keduanya hanya 4
+	// bimbingan Dosen 1 yang mengizinkan peringatan dini, sehingga sebaran
+	// tingkat perhatian (L-KON-02) tidak pernah lolos ambang dan fitur itu
+	// mustahil diverifikasi dengan data demo.
 	specs := []studentSpec{
-		{"mahasiswa1@sanctuary.ac.id", "Alya Prameswari", "220001", 2022, profileIntervention},
-		{"mahasiswa2@sanctuary.ac.id", "Bagas Nugraha", "220002", 2022, profileRisk},
-		{"mahasiswa3@sanctuary.ac.id", "Citra Larasati", "220003", 2022, profileWatch},
-		{"mahasiswa4@sanctuary.ac.id", "Dimas Prasetyo", "220004", 2022, profileNormal},
-		{"mahasiswa5@sanctuary.ac.id", "Erika Handayani", "220005", 2022, profileNormalSummaryOnly},
-		{"mahasiswa6@sanctuary.ac.id", "Fajar Ramadhan", "230006", 2023, profileClosed},
-		{"mahasiswa7@sanctuary.ac.id", "Gita Anindya", "230007", 2023, profileWatchWithRequest},
-		{"mahasiswa8@sanctuary.ac.id", "Hendra Wijaya", "230008", 2023, profileInsufficient},
+		{"mahasiswa1@sanctuary.ac.id", "Alya Prameswari", "220001", 2022, false, profileIntervention},
+		{"mahasiswa2@sanctuary.ac.id", "Bagas Nugraha", "220002", 2022, false, profileRisk},
+		{"mahasiswa3@sanctuary.ac.id", "Citra Larasati", "220003", 2022, false, profileWatch},
+		{"mahasiswa4@sanctuary.ac.id", "Dimas Prasetyo", "220004", 2022, false, profileNormal},
+		{"mahasiswa5@sanctuary.ac.id", "Erika Handayani", "220005", 2022, false, profileNormalSummaryOnly},
+		{"mahasiswa9@sanctuary.ac.id", "Indah Puspita", "220009", 2022, false, profileNormalAlerting},
+		{"mahasiswa10@sanctuary.ac.id", "Joko Santoso", "220010", 2022, false, profileWatchAlerting},
+		{"mahasiswa6@sanctuary.ac.id", "Fajar Ramadhan", "230006", 2023, true, profileClosed},
+		{"mahasiswa7@sanctuary.ac.id", "Gita Anindya", "230007", 2023, true, profileWatchWithRequest},
+		{"mahasiswa8@sanctuary.ac.id", "Hendra Wijaya", "230008", 2023, true, profileInsufficient},
 	}
 
 	students := make([]authmodels.User, 0, len(specs))
+	profiles := make([]conditionProfile, 0, len(specs))
 	for i, spec := range specs {
 		advisor := lecturer1
-		if i >= 5 {
+		if spec.Advisor2 {
 			advisor = lecturer2
 		}
 
@@ -221,6 +249,7 @@ func (s *Seeder) seedUsers(
 			return SeededUsers{}, err
 		}
 		students = append(students, student)
+		profiles = append(profiles, spec.Profile)
 	}
 
 	return SeededUsers{
@@ -229,6 +258,7 @@ func (s *Seeder) seedUsers(
 		Lecturer1: lecturer1,
 		Lecturer2: lecturer2,
 		Students:  students,
+		Profiles:  profiles,
 	}, nil
 }
 
@@ -258,9 +288,9 @@ func (s *Seeder) printSummary(users SeededUsers) {
 	log.Printf("Akun demo (password: %s)", s.cfg.Seeder.DefaultPassword)
 	log.Println("  admin@sanctuary.ac.id      → Admin (2 tab)")
 	log.Println("  kaprodi@sanctuary.ac.id    → Kaprodi (4 tab)")
-	log.Println("  dosen1@sanctuary.ac.id     → Dosen, 5 bimbingan (k-anonymity TERPENUHI)")
+	log.Println("  dosen1@sanctuary.ac.id     → Dosen, 7 bimbingan (k-anonymity TERPENUHI, sebaran EWS tampil)")
 	log.Println("  dosen2@sanctuary.ac.id     → Dosen, 3 bimbingan (k-anonymity TIDAK terpenuhi)")
-	log.Printf("  mahasiswa1..8@sanctuary.ac.id → %d Mahasiswa (4 tab + Terapis AI)", len(users.Students))
+	log.Printf("  mahasiswa1..10@sanctuary.ac.id → %d Mahasiswa (4 tab + Terapis AI)", len(users.Students))
 	log.Println("──────────────────────────────────────────────")
 }
 

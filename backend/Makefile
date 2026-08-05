@@ -13,8 +13,14 @@ run:
 seed:
 	go run ./cmd/seed
 
+# Menjalankan SELURUH migrasi berurutan nama file (timestamp-prefixed), bukan
+# hanya skema awal — kalau tidak, migrasi baru diam-diam tidak pernah terpakai.
+# Tiap file ditulis idempotent sehingga aman diulang.
 migrate:
-	psql "$$(grep DB_DSN .env | cut -d '=' -f2-)" -f migrations/20260805090000_initial_schema.sql
+	@for f in $$(ls migrations/*.sql | sort); do \
+		echo "[migrate] $$f"; \
+		psql -v ON_ERROR_STOP=1 "$$(grep DB_DSN .env | cut -d '=' -f2-)" -f $$f || exit 1; \
+	done
 
 build:
 	go build -o ./tmp/api ./cmd/api
@@ -37,7 +43,10 @@ docker-logs:
 
 # Migrasi skema di dalam network compose (host db, bukan localhost).
 docker-migrate:
-	docker compose exec -T db psql -U sanctuary -d sanctuary -f - < migrations/20260805090000_initial_schema.sql
+	@for f in $$(ls migrations/*.sql | sort); do \
+		echo "[migrate] $$f"; \
+		docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sanctuary -d sanctuary -f - < $$f || exit 1; \
+	done
 
 # Seeder di dalam container (memakai ENV compose: DB_DSN=...@db:5432/...).
 docker-seed:

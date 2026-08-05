@@ -177,13 +177,20 @@ var profileNormalSummaryOnly = conditionProfile{
 	ExpectedLevel:         constants.EWSLevelNormal,
 }
 
-// profileClosed: mahasiswa mengunci seluruh berbagi data.
-// Data pribadinya tetap ada, namun dosen harus menerima indikator kosong.
+// profileClosed: mahasiswa mengunci seluruh berbagi data, TETAPI menekan
+// tombol "minta dihubungi".
+//
+// Kombinasi inilah kasus uji D-7: menekan tombol itu adalah persetujuan
+// eksplisit dan spesifik yang mengalahkan share_level, sehingga barisnya wajib
+// muncul di daftar dosen — dengan nama dan waktu saja, tanpa satu indikator pun
+// dan tanpa alasannya (D-6). Tanpa mahasiswa demo seperti ini, aturan D-7 tidak
+// pernah benar-benar terlihat dijalankan.
 var profileClosed = conditionProfile{
 	Key:                   "closed",
 	ShareLevel:            constants.ShareLevelClosed,
 	AllowEarlyWarning:     false,
 	AllowProgramStatistic: false,
+	ContactRequest:        true,
 	Moods:                 []int{3, 2, 3, 2, 3, 3, 2, 3, 3, 2, 3, 3, 2, 3},
 	Stress:                []int{4, 4, 3, 4, 4, 3, 4, 3, 4, 4, 3, 4, 4, 3},
 	Sleep:                 []float64{6.0, 5.5, 6.5, 6.0, 5.0, 6.5, 6.0, 6.5, 5.5, 6.0, 6.5, 6.0, 5.5, 6.5},
@@ -214,6 +221,40 @@ var profileWatchWithRequest = conditionProfile{
 	ExpectedLevel:         constants.EWSLevelWatch,
 }
 
+// profileNormalAlerting & profileWatchAlerting: dua mahasiswa yang berbagi
+// indikator DAN mengizinkan peringatan dini.
+//
+// Keduanya ada murni untuk memenuhi ambang k-anonymity pada sebaran tingkat
+// perhatian tab Kondisi (L-KON-02): sebaran itu hanya dihitung dari mahasiswa
+// yang allow_early_warning = true, dan tanpa keduanya jumlahnya hanya 4.
+// Levelnya sengaja berbeda agar grafik sebaran menampilkan lebih dari satu
+// batang — sebaran yang seragam tidak membuktikan apa pun saat diverifikasi.
+var profileNormalAlerting = conditionProfile{
+	Key:                   "normal-alerting",
+	ShareLevel:            constants.ShareLevelSummaryTrend,
+	AllowEarlyWarning:     true,
+	AllowProgramStatistic: true,
+	Moods:                 profileNormal.Moods,
+	Stress:                profileNormal.Stress,
+	Sleep:                 profileNormal.Sleep,
+	Emotions:              profileNormal.Emotions,
+	Dass:                  profileNormal.Dass,
+	ExpectedLevel:         constants.EWSLevelNormal,
+}
+
+var profileWatchAlerting = conditionProfile{
+	Key:                   "watch-alerting",
+	ShareLevel:            constants.ShareLevelSummaryTrend,
+	AllowEarlyWarning:     true,
+	AllowProgramStatistic: true,
+	Moods:                 profileWatch.Moods,
+	Stress:                profileWatch.Stress,
+	Sleep:                 profileWatch.Sleep,
+	Emotions:              profileWatch.Emotions,
+	Dass:                  profileWatch.Dass,
+	ExpectedLevel:         constants.EWSLevelWatch,
+}
+
 // profileInsufficient: data harian di bawah ambang minimum evaluasi.
 var profileInsufficient = conditionProfile{
 	Key:                   "insufficient",
@@ -232,19 +273,16 @@ var profileInsufficient = conditionProfile{
 // ------------------------------------------------------------------
 
 func (s *Seeder) seedStudentData(ctx context.Context, users SeededUsers) error {
-	profiles := []conditionProfile{
-		profileIntervention,
-		profileRisk,
-		profileWatch,
-		profileNormal,
-		profileNormalSummaryOnly,
-		profileClosed,
-		profileWatchWithRequest,
-		profileInsufficient,
+	// Profil dibaca dari SeededUsers, bukan dari daftar kedua di file ini —
+	// dua daftar sejajar yang harus dijaga sinkron manual adalah cara termudah
+	// membuat mahasiswa demo mendapat profil kondisi milik orang lain.
+	if len(users.Profiles) != len(users.Students) {
+		return fmt.Errorf("profil (%d) tidak sejajar dengan mahasiswa (%d)",
+			len(users.Profiles), len(users.Students))
 	}
 
 	for i, student := range users.Students {
-		profile := profiles[i]
+		profile := users.Profiles[i]
 
 		if err := s.seedPrivacySetting(ctx, student.ID, profile); err != nil {
 			return err
