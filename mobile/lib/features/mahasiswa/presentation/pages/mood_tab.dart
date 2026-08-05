@@ -1,8 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cartoon_mood_blob.dart';
+import '../../data/repositories/daily_metric_repository.dart';
+
 
 class MoodTab extends StatefulWidget {
   const MoodTab({super.key});
@@ -241,10 +244,41 @@ class _MoodTabState extends State<MoodTab> {
                     const SizedBox(height: AppSpacing.lg),
 
                     ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Check-in hari ini berhasil disimpan! ✨')),
-                        );
+                      onPressed: () async {
+                        final (score, label) = switch (_selectedMood) {
+                          MoodType.happiness => (5, 'JOY'),
+                          MoodType.disgust => (3, 'NEUTRAL'),
+                          MoodType.fear => (2, 'ANXIOUS'),
+                          MoodType.anger => (2, 'ANGRY'),
+                          MoodType.sadness => (1, 'SAD'),
+                        };
+
+                        final trigger = _selectedTriggers.isNotEmpty ? _selectedTriggers.first : '';
+                        final dateStr =
+                            '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+
+                        try {
+                          await context.read<DailyMetricRepository>().saveDailyMetric(
+                                moodScore: score,
+                                stressLevel: _stressLevel.toInt(),
+                                sleepHours: _sleepHours,
+                                emotionLabel: label,
+                                academicTrigger: trigger,
+                                metricDate: dateStr,
+                              );
+
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Check-in mood berhasil disimpan ke server! ✨')),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Gagal menyimpan check-in: $e')),
+                            );
+                          }
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.midnight,
@@ -368,6 +402,7 @@ class _MoodTabState extends State<MoodTab> {
                   ],
                 ),
               ),
+              const SizedBox(height: 100),
             ],
           ),
         ),

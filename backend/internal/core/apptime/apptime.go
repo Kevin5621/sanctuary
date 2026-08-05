@@ -53,6 +53,21 @@ func StartOfDay(t time.Time) time.Time {
 // DaysAgo dipakai window analitik (EWS lookback, agregat 30/90/120 hari).
 func DaysAgo(days int) time.Time { return Today().AddDate(0, 0, -days) }
 
+// StartOfWeek mengembalikan Senin (00:00) dari minggu yang memuat t.
+// Dipakai ringkasan mood mingguan agar kalender selalu mulai dari Senin,
+// terlepas dari hari mana request dikirim.
+func StartOfWeek(t time.Time) time.Time {
+	t = StartOfDay(t)
+	weekday := int(t.Weekday()) // Minggu(Sunday) = 0 .. Sabtu(Saturday) = 6
+	if weekday == 0 {
+		weekday = 7
+	}
+	return t.AddDate(0, 0, -(weekday - 1))
+}
+
+// EndOfWeek mengembalikan Minggu (00:00) dari minggu yang memuat t.
+func EndOfWeek(t time.Time) time.Time { return StartOfWeek(t).AddDate(0, 0, 6) }
+
 func FormatDate(t time.Time) string     { return t.In(Location()).Format(LayoutDate) }
 func FormatDateTime(t time.Time) string { return t.In(Location()).Format(LayoutDateTime) }
 

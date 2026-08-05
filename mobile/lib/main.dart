@@ -10,6 +10,7 @@ import 'core/widgets/environment_banner.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
+import 'features/mahasiswa/data/repositories/daily_metric_repository.dart';
 import 'features/privacy/data/repositories/privacy_repository.dart';
 
 void main() {
@@ -33,6 +34,7 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
   late final DioClient _dioClient;
   late final AuthCubit _authCubit;
   late final PrivacyRepository _privacyRepository;
+  late final DailyMetricRepository _dailyMetricRepository;
   late final _router = createRouter(_authCubit);
 
   @override
@@ -57,6 +59,7 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
     );
     _dioClient = client;
     _privacyRepository = PrivacyRepository(_dioClient);
+    _dailyMetricRepository = DailyMetricRepository(_dioClient);
 
     _authCubit.restoreSession();
   }
@@ -73,6 +76,7 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
       providers: [
         RepositoryProvider<DioClient>.value(value: _dioClient),
         RepositoryProvider<PrivacyRepository>.value(value: _privacyRepository),
+        RepositoryProvider<DailyMetricRepository>.value(value: _dailyMetricRepository),
       ],
       child: BlocProvider<AuthCubit>.value(
         value: _authCubit,

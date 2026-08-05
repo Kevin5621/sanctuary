@@ -82,108 +82,214 @@ class _LatihanNapasPageState extends State<LatihanNapasPage> {
         title: const Text('Latihan Napas 4-7-8'),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - (AppSpacing.md * 2),
               ),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Teknik Relaksasi Napas 4-7-8',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.midnight),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Siklus Selesai: $_cycleCount',
-                    style: const TextStyle(fontSize: 13, color: AppColors.warmTextSecondary),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Animated Breathing Circle
-                  AnimatedContainer(
-                    duration: Duration(seconds: _secondsLeft),
-                    width: _isRunning && _phase.startsWith('Tarik') ? 180 : 130,
-                    height: _isRunning && _phase.startsWith('Tarik') ? 180 : 130,
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
-                      color: _phase.startsWith('Tarik')
-                          ? AppColors.moodFearBg
-                          : (_phase.startsWith('Tahan') ? AppColors.moodDisgustBg : AppColors.moodSadnessBg),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.midnight, width: 2.5),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                      border: Border.all(color: AppColors.midnight, width: 1.5),
                       boxShadow: const [
-                        BoxShadow(color: AppColors.cartoonShadow, blurRadius: 12, offset: Offset(0, 4))
+                        BoxShadow(
+                          color: AppColors.cartoonShadow,
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
                       ],
                     ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '$_secondsLeft',
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 36, color: AppColors.midnight),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Teknik Relaksasi Napas 4-7-8',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                            color: AppColors.midnight,
                           ),
-                          const SizedBox(height: 2),
-                          const Text('Detik', style: TextStyle(fontSize: 11, color: AppColors.warmTextSecondary)),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Siklus Selesai: $_cycleCount',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.warmTextSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+
+                        // Animated Breathing Circle
+                        AnimatedContainer(
+                          duration: Duration(seconds: _secondsLeft),
+                          width: _isRunning && _phase.startsWith('Tarik') ? 180 : 130,
+                          height: _isRunning && _phase.startsWith('Tarik') ? 180 : 130,
+                          decoration: BoxDecoration(
+                            color: _phase.startsWith('Tarik')
+                                ? AppColors.moodFearBg
+                                : (_phase.startsWith('Tahan')
+                                    ? AppColors.moodDisgustBg
+                                    : AppColors.moodSadnessBg),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.midnight, width: 2.5),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: AppColors.cartoonShadow,
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '$_secondsLeft',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 38,
+                                    color: AppColors.midnight,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Detik',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.warmTextSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: AppSpacing.xl),
+                        Text(
+                          _phase,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: AppColors.midnight,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        ElevatedButton(
+                          onPressed: _isRunning ? _stopExercise : _startExercise,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                _isRunning ? AppColors.ewsIntervention : AppColors.midnight,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                            ),
+                          ),
+                          child: Text(
+                            _isRunning ? 'Hentikan Latihan' : 'Mulai Latihan Napas',
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
 
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(
-                    _phase,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.midnight),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  ElevatedButton(
-                    onPressed: _isRunning ? _stopExercise : _startExercise,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isRunning ? AppColors.ewsIntervention : AppColors.midnight,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                      ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Card Petunjuk Grounding 5-4-3-2-1 (Diperbaiki Kontras & Visibilitas Teks)
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.creamAlt,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      border: Border.all(color: AppColors.midnight, width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: AppColors.cartoonShadow,
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        )
+                      ],
                     ),
-                    child: Text(
-                      _isRunning ? 'Hentikan Latihan' : 'Mulai Latihan Napas',
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Petunjuk Grounding 5-4-3-2-1:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: AppColors.midnight,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '• 5 Hal yang bisa kamu LIHAT di sekitarmu.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.midnight,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                        Text(
+                          '• 4 Hal yang bisa kamu SENTUH.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.midnight,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                        Text(
+                          '• 3 Hal yang bisa kamu DENGAR.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.midnight,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                        Text(
+                          '• 2 Hal yang bisa kamu CIUM aromanya.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.midnight,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                        Text(
+                          '• 1 Hal positif tentang dirimu.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.midnight,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Petunjuk Grounding 5-4-3-2-1:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                  SizedBox(height: 6),
-                  Text('• 5 Hal yang bisa kamu LIHAT di sekitarmu.', style: TextStyle(fontSize: 12)),
-                  Text('• 4 Hal yang bisa kamu SENTUH.', style: TextStyle(fontSize: 12)),
-                  Text('• 3 Hal yang bisa kamu DENGAR.', style: TextStyle(fontSize: 12)),
-                  Text('• 2 Hal yang bisa kamu CIUM aromanya.', style: TextStyle(fontSize: 12)),
-                  Text('• 1 Hal positif tentang dirimu.', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -254,6 +254,7 @@ class _JurnalTabState extends State<JurnalTab> {
                   ),
                 ),
               ],
+              const SizedBox(height: 100),
             ],
           ),
         ),

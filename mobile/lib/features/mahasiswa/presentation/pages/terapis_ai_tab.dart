@@ -196,6 +196,7 @@ class _TerapisAiTabState extends State<TerapisAiTab> {
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
+            margin: const EdgeInsets.only(bottom: 84),
             decoration: const BoxDecoration(
               color: Colors.white,
               boxShadow: [

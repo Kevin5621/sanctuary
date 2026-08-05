@@ -178,7 +178,7 @@ class ProfilTab extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: 100),
         ],
       ),
     );

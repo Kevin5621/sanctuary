@@ -11,12 +11,27 @@ class MahasiswaShellPage extends StatefulWidget {
 
   final int initialIndex;
 
+  static void switchTab(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<_MahasiswaShellPageState>();
+    if (state != null) {
+      state.setTab(index);
+    }
+  }
+
   @override
   State<MahasiswaShellPage> createState() => _MahasiswaShellPageState();
 }
 
 class _MahasiswaShellPageState extends State<MahasiswaShellPage> {
   late int _currentIndex;
+
+  void setTab(int index) {
+    if (index >= 0 && index < _tabs.length) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
+  }
 
   final List<Widget> _tabs = const [
     BerandaTab(),
@@ -63,7 +78,7 @@ class _MahasiswaShellPageState extends State<MahasiswaShellPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // Allows body content to scroll smoothly behind floating navbar
+      extendBody: true, // Floating navbar over scrollable background
       body: IndexedStack(
         index: _currentIndex,
         children: _tabs,
@@ -71,12 +86,11 @@ class _MahasiswaShellPageState extends State<MahasiswaShellPage> {
       bottomNavigationBar: FloatingCartoonNavbar(
         selectedIndex: _currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          setTab(index);
         },
         items: _navItems,
       ),
     );
   }
 }
+

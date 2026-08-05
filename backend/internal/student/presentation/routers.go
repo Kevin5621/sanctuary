@@ -39,9 +39,11 @@ func RegisterRoutes(
 
 	privacyUC := usecase.NewPrivacyUsecase(privacyRepo, audits)
 	journalUC := usecase.NewJournalUsecase(journalRepo, service.NewEmotionAnalyzer())
+	dailyMetricUC := usecase.NewDailyMetricUsecase(metricRepo)
 
 	privacyHandler := handler.NewPrivacyHandler(privacyUC)
 	journalHandler := handler.NewJournalHandler(journalUC)
+	dailyMetricHandler := handler.NewDailyMetricHandler(dailyMetricUC)
 
 	group := api.Group("/students/me",
 		middleware.Auth(jwt),
@@ -49,6 +51,7 @@ func RegisterRoutes(
 	)
 	router.RegisterPrivacyRoutes(group, privacyHandler)
 	router.RegisterJournalRoutes(group, journalHandler)
+	router.RegisterDailyMetricRoutes(group, dailyMetricHandler)
 
 	return SharedRepositories{Privacy: privacyRepo, Metrics: metricRepo, Dass: dassRepo}
 }

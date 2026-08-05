@@ -25,3 +25,12 @@ func RegisterJournalRoutes(rg *gin.RouterGroup, h *handler.JournalHandler) {
 	g.POST("/:id/analyze", h.Analyze)
 	g.DELETE("/:id", h.Delete)
 }
+
+// RegisterDailyMetricRoutes — ringkasan check-in mood milik mahasiswa sendiri
+// (kuantitatif saja), dipakai kartu ringkasan & kalender mood di Beranda.
+func RegisterDailyMetricRoutes(rg *gin.RouterGroup, h *handler.DailyMetricHandler) {
+	g := rg.Group("/daily-metrics")
+	g.GET("/weekly-summary", h.WeeklySummary)
+	g.POST("", h.SaveMetric)
+}
+

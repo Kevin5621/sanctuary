@@ -206,80 +206,100 @@ class _Dass21ScreeningPageState extends State<Dass21ScreeningPage> {
   }
 
   Widget _buildResultView() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              border: Border.all(color: AppColors.cartoonBorder, width: 1.5),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight - (AppSpacing.md * 2),
             ),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const CartoonMoodBlob(mood: MoodType.happiness, size: 90),
-                const SizedBox(height: AppSpacing.md),
-                const Text(
-                  'Hasil Skrining DASS-21 Anda',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20, color: AppColors.midnight),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Skrining ini digunakan untuk deteksi awal kondisi emosional.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.warmTextSecondary, fontSize: 13),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                _buildScoreTile('Depresi', 'Ringan', '10 / 42', AppColors.moodHappinessBg, AppColors.moodHappiness),
-                const SizedBox(height: AppSpacing.sm),
-                _buildScoreTile('Kecemasan (Anxiety)', 'Sedang', '14 / 42', AppColors.moodAngerBg, AppColors.moodAnger),
-                const SizedBox(height: AppSpacing.sm),
-                _buildScoreTile('Stres', 'Normal', '8 / 42', AppColors.moodDisgustBg, AppColors.moodDisgust),
-                const SizedBox(height: AppSpacing.lg),
                 Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   decoration: BoxDecoration(
-                    color: AppColors.lavenderBg,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    border: Border.all(color: AppColors.midnight, width: 1.8),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.cartoonShadow,
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Row(
+                  child: Column(
                     children: [
-                      Icon(Icons.lightbulb_outline_rounded, color: AppColors.midnight),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Saran Coping: Cobalah latihan napas 4-7-8 atau ngobrol dengan Terapis AI jika merasa cemas.',
-                          style: TextStyle(color: AppColors.midnight, fontSize: 13, height: 1.4),
+                      const CartoonMoodBlob(mood: MoodType.happiness, size: 90),
+                      const SizedBox(height: AppSpacing.md),
+                      const Text(
+                        'Hasil Skrining DASS-21 Anda',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20, color: AppColors.midnight),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Skrining ini digunakan untuk deteksi awal kondisi emosional.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.warmTextSecondary, fontSize: 13),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildScoreTile('Depresi', 'Ringan', '10 / 42', AppColors.moodHappinessBg, AppColors.moodHappiness),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildScoreTile('Kecemasan (Anxiety)', 'Sedang', '14 / 42', AppColors.moodAngerBg, AppColors.moodAnger),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildScoreTile('Stres', 'Normal', '8 / 42', AppColors.moodDisgustBg, AppColors.moodDisgust),
+                      const SizedBox(height: AppSpacing.lg),
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.lavenderBg,
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          border: Border.all(color: AppColors.midnight, width: 1.2),
                         ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.lightbulb_outline_rounded, color: AppColors.midnight),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Saran Coping: Cobalah latihan napas 4-7-8 atau ngobrol dengan Terapis AI jika merasa cemas.',
+                                style: TextStyle(color: AppColors.midnight, fontSize: 13, height: 1.4, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _isSubmitted = false;
+                            _answers.clear();
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.midnight,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          ),
+                        ),
+                        child: const Text('Isi Ulang Skrining', style: TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _isSubmitted = false;
-                      _answers.clear();
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.midnight,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    ),
-                  ),
-                  child: const Text('Isi Ulang Skrining', style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
