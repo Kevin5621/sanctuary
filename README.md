@@ -5,9 +5,12 @@ Aplikasi kesehatan mental mahasiswa. **Full Online** — seluruh data (mood, jur
 ```
 Sanctuary/
 ├─ api-standart/     Standar API yang diikuti backend (sumber kebenaran)
+├─ docs/PRD.md       Spesifikasi fitur + papan progres per fitur
 ├─ backend/          Go 1.23 + Gin, monolith vertical slice, PostgreSQL
 └─ mobile/           Flutter, Clean Architecture feature-first, Cubit/BLoC
 ```
+
+README ini menjelaskan **cara kerja sistem**. Untuk **apa yang dibangun, aturan bisnisnya, dan status tiap fitur**, lihat [`docs/PRD.md`](docs/PRD.md).
 
 Status build saat ini: `go build ./...` ✔ · `go vet ./...` ✔ · 8 test EWS ✔ · `flutter analyze` bersih ✔ · 5 test Cubit privasi ✔
 
@@ -261,6 +264,8 @@ mobile/
 ---
 
 ## 8. Yang belum dikerjakan
+
+> Daftar per fitur yang selalu diperbarui ada di [`docs/PRD.md`](docs/PRD.md) §5–§9. Ringkasannya:
 
 Cakupan tahap ini adalah fondasi arsitektur + tiga fitur kunci yang diminta. Yang masih placeholder:
 
