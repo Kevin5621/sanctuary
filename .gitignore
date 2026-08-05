@@ -1,0 +1,17 @@
+# Aturan spesifik-teknologi ada di backend/.gitignore dan mobile/.gitignore.
+# File ini hanya untuk pola lintas-folder di root repo.
+
+# Secrets — jaga-jaga bila ada .env di root (mis. untuk orkestrasi bersama).
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# Log & temp
+*.log
+tmp/

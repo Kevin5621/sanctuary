@@ -1,0 +1,56 @@
+# ==========================================================
+# Secrets — JANGAN PERNAH commit .env asli (JWT_SECRET, DB_DSN, dst).
+# .env.example tetap dilacak sebagai referensi.
+# ==========================================================
+.env
+.env.*
+!.env.example
+
+# ==========================================================
+# Go build artifacts
+# ==========================================================
+tmp/
+build/
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Binary hasil `go build ./cmd/...` bila dijalankan langsung di root
+/api
+/seed
+
+# ==========================================================
+# Test & coverage
+# ==========================================================
+*.out
+coverage.html
+coverage.out
+
+# ==========================================================
+# Go modules cache lokal (jarang dipakai, tapi jaga-jaga)
+# ==========================================================
+vendor/
+
+# ==========================================================
+# IDE / editor
+# ==========================================================
+.idea/
+*.iml
+# .vscode/ sengaja tidak diignore — folder ini bisa berisi launch config
+# yang ingin dibagikan tim. Uncomment baris di bawah bila tidak diinginkan.
+# .vscode/
+
+# ==========================================================
+# OS
+# ==========================================================
+.DS_Store
+Thumbs.db
+
+# ==========================================================
+# Docker / local dev
+# ==========================================================
+docker-compose.override.yml

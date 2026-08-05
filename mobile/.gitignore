@@ -43,3 +43,17 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ==========================================================
+# Secrets — aplikasi ini memakai --dart-define (lihat AppConfig), bukan
+# file .env, tapi tetap diignore untuk jaga-jaga bila ada secrets lokal
+# (mis. keystore properties, service account json).
+# ==========================================================
+.env
+.env.*
+*.jks
+*.keystore
+key.properties
+android/key.properties
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json
