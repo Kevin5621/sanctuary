@@ -1,0 +1,19 @@
+{
+  "name": "sanctuary-api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Task-runner shortcuts for the Sanctuary Go backend. This is NOT a Node.js app — zero runtime dependencies. It exists purely so the team's usual `docker compose up -d` -> `pnpm dev` workflow works the same way here as in JS projects.",
+  "scripts": {
+    "dev": "docker compose up -d && docker compose logs -f api",
+    "logs": "docker compose logs -f api",
+    "up": "docker compose up -d",
+    "down": "docker compose down",
+    "restart": "docker compose restart api",
+    "build": "docker compose build api",
+    "seed": "docker compose exec api go run ./cmd/seed",
+    "migrate": "docker compose exec -T db psql -U sanctuary -d sanctuary -f - < migrations/20260805090000_initial_schema.sql",
+    "test": "docker compose exec api go test ./...",
+    "shell": "docker compose exec api sh",
+    "reset": "docker compose down -v"
+  }
+}

@@ -54,3 +54,11 @@ Thumbs.db
 # Docker / local dev
 # ==========================================================
 docker-compose.override.yml
+
+# ==========================================================
+# package.json here is just a task-runner shim (zero real dependencies)
+# so the team's `pnpm dev` habit works — but pnpm still writes local
+# metadata/lockfile that doesn't need to be tracked.
+# ==========================================================
+node_modules/
+pnpm-lock.yaml

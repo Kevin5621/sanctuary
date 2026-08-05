@@ -6,6 +6,7 @@ import 'core/network/dio_client.dart';
 import 'core/network/token_storage.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/environment_banner.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
@@ -82,6 +83,8 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
           darkTheme: AppTheme.dark,
           themeMode: ThemeMode.system,
           routerConfig: _router,
+          builder: (context, child) =>
+              EnvironmentBanner(child: child ?? const SizedBox.shrink()),
         ),
       ),
     );

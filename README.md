@@ -17,17 +17,30 @@ Status build saat ini: `go build ./...` ✔ · `go vet ./...` ✔ · 8 test EWS 
 
 ### Backend
 
+**Opsi A — Docker (direkomendasikan, setara `pnpm dev` di proyek Node):**
+
+```bash
+cd backend
+docker compose up -d    # Postgres + Redis + API, auto-migrate, hot reload (air)
+pnpm dev                 # mengikuti log live — package.json di sini murni task-runner,
+                          # bukan aplikasi Node (lihat catatan di package.json)
+pnpm seed                 # data demo (idempotent)
+```
+
+Perintah lain: `pnpm logs`, `pnpm down`, `pnpm test` (`go test` di dalam container), `pnpm reset` (hapus volume DB — destruktif). Lihat `Makefile` untuk padanan tanpa pnpm.
+
+**Opsi B — Go langsung di host:**
+
 ```bash
 cd backend
 cp .env.example .env          # sesuaikan DB_DSN & JWT_SECRET (min. 32 karakter)
 createdb sanctuary            # PostgreSQL 14+
 
-# Skema: pilih salah satu
 psql -d sanctuary -f migrations/20260805090000_initial_schema.sql   # produksi-grade (Atlas)
 # atau set DB_AUTO_MIGRATE=true untuk development
 
 go run ./cmd/seed             # data demo (idempotent)
-go run ./cmd/api              # http://localhost:8080
+make dev                      # hot reload via air — setara `pnpm dev`
 ```
 
 ### Mobile
@@ -35,7 +48,16 @@ go run ./cmd/api              # http://localhost:8080
 ```bash
 cd mobile
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080/api/v1   # emulator Android
+flutter run                                   # Linux desktop / Chrome / emulator Android — otomatis pilih API base URL yang sesuai
+flutter run -d linux                          # eksplisit Linux desktop
+flutter run -d chrome                         # eksplisit Chrome
+```
+
+Base URL API dikonfigurasi lewat `--dart-define-from-file`, bukan `.env` (lihat [`mobile/config/README.md`](mobile/config/README.md) dan §7). Build staging/production **wajib** menyertakan `API_BASE_URL` — aplikasi sengaja gagal start bila lupa:
+
+```bash
+flutter run --dart-define-from-file=config/env.staging.json
+flutter build apk --release --dart-define-from-file=config/env.prod.json
 ```
 
 ### Akun demo
@@ -215,23 +237,26 @@ Base: `/api/v1` · Semua response memakai amplop standar.
 ## 7. Arsitektur mobile
 
 ```
-mobile/lib/
-├─ core/
-│  ├─ config/          AppConfig (dart-define, tanpa URL hardcode)
-│  ├─ theme/           AppColors (sage/lavender/cream/warm grey/calming blue), AppTheme, AppSpacing
-│  ├─ widgets/         ClayContainer · ClayCard · ClayButton · Responsive · ContentContainer
-│  ├─ network/         DioClient (amplop + auto-refresh 401), ApiException, TokenStorage
-│  └─ router/          GoRouter + gerbang peran
-└─ features/<fitur>/
-   ├─ data/{models,datasources,repositories}
-   ├─ domain/{entities,repositories}
-   └─ presentation/{cubit,pages}
+mobile/
+├─ config/             env.{dev,staging,prod}.json — --dart-define-from-file
+└─ lib/
+   ├─ core/
+   │  ├─ config/          AppConfig — environment (dev/staging/prod) + API base URL
+   │  ├─ theme/            AppColors (sage/lavender/cream/warm grey/calming blue), AppTheme, AppSpacing
+   │  ├─ widgets/           ClayContainer · ClayCard · ClayButton · Responsive · ContentContainer · EnvironmentBanner
+   │  ├─ network/           DioClient (amplop + auto-refresh 401), ApiException, TokenStorage
+   │  └─ router/            GoRouter + gerbang peran
+   └─ features/<fitur>/
+      ├─ data/{models,datasources,repositories}
+      ├─ domain/{entities,repositories}
+      └─ presentation/{cubit,pages}
 ```
 
 - **Claymorphism** — `ClayContainer` membentuk permukaan dari dua bayangan berlawanan (sorotan kiri-atas, bayangan kanan-bawah) yang nilainya menyesuaikan light/dark. `ClayType.concave` dipakai untuk state terpilih.
-- **Responsif** — `Responsive` memusatkan aturan breakpoint: bottom navigation pada mobile portrait, `NavigationRail` pada tablet/desktop; login memakai satu kolom vs dua panel.
+- **Responsif** — `Responsive` memusatkan aturan breakpoint: bottom navigation pada mobile portrait, `NavigationRail` pada tablet/desktop; login memakai satu kolom vs dua panel. Target: Android/iOS, Linux desktop, dan Chrome (web) — `flutter create --platforms=linux,web .` sudah dijalankan.
 - **Gerbang peran** — `createRouter` mengalihkan berdasarkan `AuthStatus` dan prefix rute per peran (`/student`, `/lecturer`, `/kaprodi`, `/admin`), jumlah tab mengikuti `UserRole.tabCount` (4/3/4/2). Gerbang ini murni UX; otorisasi sebenarnya tetap di backend.
 - **Sesi** — hanya token yang tersimpan di perangkat (secure storage OS). Tidak ada jurnal/mood yang di-cache lokal.
+- **Konfigurasi environment** — `AppConfig` memakai `--dart-define-from-file` (bukan `.env` runtime — nilai di-compile jadi konstanta, sesuai cara resmi Flutter menangani config per-lingkungan). Build staging/production **wajib** menyertakan `API_BASE_URL`; bila lupa, aplikasi sengaja `throw` saat start alih-alih diam-diam menembak `localhost`. `EnvironmentBanner` menampilkan label DEV/STAGING di pojok layar pada build non-production. Detail: [`mobile/config/README.md`](mobile/config/README.md).
 
 ---
 
@@ -244,3 +269,4 @@ Cakupan tahap ini adalah fondasi arsitektur + tiga fitur kunci yang diminta. Yan
 - Analisis emosi memakai leksikon mock (`mock-lexicon-v1`); antarmuka `EmotionAnalyzer` sengaja kecil agar penggantian ke model NLP tidak menyentuh usecase.
 - Nomor layanan darurat bertanda `[VERIFIKASI]` adalah placeholder kampus dan **wajib** diverifikasi Admin sebelum rilis.
 - Kode error khusus Sanctuary (`PRIVATE_CONTENT_FORBIDDEN`, `INSUFFICIENT_GROUP_SIZE`, dll.) perlu ditambahkan ke `api-standart/api-error-codes.md`.
+- URL di `mobile/config/env.staging.json` dan `env.prod.json` masih placeholder (`sanctuary.ac.id`) — ganti dengan domain infrastruktur sesungguhnya sebelum dipakai CI/CD.
