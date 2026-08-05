@@ -1,16 +1,19 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Penyimpanan token pada secure storage OS
-/// (Keychain di iOS, EncryptedSharedPreferences di Android).
+/// (Keychain di iOS, SharedPreferences terenkripsi di Android).
 ///
 /// Catatan arsitektur: aplikasi bersifat FULL ONLINE — tidak ada database
 /// lokal. Yang tersimpan di perangkat hanyalah token sesi, bukan data
 /// jurnal/mood/chat mahasiswa.
+///
+/// Sejak flutter_secure_storage v10, enkripsi Android aktif secara default
+/// (Jetpack Security sudah usang dan digantikan cipher internal paket),
+/// sehingga tidak ada lagi flag yang perlu dinyalakan.
 class TokenStorage {
   TokenStorage({FlutterSecureStorage? storage})
       : _storage = storage ??
             const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
               iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
             );
 

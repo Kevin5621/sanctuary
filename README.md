@@ -56,6 +56,19 @@ flutter run -d linux                          # eksplisit Linux desktop
 flutter run -d chrome                         # eksplisit Chrome
 ```
 
+Platform aktif: **Android, Linux desktop, dan Web**. Prasyarat per target:
+
+| Target | Yang dibutuhkan |
+|---|---|
+| Linux | `libsecret-1-dev` (dipakai `flutter_secure_storage`) — `sudo apt install libsecret-1-dev` |
+| Android | JDK 17 + Android SDK (platform 36, build-tools 36). Arahkan Flutter: `flutter config --android-sdk <path> --jdk-dir <path>` |
+| Web | Chrome untuk `flutter run -d chrome`; `flutter build web` tidak memerlukannya |
+
+Catatan Android: `INTERNET` diminta pada manifest utama karena aplikasi ini full online —
+tanpa itu APK release terpasang normal tetapi tidak pernah berhasil memanggil API.
+HTTP polos **hanya** diizinkan pada build debug (`android/app/src/debug/AndroidManifest.xml`)
+agar emulator dapat menjangkau `http://10.0.2.2:8080`; build release wajib HTTPS.
+
 Base URL API dikonfigurasi lewat `--dart-define-from-file`, bukan `.env` (lihat [`mobile/config/README.md`](mobile/config/README.md) dan §7). Build staging/production **wajib** menyertakan `API_BASE_URL` — aplikasi sengaja gagal start bila lupa:
 
 ```bash
@@ -256,7 +269,7 @@ mobile/
 ```
 
 - **Claymorphism** — `ClayContainer` membentuk permukaan dari dua bayangan berlawanan (sorotan kiri-atas, bayangan kanan-bawah) yang nilainya menyesuaikan light/dark. `ClayType.concave` dipakai untuk state terpilih.
-- **Responsif** — `Responsive` memusatkan aturan breakpoint: bottom navigation pada mobile portrait, `NavigationRail` pada tablet/desktop; login memakai satu kolom vs dua panel. Target: Android/iOS, Linux desktop, dan Chrome (web) — `flutter create --platforms=linux,web .` sudah dijalankan.
+- **Responsif** — `Responsive` memusatkan aturan breakpoint: bottom navigation pada mobile portrait, `NavigationRail` pada tablet/desktop; login memakai satu kolom vs dua panel. Target: Android, Linux desktop, dan Chrome (web) — ketiganya sudah dibuat dan terverifikasi build-nya. iOS belum dibuat (butuh mesin macOS).
 - **Gerbang peran** — `createRouter` mengalihkan berdasarkan `AuthStatus` dan prefix rute per peran (`/student`, `/lecturer`, `/kaprodi`, `/admin`), jumlah tab mengikuti `UserRole.tabCount` (4/3/4/2). Gerbang ini murni UX; otorisasi sebenarnya tetap di backend.
 - **Sesi** — hanya token yang tersimpan di perangkat (secure storage OS). Tidak ada jurnal/mood yang di-cache lokal.
 - **Konfigurasi environment** — `AppConfig` memakai `--dart-define-from-file` (bukan `.env` runtime — nilai di-compile jadi konstanta, sesuai cara resmi Flutter menangani config per-lingkungan). Build staging/production **wajib** menyertakan `API_BASE_URL`; bila lupa, aplikasi sengaja `throw` saat start alih-alih diam-diam menembak `localhost`. `EnvironmentBanner` menampilkan label DEV/STAGING di pojok layar pada build non-production. Detail: [`mobile/config/README.md`](mobile/config/README.md).

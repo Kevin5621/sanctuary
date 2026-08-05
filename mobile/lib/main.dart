@@ -6,12 +6,16 @@ import 'core/network/dio_client.dart';
 import 'core/network/token_storage.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_cubit.dart';
 import 'core/widgets/environment_banner.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
+import 'features/dosen/data/repositories/mentor_repository.dart';
+import 'features/kaprodi/data/repositories/program_repository.dart';
 import 'features/mahasiswa/data/repositories/daily_metric_repository.dart';
 import 'features/privacy/data/repositories/privacy_repository.dart';
+import 'features/support/data/repositories/emergency_contact_repository.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,8 +37,12 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
   late final TokenStorage _tokenStorage;
   late final DioClient _dioClient;
   late final AuthCubit _authCubit;
+  late final ThemeCubit _themeCubit;
   late final PrivacyRepository _privacyRepository;
   late final DailyMetricRepository _dailyMetricRepository;
+  late final MentorRepository _mentorRepository;
+  late final ProgramRepository _programRepository;
+  late final EmergencyContactRepository _emergencyContactRepository;
   late final _router = createRouter(_authCubit);
 
   @override
@@ -60,6 +68,13 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
     _dioClient = client;
     _privacyRepository = PrivacyRepository(_dioClient);
     _dailyMetricRepository = DailyMetricRepository(_dioClient);
+    _mentorRepository = MentorRepository(_dioClient);
+    _programRepository = ProgramRepository(_dioClient);
+    _emergencyContactRepository = EmergencyContactRepository(_dioClient);
+
+    // Tema dipulihkan bersamaan dengan sesi supaya aplikasi tidak berkedip
+    // dari terang ke gelap setelah frame pertama.
+    _themeCubit = ThemeCubit(ThemePreferenceStorage())..restore();
 
     _authCubit.restoreSession();
   }
@@ -67,6 +82,7 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
   @override
   void dispose() {
     _authCubit.close();
+    _themeCubit.close();
     super.dispose();
   }
 
@@ -77,18 +93,29 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
         RepositoryProvider<DioClient>.value(value: _dioClient),
         RepositoryProvider<PrivacyRepository>.value(value: _privacyRepository),
         RepositoryProvider<DailyMetricRepository>.value(value: _dailyMetricRepository),
+        RepositoryProvider<MentorRepository>.value(value: _mentorRepository),
+        RepositoryProvider<ProgramRepository>.value(value: _programRepository),
+        RepositoryProvider<EmergencyContactRepository>.value(
+          value: _emergencyContactRepository,
+        ),
       ],
-      child: BlocProvider<AuthCubit>.value(
-        value: _authCubit,
-        child: MaterialApp.router(
-          title: AppConfig.appName,
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: ThemeMode.system,
-          routerConfig: _router,
-          builder: (context, child) =>
-              EnvironmentBanner(child: child ?? const SizedBox.shrink()),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthCubit>.value(value: _authCubit),
+          BlocProvider<ThemeCubit>.value(value: _themeCubit),
+        ],
+        child: BlocBuilder<ThemeCubit, ThemeMode>(
+          builder: (context, themeMode) => MaterialApp.router(
+            title: AppConfig.appName,
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            // Pilihan pengguna, bukan lagi selalu ThemeMode.system (M-PRO-08).
+            themeMode: themeMode,
+            routerConfig: _router,
+            builder: (context, child) =>
+                EnvironmentBanner(child: child ?? const SizedBox.shrink()),
+          ),
         ),
       ),
     );

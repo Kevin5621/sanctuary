@@ -1,44 +1,249 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/privacy_states.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../dosen/presentation/pages/dosen_profil_tab.dart' show DarkModeCard;
+import '../../data/repositories/program_repository.dart';
+import '../cubit/kaprodi_cubit.dart';
 
+/// Tab Profil Kaprodi (K-PRO-01).
 class KaprodiProfilTab extends StatelessWidget {
   const KaprodiProfilTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) =>
+          KaprodiProfilCubit(context.read<ProgramRepository>())..load(),
+      child: const _KaprodiProfilView(),
+    );
+  }
+}
+
+class _KaprodiProfilView extends StatelessWidget {
+  const _KaprodiProfilView();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthCubit>().state.user;
+
     return Scaffold(
       backgroundColor: AppColors.creamBg,
-      appBar: AppBar(title: const Text('Profil Kaprodi'), elevation: 0),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              border: Border.all(color: AppColors.cartoonBorder, width: 1.5),
-            ),
-            child: const Row(
+      body: SafeArea(
+        bottom: false,
+        child: BlocBuilder<KaprodiProfilCubit, KaprodiProfilState>(
+          builder: (context, state) {
+            return ListView(
+              padding: const EdgeInsets.all(AppSpacing.md),
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppColors.moodFearBg,
-                  child: Text('🏛️', style: TextStyle(fontSize: 26)),
+                const SectionHeader(
+                  title: 'Profil',
+                  subtitle: 'Ketua Program Studi',
                 ),
-                SizedBox(width: AppSpacing.md),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Prof. Dr. Maya Putri, M.T.', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.midnight)),
-                    Text('Ketua Program Studi S1 Teknik Informatika', style: TextStyle(fontSize: 12, color: AppColors.warmTextSecondary)),
-                  ],
+                const SizedBox(height: AppSpacing.lg),
+
+                StateCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              color: AppColors.moodDisgustBg,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: AppColors.midnight, width: 1.8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                (user?.fullName.trim().isNotEmpty ?? false)
+                                    ? user!.fullName.trim()[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 22,
+                                  color: AppColors.midnight,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user?.fullName ?? '—',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 17,
+                                    color: AppColors.midnight,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  user?.email ?? '',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.warmTextSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (state.profile.programName.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        Row(
+                          children: [
+                            const Icon(Icons.account_balance_outlined,
+                                size: 17, color: AppColors.warmTextSecondary),
+                            const SizedBox(width: 6),
+                            Text(
+                              state.profile.programName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.midnight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
+                const SizedBox(height: AppSpacing.md),
+
+                if (state.status.isLoading)
+                  const LoadingState(label: 'Memuat data prodi…', padding: 24)
+                else if (state.status.isFailure)
+                  ErrorStateCard(
+                    message: state.errorMessage ??
+                        'Periksa koneksi internet Anda lalu coba lagi.',
+                    onRetry: () => context.read<KaprodiProfilCubit>().load(),
+                  )
+                else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CountTile(
+                          value: '${state.profile.totalStudents}',
+                          label: 'Mahasiswa terdaftar',
+                          color: AppColors.moodDisgustBg,
+                          icon: Icons.groups_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: _CountTile(
+                          value: '${state.profile.totalAdvisors}',
+                          label: 'Dosen pembimbing',
+                          color: AppColors.lavenderBg,
+                          icon: Icons.school_rounded,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  if (state.profile.accessLimits.isNotEmpty)
+                    AccessLimitsCard(limits: state.profile.accessLimits),
+                ],
+
+                const SizedBox(height: AppSpacing.md),
+                const DarkModeCard(),
+                const SizedBox(height: AppSpacing.md),
+                const _LogoutButton(),
+                const SizedBox(height: 100),
               ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CountTile extends StatelessWidget {
+  const _CountTile({
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  final String value;
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.cartoonBorder, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.cartoonShadow,
+            offset: Offset(0, 4),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 22, color: AppColors.midnight),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 26,
+              color: AppColors.midnight,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.warmTextSecondary,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  const _LogoutButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: () => context.read<AuthCubit>().logout(),
+      icon: const Icon(Icons.logout_rounded, size: 18),
+      label: const Text('Keluar', style: TextStyle(fontWeight: FontWeight.w700)),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.ewsIntervention,
+        side: const BorderSide(color: AppColors.ewsIntervention, width: 1.5),
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+        ),
       ),
     );
   }

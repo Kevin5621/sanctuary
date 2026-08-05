@@ -18,8 +18,10 @@ dependencies:
   dio: ^5.7.0
   pretty_dio_logger: ^1.4.0
 
-  # Penyimpanan token (OS keychain / EncryptedSharedPreferences)
-  flutter_secure_storage: ^9.2.2
+  # Penyimpanan token (OS keychain / SharedPreferences terenkripsi).
+  # v10+ wajib: rilis 9.x membundel json.hpp lawas yang ditolak Clang 21
+  # (-Wdeprecated-literal-operator sebagai error), sehingga build Linux gagal.
+  flutter_secure_storage: ^10.3.1
 
   # Navigasi berbasis peran
   go_router: ^14.6.1

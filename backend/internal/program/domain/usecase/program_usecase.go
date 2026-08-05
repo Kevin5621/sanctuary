@@ -26,6 +26,8 @@ type ProgramUsecase interface {
 	Dashboard(ctx context.Context, access Access, periodDays int) (dto.ProgramDashboardResponse, error)
 	Advisors(ctx context.Context, access Access) ([]dto.AdvisorLoadResponse, error)
 	CohortReport(ctx context.Context, access Access, periodDays int) ([]dto.CohortReportResponse, error)
+	// Profile mengisi tab Profil kaprodi (K-PRO-01).
+	Profile(ctx context.Context, access Access) (dto.ProgramProfileResponse, error)
 }
 
 // Access membawa cakupan prodi milik kaprodi (dari klaim JWT).
@@ -103,24 +105,36 @@ func (u *programUsecase) Dashboard(ctx context.Context, access Access, periodDay
 		return dto.ProgramDashboardResponse{}, err
 	}
 
+	// Kalkulasi EWS dijalankan SETELAH AggregateGuard lolos (k >= 5), sehingga
+	// tidak ada jalur yang menghitung — apalagi mengembalikan — angka intervensi
+	// pada kelompok di bawah ambang.
 	ewsMap, err := u.ews.EvaluateMany(ctx, studentIDs, nil)
 	if err != nil {
 		return dto.ProgramDashboardResponse{}, err
 	}
-	distribution := map[string]int{}
-	interventionCount := 0
+	levelCounts := map[constants.EWSLevel]int{}
 	for _, result := range ewsMap {
-		distribution[result.Level.String()]++
-		if result.Level == constants.EWSLevelIntervention {
-			interventionCount++
-		}
+		levelCounts[result.Level]++
 	}
 
+	// D-9: pembagi adalah jumlah mahasiswa yang benar-benar terevaluasi, bukan
+	// seluruh peserta statistik. Memakai len(studentIDs) akan mengecilkan
+	// persentase setiap kali ada mahasiswa yang datanya belum cukup.
+	evaluated := float64(len(ewsMap))
 	total := float64(len(studentIDs))
-	res.EWSDistribution = distribution
+
+	res.EWSDistribution = toEWSShares(levelCounts, evaluated)
 	res.Metrics = []dto.MetricCardResponse{
 		{Key: "avg_mood", Label: "Rata-rata mood", Value: ptr(round2(agg.AvgMood)), Unit: "skala 1-5"},
-		{Key: "need_intervention", Label: "Perlu intervensi", Value: ptr(float64(interventionCount)), Unit: "mahasiswa"},
+
+		// D-9: PERSENTASE, bukan hitungan mentah. Pada prodi kecil "3 mahasiswa
+		// perlu intervensi" praktis menunjuk orang tertentu; kaprodi tetap
+		// mendapat sinyal besaran masalah tanpa kemampuan menebak siapa.
+		// Hitungan mentahnya tidak dikirim di field mana pun pada response ini.
+		{Key: "need_intervention", Label: "Perlu intervensi",
+			Value: ptr(percentOf(float64(levelCounts[constants.EWSLevelIntervention]), evaluated)),
+			Unit:  "%", Hint: "dari mahasiswa yang datanya cukup dievaluasi"},
+
 		{Key: "active_7_days", Label: "Aktif 7 hari terakhir", Value: ptr(float64(activeCount)), Unit: "mahasiswa",
 			Hint: percentHint(float64(activeCount), total)},
 		{Key: "avg_stress", Label: "Rata-rata stres", Value: ptr(round2(agg.AvgStress)), Unit: "skala 1-5"},
@@ -199,6 +213,51 @@ func (u *programUsecase) CohortReport(ctx context.Context, access Access, period
 	return reports, nil
 }
 
+// programAccessLimits adalah batas akses kaprodi, ditampilkan apa adanya pada
+// tab Profil (K-PRO-01).
+var programAccessLimits = []string{
+	"Anda tidak dapat membuka indikator kondisi per mahasiswa.",
+	"Anda tidak melihat nama siapa pun pada data kondisi — seluruhnya agregat.",
+	"Anda tidak dapat membaca jurnal maupun percakapan Terapis AI mahasiswa.",
+	"Angka agregat hanya muncul bila kelompoknya minimal " +
+		strconv.Itoa(utils.KAnonymityMinGroup()) + " mahasiswa.",
+	"Hanya mahasiswa yang mengaktifkan izin \"Ikut Statistik Prodi\" yang ikut dihitung.",
+	"Metrik \"perlu intervensi\" ditampilkan sebagai persentase, bukan jumlah orang.",
+}
+
+// Profile mengembalikan populasi prodi dan batas akses.
+//
+// Total mahasiswa terdaftar TIDAK tunduk k-anonymity: itu angka administratif
+// (berapa orang ada di prodi), bukan data kondisi — sama seperti beban bimbingan.
+func (u *programUsecase) Profile(ctx context.Context, access Access) (dto.ProgramProfileResponse, error) {
+	if access.ProgramID == "" {
+		return dto.ProgramProfileResponse{}, utils.NewError(utils.CodeForbidden).WithDetails(map[string]any{
+			"reason": "akun kaprodi belum terhubung ke program studi",
+		})
+	}
+
+	programName, err := u.programs.ProgramName(ctx, access.ProgramID)
+	if err != nil {
+		return dto.ProgramProfileResponse{}, err
+	}
+	totalStudents, err := u.programs.TotalStudents(ctx, access.ProgramID)
+	if err != nil {
+		return dto.ProgramProfileResponse{}, err
+	}
+	advisors, err := u.programs.AdvisorLoads(ctx, access.ProgramID)
+	if err != nil {
+		return dto.ProgramProfileResponse{}, err
+	}
+
+	return dto.ProgramProfileResponse{
+		ProgramID:     access.ProgramID,
+		ProgramName:   programName,
+		TotalStudents: totalStudents,
+		TotalAdvisors: len(advisors),
+		AccessLimits:  programAccessLimits,
+	}, nil
+}
+
 func (u *programUsecase) audit(ctx context.Context, access Access, meta map[string]any) {
 	err := u.audits.Record(ctx, authrepo.AuditEntry{
 		ActorID:    access.UserID,
@@ -220,7 +279,7 @@ func (u *programUsecase) audit(ctx context.Context, access Access, meta map[stri
 func emptyMetricCards() []dto.MetricCardResponse {
 	return []dto.MetricCardResponse{
 		{Key: "avg_mood", Label: "Rata-rata mood", Unit: "skala 1-5"},
-		{Key: "need_intervention", Label: "Perlu intervensi", Unit: "mahasiswa"},
+		{Key: "need_intervention", Label: "Perlu intervensi", Unit: "%"},
 		{Key: "active_7_days", Label: "Aktif 7 hari terakhir", Unit: "mahasiswa"},
 		{Key: "avg_stress", Label: "Rata-rata stres", Unit: "skala 1-5"},
 		{Key: "avg_sleep", Label: "Rata-rata tidur", Unit: "jam"},
@@ -228,11 +287,43 @@ func emptyMetricCards() []dto.MetricCardResponse {
 	}
 }
 
+// toEWSShares mengubah hitungan per level menjadi persentase (K-DAS-07).
+//
+// Seluruh level selalu disertakan — termasuk yang bernilai 0 — supaya kaprodi
+// tidak menyimpulkan "tidak ada yang perlu intervensi" hanya karena levelnya
+// hilang dari response. Level INSUFFICIENT_DATA tidak pernah masuk peta ini
+// karena EvaluateMany hanya mengembalikan hasil yang terevaluasi.
+func toEWSShares(counts map[constants.EWSLevel]int, evaluated float64) []dto.EWSShareResponse {
+	levels := []constants.EWSLevel{
+		constants.EWSLevelNormal,
+		constants.EWSLevelWatch,
+		constants.EWSLevelRisk,
+		constants.EWSLevelIntervention,
+	}
+
+	out := make([]dto.EWSShareResponse, 0, len(levels))
+	for _, level := range levels {
+		out = append(out, dto.EWSShareResponse{
+			Level:      level.String(),
+			LevelLabel: level.Label(),
+			Percentage: percentOf(float64(counts[level]), evaluated),
+		})
+	}
+	return out
+}
+
+func percentOf(part, total float64) float64 {
+	if total <= 0 {
+		return 0
+	}
+	return round2(part / total * 100)
+}
+
 func percentHint(part, total float64) string {
 	if total <= 0 {
 		return ""
 	}
-	percent := strconv.FormatFloat(round2(part/total*100), 'f', -1, 64)
+	percent := strconv.FormatFloat(percentOf(part, total), 'f', -1, 64)
 	return percent + "% dari peserta statistik"
 }
 

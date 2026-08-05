@@ -11,7 +11,10 @@ import (
 
 type EmergencyContactRepository interface {
 	List(ctx context.Context, p utils.Pagination, activeOnly bool) ([]models.EmergencyContact, int64, error)
-	FindByID(ctx context.Context, id string) (*models.EmergencyContact, error)
+	// FindByID dengan activeOnly=true dipakai peran non-Admin (A-BAN-02):
+	// baris nonaktif harus berperilaku seolah tidak ada, bukan sekadar
+	// disembunyikan dari daftar.
+	FindByID(ctx context.Context, id string, activeOnly bool) (*models.EmergencyContact, error)
 	Create(ctx context.Context, contact *models.EmergencyContact) error
 	Update(ctx context.Context, contact *models.EmergencyContact) error
 	Delete(ctx context.Context, id string) error
@@ -25,9 +28,10 @@ func NewEmergencyContactRepository(db *gorm.DB) EmergencyContactRepository {
 
 // sortWhitelist mencegah SQL injection lewat parameter sort_by.
 var sortWhitelist = map[string]string{
-	"sort_order": "sort_order",
-	"name":       "name",
-	"created":    "created_at",
+	"sort_order":   "sort_order",
+	"name":         "name",
+	"service_type": "service_type",
+	"created":      "created_at",
 }
 
 func (r *emergencyContactRepository) List(ctx context.Context, p utils.Pagination, activeOnly bool) ([]models.EmergencyContact, int64, error) {
@@ -56,12 +60,19 @@ func (r *emergencyContactRepository) List(ctx context.Context, p utils.Paginatio
 	return contacts, total, utils.TranslateDBError(err, "")
 }
 
-func (r *emergencyContactRepository) FindByID(ctx context.Context, id string) (*models.EmergencyContact, error) {
+func (r *emergencyContactRepository) FindByID(ctx context.Context, id string, activeOnly bool) (*models.EmergencyContact, error) {
 	ctx, cancel := utils.DBContext(ctx)
 	defer cancel()
 
+	query := r.db.WithContext(ctx).Where("id = ?", id)
+	if activeOnly {
+		query = query.Where("is_active = true")
+	}
+
 	var contact models.EmergencyContact
-	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&contact).Error; err != nil {
+	if err := query.First(&contact).Error; err != nil {
+		// Sengaja tidak membedakan "tidak ada" vs "nonaktif" agar peran non-Admin
+		// tidak dapat menyimpulkan keberadaan nomor yang sedang dinonaktifkan.
 		return nil, utils.TranslateDBError(err, utils.CodeEmergencyContactNotFound)
 	}
 	return &contact, nil
@@ -81,12 +92,13 @@ func (r *emergencyContactRepository) Update(ctx context.Context, contact *models
 	err := r.db.WithContext(ctx).Model(&models.EmergencyContact{}).
 		Where("id = ?", contact.ID).
 		Updates(map[string]any{
-			"name":        contact.Name,
-			"phone":       contact.Phone,
-			"description": contact.Description,
-			"is_24_hours": contact.Is24Hours,
-			"is_active":   contact.IsActive,
-			"sort_order":  contact.SortOrder,
+			"name":         contact.Name,
+			"phone":        contact.Phone,
+			"description":  contact.Description,
+			"service_type": contact.ServiceType,
+			"is_24_hours":  contact.Is24Hours,
+			"is_active":    contact.IsActive,
+			"sort_order":   contact.SortOrder,
 		}).Error
 	return utils.TranslateDBError(err, "")
 }

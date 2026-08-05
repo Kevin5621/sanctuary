@@ -34,6 +34,10 @@ type MentorUsecase interface {
 	ListAdvisees(ctx context.Context, access AccessContext, p utils.Pagination) ([]mentordto.AdviseeListItemResponse, int64, error)
 	StudentIndicator(ctx context.Context, access AccessContext, studentID string) (mentordto.StudentIndicatorResponse, error)
 	GroupCondition(ctx context.Context, access AccessContext, periodDays int) (mentordto.GroupConditionResponse, error)
+	// ListContactRequests mengembalikan nama + waktu saja (L-BIM-03 / D-6).
+	ListContactRequests(ctx context.Context, access AccessContext) ([]mentordto.ContactRequestItemResponse, error)
+	// Profile mengisi tab Profil dosen (L-PRO-02..03).
+	Profile(ctx context.Context, access AccessContext) (mentordto.MentorProfileResponse, error)
 }
 
 type mentorUsecase struct {
@@ -132,7 +136,7 @@ func (u *mentorUsecase) buildListItem(
 	student *authmodels.User,
 	setting *studentmodels.StudentPrivacySetting,
 	ewsMap map[string]EWSResult,
-	contactRequests map[string]studentmodels.StudentContactRequest,
+	contactRequests map[string]mentorrepo.ContactRequestSummary,
 	lastCheckins map[string]time.Time,
 ) mentordto.AdviseeListItemResponse {
 	item := mentordto.AdviseeListItemResponse{
@@ -144,11 +148,14 @@ func (u *mentorUsecase) buildListItem(
 		ShareLevelLabel: shareLevelLabel[setting.ShareLevel],
 	}
 
-	// Permintaan dihubungi adalah inisiatif mahasiswa sendiri, sehingga tetap
-	// tampil apa pun tingkat berbagi datanya.
+	// D-7: menekan "minta dihubungi" adalah persetujuan eksplisit dan spesifik
+	// yang mengalahkan share_level, sehingga baris ini tetap tampil bahkan saat
+	// mahasiswa memilih Tertutup — namun tetap hanya nama + waktu, tanpa alasan
+	// (D-6) dan tanpa indikator apa pun.
 	if request, ok := contactRequests[student.ID]; ok {
 		item.HasOpenContactRequest = true
-		item.ContactRequestNote = request.Note
+		requestedAt := apptime.FormatDateTime(request.RequestedAt)
+		item.ContactRequestedAt = &requestedAt
 	}
 
 	if !setting.CanShareIndicator() {
@@ -198,6 +205,18 @@ func (u *mentorUsecase) StudentIndicator(
 		StudentNumber:   student.StudentNumber,
 		ShareLevel:      setting.ShareLevel.String(),
 		ShareLevelLabel: shareLevelLabel[setting.ShareLevel],
+	}
+
+	// Dibaca sebelum gerbang privasi karena permintaan dihubungi adalah
+	// persetujuan eksplisit mahasiswa yang berdiri sendiri (D-7).
+	requests, err := u.advisees.OpenContactRequests(ctx, access.AdvisorID)
+	if err != nil {
+		return mentordto.StudentIndicatorResponse{}, err
+	}
+	if request, ok := requests[studentID]; ok {
+		res.HasOpenContactRequest = true
+		requestedAt := apptime.FormatDateTime(request.RequestedAt)
+		res.ContactRequestedAt = &requestedAt
 	}
 
 	if !setting.CanShareIndicator() {
@@ -332,6 +351,77 @@ func (u *mentorUsecase) GroupCondition(
 	}
 
 	return res, nil
+}
+
+// ListContactRequests mengisi layar "minta dihubungi" (L-BIM-03).
+//
+// SENGAJA TIDAK DISERTAKAN pada response:
+//   - `note` (alasan mahasiswa) — D-6, sudah dihentikan di lapisan repository.
+//   - indikator kondisi & EWS — permintaan dihubungi bukan izin membuka data.
+//
+// Tidak ada penyaringan share_level di sini, dan itu disengaja (D-7): mahasiswa
+// Tertutup yang menekan tombol ini tetap harus terlihat, karena justru itu
+// maksudnya menekan tombol tersebut.
+func (u *mentorUsecase) ListContactRequests(
+	ctx context.Context,
+	access AccessContext,
+) ([]mentordto.ContactRequestItemResponse, error) {
+	requests, err := u.advisees.ListOpenContactRequests(ctx, access.AdvisorID)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]mentordto.ContactRequestItemResponse, 0, len(requests))
+	for _, req := range requests {
+		items = append(items, mentordto.ContactRequestItemResponse{
+			RequestID:     req.RequestID,
+			StudentID:     req.StudentID,
+			FullName:      req.FullName,
+			StudentNumber: req.StudentNumber,
+			RequestedAt:   apptime.FormatDateTime(req.RequestedAt),
+		})
+	}
+	return items, nil
+}
+
+// mentorAccessLimits adalah batas akses yang ditampilkan apa adanya di tab Profil
+// dosen (L-PRO-03).
+//
+// Teksnya sengaja tegas dan berasal dari server: mahasiswa yang ragu apakah
+// tulisannya terbaca akan berhenti menulis jujur, dan itu mematikan sumber data
+// produk ini. Menyatakan batasnya terang-terangan ke dosen adalah cara termurah
+// menurunkan kecurigaan tersebut.
+var mentorAccessLimits = []string{
+	"Anda tidak dapat membaca jurnal mahasiswa — tanpa pengecualian.",
+	"Anda tidak dapat membaca percakapan Terapis AI mahasiswa.",
+	"Anda hanya melihat indikator mahasiswa bimbingan Anda sendiri, sebatas izin yang mereka pilih.",
+	"Mahasiswa yang memilih Tertutup tidak menampilkan indikator apa pun kepada Anda.",
+	"Pada daftar \"minta dihubungi\", Anda hanya menerima nama dan waktu — bukan alasannya.",
+	"Aplikasi ini bukan kanal pesan: hubungi mahasiswa melalui jalur yang biasa Anda pakai.",
+	"Setiap kali Anda membuka indikator seorang mahasiswa, akses tersebut tercatat pada log audit.",
+}
+
+func (u *mentorUsecase) Profile(
+	ctx context.Context,
+	access AccessContext,
+) (mentordto.MentorProfileResponse, error) {
+	students, err := u.advisees.ListByAdvisor(ctx, access.AdvisorID)
+	if err != nil {
+		return mentordto.MentorProfileResponse{}, err
+	}
+
+	requests, err := u.advisees.ListOpenContactRequests(ctx, access.AdvisorID)
+	if err != nil {
+		return mentordto.MentorProfileResponse{}, err
+	}
+
+	// Jumlah bimbingan adalah data administratif (bukan data kondisi), sehingga
+	// tidak tunduk k-anonymity — sama alasannya dengan beban bimbingan kaprodi.
+	return mentordto.MentorProfileResponse{
+		AdviseeCount:       len(students),
+		OpenContactRequest: len(requests),
+		AccessLimits:       mentorAccessLimits,
+	}, nil
 }
 
 func (u *mentorUsecase) audit(ctx context.Context, access AccessContext, action, resourceID string, meta map[string]any) {

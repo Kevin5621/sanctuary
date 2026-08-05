@@ -1,3 +1,15 @@
+// Package dto memuat SELURUH bentuk data yang boleh keluar ke Dosen Pembimbing.
+//
+// ATURAN STRUKTURAL (D-6 / C-15) — dibaca sebelum menambah field apa pun:
+//
+// Tidak satu pun struct di file ini boleh memiliki field yang memuat teks yang
+// ditulis mahasiswa: isi jurnal, percakapan Terapis AI, maupun
+// student_contact_requests.note. Dosen berhak tahu SIAPA dan KAPAN, tidak
+// pernah MENGAPA — alasan disampaikan langsung oleh mahasiswa di luar aplikasi.
+//
+// Aturan ini ditegakkan otomatis oleh mentor_dto_privacy_test.go, yang memindai
+// struct di package ini lewat refleksi dan GAGAL bila field terlarang muncul
+// kembali. Jika test itu gagal, perbaiki DTO-nya — bukan test-nya.
 package dto
 
 // IndicatorResponse adalah rincian satu indikator EWS.
@@ -35,11 +47,30 @@ type AdviseeListItemResponse struct {
 	// PrivacyNotice menjelaskan ke dosen mengapa data tidak tampil.
 	PrivacyNotice string `json:"privacy_notice,omitempty"`
 
-	HasOpenContactRequest bool   `json:"has_open_contact_request"`
-	ContactRequestNote    string `json:"contact_request_note,omitempty"`
+	// Hanya FAKTA permintaan + waktunya. Alasan (kolom `note`) TIDAK PERNAH
+	// disertakan — lihat catatan package di atas (D-6).
+	HasOpenContactRequest bool    `json:"has_open_contact_request"`
+	ContactRequestedAt    *string `json:"contact_requested_at,omitempty"`
 
 	LastCheckinDate *string             `json:"last_checkin_date,omitempty"`
 	EWS             *EWSSummaryResponse `json:"ews"`
+}
+
+// ContactRequestItemResponse adalah satu baris daftar "minta dihubungi"
+// (L-BIM-03).
+//
+// SENGAJA TIDAK DISERTAKAN: `student_contact_requests.note`. Kolomnya tetap ada
+// di basis data karena mahasiswa boleh menuliskannya untuk dirinya sendiri,
+// tetapi tidak pernah dibaca — bahkan tidak di-SELECT oleh repository.
+// Juga tidak disertakan: indikator kondisi & EWS. Permintaan dihubungi adalah
+// persetujuan spesifik untuk dihubungi (D-7), bukan izin melihat data — mahasiswa
+// dengan share_level CLOSED tetap muncul di sini dan tetap tanpa satu angka pun.
+type ContactRequestItemResponse struct {
+	RequestID     string  `json:"request_id"`
+	StudentID     string  `json:"student_id"`
+	FullName      string  `json:"full_name"`
+	StudentNumber *string `json:"student_number,omitempty"`
+	RequestedAt   string  `json:"requested_at"`
 }
 
 // WeeklyTrendPointResponse hanya terisi pada level Ringkasan + Tren.
@@ -73,7 +104,17 @@ type StudentIndicatorResponse struct {
 	Trend   []WeeklyTrendPointResponse `json:"trend"`
 	EWS     *EWSSummaryResponse        `json:"ews"`
 
-	HasOpenContactRequest bool `json:"has_open_contact_request"`
+	// Sama seperti daftar: fakta + waktu, tanpa alasan (D-6).
+	HasOpenContactRequest bool    `json:"has_open_contact_request"`
+	ContactRequestedAt    *string `json:"contact_requested_at,omitempty"`
+}
+
+// MentorProfileResponse mengisi tab Profil dosen (L-PRO-02..03).
+// Hanya angka administratif — tidak ada data kondisi mahasiswa di sini.
+type MentorProfileResponse struct {
+	AdviseeCount       int      `json:"advisee_count"`
+	OpenContactRequest int      `json:"open_contact_request"`
+	AccessLimits       []string `json:"access_limits"`
 }
 
 // EmotionShareResponse dipakai sebaran emosi kelompok.
