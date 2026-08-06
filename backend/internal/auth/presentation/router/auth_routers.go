@@ -25,6 +25,17 @@ func RegisterAuthRoutes(
 	g.POST("/login", loginLimit, h.Login)
 	g.POST("/refresh", loginLimit, h.Refresh)
 
+	// Pendaftaran mahasiswa: publik, seketat login agar pembuatan akun massal
+	// tidak lebih murah daripada menebak kata sandi. Kuotanya sengaja terpisah
+	// dari login ("register_ip", bukan "login_ip"): satu angkatan yang mendaftar
+	// bersamaan dari wifi kampus berbagi satu IP publik, dan itu tidak boleh
+	// ikut mengunci pintu masuk pengguna lain di gedung yang sama.
+	g.POST("/register", limiter.Limit("register_ip", cfg.RateLimit.LoginPerMinute, middleware.KeyByIP), h.Register)
+
+	// Daftar prodi ikut publik karena formulir pendaftaran membutuhkannya
+	// sebelum akun ada. Isinya data referensi kampus, tanpa atribut pengguna.
+	g.GET("/study-programs", h.StudyPrograms)
+
 	authenticated := g.Group("", middleware.Auth(jwtManager))
 	authenticated.POST("/logout", h.Logout)
 	authenticated.GET("/me", h.Me)

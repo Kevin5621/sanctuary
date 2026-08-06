@@ -138,10 +138,10 @@ func TestEmotionShares_NoLabelsReturnsNil(t *testing.T) {
 
 func TestTopTriggers_SortedAndLimited(t *testing.T) {
 	metrics := []models.StudentDailyMetric{
-		checkin(5, 3, 3, 7, constants.EmotionNeutral, constants.TriggerAssignment),
-		checkin(4, 3, 3, 7, constants.EmotionNeutral, constants.TriggerAssignment),
-		checkin(3, 3, 3, 7, constants.EmotionNeutral, constants.TriggerExam),
-		checkin(2, 3, 3, 7, constants.EmotionNeutral, constants.TriggerThesis),
+		checkin(5, 3, 3, 7, constants.EmotionNeutral, "Tugas kuliah"),
+		checkin(4, 3, 3, 7, constants.EmotionNeutral, "Tugas kuliah"),
+		checkin(3, 3, 3, 7, constants.EmotionNeutral, "Ujian (UTS/UAS)"),
+		checkin(2, 3, 3, 7, constants.EmotionNeutral, "Skripsi / tugas akhir"),
 		checkin(1, 3, 3, 7, constants.EmotionNeutral, ""), // tanpa pemicu
 	}
 
@@ -150,8 +150,8 @@ func TestTopTriggers_SortedAndLimited(t *testing.T) {
 	if len(triggers) != 2 {
 		t.Fatalf("jumlah pemicu = %d, want 2", len(triggers))
 	}
-	if triggers[0].Trigger != constants.TriggerAssignment || triggers[0].Count != 2 {
-		t.Fatalf("pemicu teratas = %+v, want TUGAS x2", triggers[0])
+	if triggers[0].Trigger != "Tugas kuliah" || triggers[0].Count != 2 {
+		t.Fatalf("pemicu teratas = %+v, want Tugas kuliah x2", triggers[0])
 	}
 }
 

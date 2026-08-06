@@ -6,9 +6,14 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cartoon_mood_blob.dart';
 import '../../../../core/widgets/vector_illustrations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../data/repositories/contact_request_repository.dart';
 import '../../data/repositories/daily_metric_repository.dart';
 import '../../domain/entities/daily_metric.dart';
 import '../cubit/beranda_cubit.dart';
+import '../widgets/checkin_sheet.dart';
+import '../widgets/dynamic_greeting_header.dart';
+import '../widgets/mood_visuals.dart';
+import 'bantuan_darurat_page.dart';
 import 'dass21_screening_page.dart';
 import 'latihan_napas_page.dart';
 import 'mahasiswa_shell_page.dart';
@@ -19,30 +24,19 @@ class BerandaTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => BerandaCubit(context.read<DailyMetricRepository>())..load(),
+      create: (context) => BerandaCubit(
+        metrics: context.read<DailyMetricRepository>(),
+        contactRequests: context.read<ContactRequestRepository>(),
+      )..load(),
       child: const _BerandaView(),
     );
   }
 }
 
-class _BerandaView extends StatefulWidget {
+class _BerandaView extends StatelessWidget {
   const _BerandaView();
 
-  @override
-  State<_BerandaView> createState() => _BerandaViewState();
-}
-
-class _BerandaViewState extends State<_BerandaView> {
   static const _dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-  MoodType? _selectedHeaderMood;
-
-  final List<Map<String, dynamic>> _moodPills = const [
-    {'mood': MoodType.happiness, 'label': 'Happy', 'emoji': '😄'},
-    {'mood': MoodType.sadness, 'label': 'Sad', 'emoji': '😔'},
-    {'mood': MoodType.fear, 'label': 'Fear', 'emoji': '😟'},
-    {'mood': MoodType.anger, 'label': 'Anger', 'emoji': '😠'},
-    {'mood': MoodType.disgust, 'label': 'Disgust', 'emoji': '😐'},
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -51,26 +45,34 @@ class _BerandaViewState extends State<_BerandaView> {
         ? user!.fullName.trim().split(RegExp(r'\s+')).first
         : 'Sahabat';
 
+    final phase = DynamicGreetingHeader.currentPhase;
+    final scaffoldBgColor = DynamicGreetingHeader.getScaffoldColor(phase);
+
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: scaffoldBgColor,
       body: SafeArea(
         bottom: false,
-        child: BlocBuilder<BerandaCubit, BerandaState>(
-          builder: (context, state) {
-            final today = state.summary.today;
+        child: BlocConsumer<BerandaCubit, BerandaState>(
+          listenWhen: (previous, current) =>
+              previous.successMessage != current.successMessage ||
+              previous.errorMessage != current.errorMessage,
+          listener: (context, state) {
+            final message = state.successMessage ?? state.errorMessage;
+            if (message == null) return;
 
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(message)));
+            context.read<BerandaCubit>().clearMessages();
+          },
+          builder: (context, state) {
             return RefreshIndicator(
-              color: AppColors.midnight,
+              color: scaffoldBgColor,
               backgroundColor: Colors.white,
               onRefresh: () => context.read<BerandaCubit>().refresh(),
               child: Column(
                 children: [
-                  // 1. Dark Navy Top Header (Sesuai Referensi Gambar 1)
-                  _buildHeader(context, firstName, today),
-
-                  const SizedBox(height: 12),
-
-                  // 2. Top-Rounded Content Sheet (Latar Krem Soft)
+                  DynamicGreetingHeader(firstName: firstName, state: state),
                   Expanded(
                     child: Container(
                       width: double.infinity,
@@ -78,115 +80,57 @@ class _BerandaViewState extends State<_BerandaView> {
                         color: AppColors.creamBg,
                         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                       ),
-                      child: SingleChildScrollView(
+                      child: ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Indicator Bar
-                            Center(
-                              child: Container(
-                                width: 40,
-                                height: 4,
-                                margin: const EdgeInsets.only(bottom: 16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.warmTextMuted.withValues(alpha: 0.3),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-
-                            // Kategori Fitur Utama (Circle Icon Buttons)
-                            const Text(
-                              'Kategori Fitur',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 18,
-                                color: AppColors.midnight,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            _buildCategoriesRow(context),
-
-                            const SizedBox(height: AppSpacing.lg),
-
-                            // Status Loading / Failure / Content
-                            if (state.status == BerandaStatus.loading || state.status == BerandaStatus.initial)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 48),
-                                child: Center(
-                                  child: CircularProgressIndicator(color: AppColors.midnight),
-                                ),
-                              )
-                            else if (state.status == BerandaStatus.failure)
-                              _buildErrorCard(context, state.errorMessage)
-                            else ...[
-                              // Ringkasan Hari Ini
-                              _buildTodayCard(today),
-                              const SizedBox(height: AppSpacing.lg),
-
-                              // Kalender Mood Mingguan
-                              const Text(
-                                'Kalender Mood Mingguan',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                  color: AppColors.midnight,
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              _buildWeeklyCalendar(state.summary),
-                            ],
-
-                            const SizedBox(height: AppSpacing.lg),
-
-                            // Rekomendasi Coping & Skrining
-                            const Text(
-                              'Rekomendasi Coping & Wellness',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 18,
-                                color: AppColors.midnight,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-
-                            // Banner Skrining DASS-21
-                            _buildDass21Banner(context),
-
-                            const SizedBox(height: AppSpacing.md),
-
-                            // Grid Side-by-Side (Latihan Napas & Jurnal Refleksi)
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildCopingCard(
-                                    title: 'Latihan Napas',
-                                    subtitle: '4-7-8 Relaksasi 5 menit',
-                                    icon: Icons.air_rounded,
-                                    color: AppColors.moodFearBg,
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(builder: (_) => const LatihanNapasPage()),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: _buildCopingCard(
-                                    title: 'Jurnal Refleksi',
-                                    subtitle: 'Catat rasa syukurmu',
-                                    icon: Icons.edit_note_rounded,
-                                    color: AppColors.moodHappinessBg,
-                                    onTap: () => MahasiswaShellPage.switchTab(context, 2),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 100),
-                          ],
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: 12,
                         ),
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: AppColors.warmTextMuted.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          if (state.isLoading)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 64),
+                              child: Center(
+                                child: CircularProgressIndicator(color: AppColors.midnight),
+                              ),
+                            )
+                          else if (state.status == BerandaStatus.failure)
+                            _ErrorCard(message: state.errorMessage)
+                          else ...[
+                            _TodayCard(state: state),
+                            const SizedBox(height: AppSpacing.lg),
+                            if (!state.isFirstTime) ...[
+                              const _SectionHeading('Kalender Mood Mingguan'),
+                              const SizedBox(height: AppSpacing.sm),
+                              _WeeklyCalendar(
+                                summary: state.summary,
+                                dayLabels: _dayLabels,
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                            ],
+                            const _SectionHeading('Kategori Fitur'),
+                            const SizedBox(height: AppSpacing.md),
+                            const _CategoriesRow(),
+                            const SizedBox(height: AppSpacing.lg),
+                            const _Dass21Banner(),
+                            const SizedBox(height: AppSpacing.md),
+                            _ContactRequestCard(state: state),
+                            const SizedBox(height: AppSpacing.md),
+                            const _CopingRow(),
+                          ],
+                          const SizedBox(height: 100),
+                        ],
                       ),
                     ),
                   ),
@@ -198,276 +142,542 @@ class _BerandaViewState extends State<_BerandaView> {
       ),
     );
   }
+}
 
-  // --- Dark Navy Top Header (Sesuai Referensi Gambar 1) ---
-  Widget _buildHeader(BuildContext context, String firstName, DailyMetric? today) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
+
+
+// ------------------------------------------------------------------
+// Kartu ringkasan hari ini + tombol check-in
+// ------------------------------------------------------------------
+
+class _TodayCard extends StatelessWidget {
+  const _TodayCard({required this.state});
+
+  final BerandaState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = state.summary.today;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.cartoonBorder, width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: AppColors.cartoonShadow, offset: Offset(0, 4), blurRadius: 10),
+        ],
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Navigation Bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // User Profile Avatar & Name
-              Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white30, width: 1),
-                    ),
-                    child: Center(
-                      child: Text(
-                        firstName.isNotEmpty ? firstName[0].toUpperCase() : 'S',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    firstName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 17,
-                    ),
-                  ),
-                ],
+              const Text(
+                'Ringkasan Hari Ini',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  color: AppColors.midnight,
+                ),
               ),
-              // Action Buttons (Mood Analytics & Calendar)
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      MahasiswaShellPage.switchTab(context, 1);
-                    },
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.donut_large_rounded, color: Colors.white, size: 20),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      MahasiswaShellPage.switchTab(context, 1);
-                    },
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 20),
-                    ),
-                  ),
-                ],
+              WavyBadge(
+                text: today != null ? 'Sudah check-in' : 'Belum check-in',
+                color: today != null ? AppColors.moodDisgustBg : AppColors.creamAlt,
+                borderColor: today != null ? AppColors.ewsNormal : AppColors.ewsInsufficient,
               ),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // Central Meditation Icon & Greeting Title
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.wb_twilight_rounded, color: Colors.white, size: 32),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${_greeting()}!',
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 26,
-              color: Colors.white,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Bagaimana harimu sejauh ini?',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Mood Check-in Selector Pills (Gambar 1 style)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _moodPills.map((item) {
-                final mood = item['mood'] as MoodType;
-                final label = item['label'] as String;
-                final emoji = item['emoji'] as String;
-                final isSelected = _selectedHeaderMood == mood;
-
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedHeaderMood = mood;
-                    });
-                    // Simpan ke Backend secara real-time!
-                    context.read<BerandaCubit>().logQuickMood(mood);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Mood $label $emoji berhasil disimpan ke server! ✨'),
-                        duration: const Duration(seconds: 2),
-                        action: SnackBarAction(
-                          label: 'Detail',
-                          textColor: AppColors.sunnyYellow,
-                          onPressed: () {
-                            MahasiswaShellPage.switchTab(context, 1);
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                      border: Border.all(
-                        color: isSelected ? Colors.white : Colors.white24,
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Text(emoji, style: const TextStyle(fontSize: 16)),
-                        const SizedBox(width: 6),
-                        Text(
-                          label,
-                          style: TextStyle(
-                            color: isSelected ? AppColors.midnight : Colors.white,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.md),
+          if (today == null)
+            _EmptyToday(state: state)
+          else
+            _FilledToday(today: today, state: state),
         ],
       ),
     );
   }
+}
 
-  // --- Circle Categories Buttons (Gambar 1 style) ---
-  Widget _buildCategoriesRow(BuildContext context) {
-    final categories = [
-      {
-        'label': 'Relaksasi',
-        'sub': 'Napas 4-7-8',
-        'icon': Icons.air_rounded,
-        'bg': AppColors.moodFearBg,
-        'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LatihanNapasPage())),
-      },
-      {
-        'label': 'Refleksi',
-        'sub': 'Jurnal',
-        'icon': Icons.edit_note_rounded,
-        'bg': AppColors.moodHappinessBg,
-        'onTap': () => MahasiswaShellPage.switchTab(context, 2),
-      },
-      {
-        'label': 'Skrining',
-        'sub': 'DASS-21',
-        'icon': Icons.assignment_turned_in_rounded,
-        'bg': AppColors.lavenderBg,
-        'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const Dass21ScreeningPage())),
-      },
-      {
-        'label': 'Konsul AI',
-        'sub': 'Terapis',
-        'icon': Icons.psychology_rounded,
-        'bg': AppColors.moodSadnessBg,
-        'onTap': () => MahasiswaShellPage.switchTab(context, 3),
-      },
-    ];
+class _EmptyToday extends StatelessWidget {
+  const _EmptyToday({required this.state});
+
+  final BerandaState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFirstTime = state.isFirstTime;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: AppColors.creamAlt,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
+              ),
+              child: const Icon(Icons.wb_sunny_outlined, color: AppColors.warmTextMuted),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isFirstTime ? 'Mulai dari hari ini' : 'Kamu belum check-in hari ini',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: AppColors.midnight,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isFirstTime
+                        ? 'Satu check-in singkat sudah cukup untuk memulai. Polamu akan mulai terbaca setelah beberapa hari.'
+                        : 'Butuh kurang dari satu menit.',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.warmTextSecondary,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _CheckinButton(state: state, label: 'Isi check-in sekarang'),
+      ],
+    );
+  }
+}
+
+class _FilledToday extends StatelessWidget {
+  const _FilledToday({required this.today, required this.state});
+
+  final DailyMetric today;
+  final BerandaState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            CartoonMoodBlob(
+              mood: MoodVisuals.forEmotion(today.emotionLabel, moodScore: today.moodScore),
+              size: 54,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _headline(today),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: AppColors.midnight,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Stres: ${today.stressLabel} · Tidur: ${_formatHours(today.sleepHours)} jam',
+                    style: const TextStyle(fontSize: 12, color: AppColors.warmTextSecondary),
+                  ),
+                  if (today.academicTriggerText.isNotEmpty)
+                    Text(
+                      'Pemicu: ${today.academicTriggerText}',
+                      style: const TextStyle(fontSize: 12, color: AppColors.warmTextSecondary),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _CheckinButton(state: state, label: 'Ubah check-in hari ini', isOutlined: true),
+      ],
+    );
+  }
+
+  static String _headline(DailyMetric today) {
+    if (today.emotionLabelText.isNotEmpty) {
+      return '${today.emotionLabelText} · ${today.moodLabel}';
+    }
+    return today.moodLabel.isNotEmpty ? today.moodLabel : 'Mood ${today.moodScore}/5';
+  }
+
+  static String _formatHours(double hours) =>
+      hours == hours.roundToDouble() ? hours.toStringAsFixed(0) : hours.toStringAsFixed(1);
+}
+
+class _CheckinButton extends StatelessWidget {
+  const _CheckinButton({
+    required this.state,
+    required this.label,
+    this.isOutlined = false,
+  });
+
+  final BerandaState state;
+  final String label;
+  final bool isOutlined;
+
+  @override
+  Widget build(BuildContext context) {
+    // Form baru dibuka setelah pilihan dari server tersedia, supaya tidak ada
+    // layar yang menampilkan daftar emosi atau batas tanggal versi klien.
+    final onPressed = state.canCheckIn
+        ? () => CheckinSheet.show(
+              context,
+              options: state.options,
+              existing: state.summary.today,
+            )
+        : null;
+
+    if (isOutlined) {
+      return OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.edit_outlined, size: 18),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.midnight,
+          side: const BorderSide(color: AppColors.midnight, width: 1.5),
+          minimumSize: const Size.fromHeight(44),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          ),
+        ),
+      );
+    }
+
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add_rounded, size: 20),
+      label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.midnight,
+        foregroundColor: Colors.white,
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        ),
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------------
+// Kalender mingguan
+// ------------------------------------------------------------------
+
+class _WeeklyCalendar extends StatelessWidget {
+  const _WeeklyCalendar({required this.summary, required this.dayLabels});
+
+  final WeeklyMoodSummary summary;
+  final List<String> dayLabels;
+
+  @override
+  Widget build(BuildContext context) {
+    final weekStart = summary.weekStart;
+    final now = DateTime.now();
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: categories.map((cat) {
-        return GestureDetector(
-          onTap: cat['onTap'] as VoidCallback,
-          child: Column(
+      children: List.generate(7, (index) {
+        final date = weekStart?.add(Duration(days: index));
+        final metric = date == null ? null : summary.forDate(date);
+        final isToday = date != null &&
+            date.year == now.year &&
+            date.month == now.month &&
+            date.day == now.day;
+
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: index == 6 ? 0 : 6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: isToday ? AppColors.moodFearBg : Colors.white,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(
+                  color: isToday ? AppColors.midnight : AppColors.cartoonBorder,
+                  width: isToday ? 2.0 : 1.0,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    dayLabels[index],
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      color: isToday ? AppColors.midnight : AppColors.warmTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  metric != null
+                      ? CartoonMoodBlob(
+                          mood: MoodVisuals.forEmotion(
+                            metric.emotionLabel,
+                            moodScore: metric.moodScore,
+                          ),
+                          size: 32,
+                        )
+                      : const EmptyDayCell(size: 32),
+                  const SizedBox(height: 6),
+                  Text(
+                    date == null ? '-' : '${date.day}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      color: AppColors.midnight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+// ------------------------------------------------------------------
+// Minta dihubungi
+// ------------------------------------------------------------------
+
+class _ContactRequestCard extends StatelessWidget {
+  const _ContactRequestCard({required this.state});
+
+  final BerandaState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final contact = state.contact;
+    if (!contact.hasAdvisor) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: contact.hasOpenRequest ? AppColors.moodDisgustBg : Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.cartoonBorder, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  color: cat['bg'] as Color,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.midnight, width: 1.5),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: AppColors.cartoonShadow,
-                      offset: Offset(0, 4),
-                      blurRadius: 6,
-                    )
-                  ],
-                ),
-                child: Icon(cat['icon'] as IconData, color: AppColors.midnight, size: 28),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                cat['label'] as String,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: AppColors.midnight,
-                ),
-              ),
-              Text(
-                cat['sub'] as String,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.warmTextSecondary,
+              const Icon(Icons.waving_hand_rounded, color: AppColors.midnight, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  contact.hasOpenRequest
+                      ? 'Permintaan terkirim ke ${contact.advisorName}'
+                      : 'Ingin disapa ${contact.advisorName}?',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: AppColors.midnight,
+                  ),
                 ),
               ),
             ],
           ),
-        );
-      }).toList(),
+          const SizedBox(height: 6),
+          Text(
+            // Penjelasan datang dari server: janji privasi hanya boleh punya
+            // satu rumusan, dan rumusannya sama dengan yang ditegakkan API.
+            contact.explanation,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.warmTextSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (contact.hasOpenRequest)
+            OutlinedButton(
+              onPressed: state.isSaving
+                  ? null
+                  : () => context.read<BerandaCubit>().cancelContactRequest(),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.midnight,
+                side: const BorderSide(color: AppColors.midnight, width: 1.5),
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+              ),
+              child: const Text('Batalkan permintaan',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+            )
+          else
+            ElevatedButton(
+              onPressed: state.isSaving || !contact.canRequest
+                  ? null
+                  : () => context.read<BerandaCubit>().requestContact(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.midnight,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+              ),
+              child: const Text('Minta dihubungi', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+        ],
+      ),
     );
   }
+}
 
-  // --- Banner DASS-21 ---
-  Widget _buildDass21Banner(BuildContext context) {
+// ------------------------------------------------------------------
+// Pintasan lain
+// ------------------------------------------------------------------
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontWeight: FontWeight.w700,
+        fontSize: 17,
+        color: AppColors.midnight,
+      ),
+    );
+  }
+}
+
+class _CategoriesRow extends StatelessWidget {
+  const _CategoriesRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = <_Category>[
+      _Category(
+        label: 'Riwayat',
+        sub: 'Mood',
+        icon: Icons.insights_rounded,
+        background: AppColors.moodFearBg,
+        onTap: () => MahasiswaShellPage.switchTab(context, 1),
+      ),
+      _Category(
+        label: 'Refleksi',
+        sub: 'Jurnal',
+        icon: Icons.edit_note_rounded,
+        background: AppColors.moodHappinessBg,
+        onTap: () => MahasiswaShellPage.switchTab(context, 2),
+      ),
+      _Category(
+        label: 'Skrining',
+        sub: 'DASS-21',
+        icon: Icons.assignment_turned_in_rounded,
+        background: AppColors.lavenderBg,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const Dass21ScreeningPage()),
+        ),
+      ),
+      _Category(
+        label: 'Bantuan',
+        sub: 'Darurat',
+        icon: Icons.emergency_rounded,
+        background: AppColors.moodAngerBg,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const BantuanDaruratPage()),
+        ),
+      ),
+    ];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        for (final category in categories)
+          GestureDetector(
+            onTap: category.onTap,
+            child: Column(
+              children: [
+                Container(
+                  width: 62,
+                  height: 62,
+                  decoration: BoxDecoration(
+                    color: category.background,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.midnight, width: 1.5),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.cartoonShadow,
+                        offset: Offset(0, 4),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  child: Icon(category.icon, color: AppColors.midnight, size: 28),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  category.label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppColors.midnight,
+                  ),
+                ),
+                Text(
+                  category.sub,
+                  style: const TextStyle(fontSize: 11, color: AppColors.warmTextSecondary),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _Category {
+  const _Category({
+    required this.label,
+    required this.sub,
+    required this.icon,
+    required this.background,
+    required this.onTap,
+  });
+
+  final String label;
+  final String sub;
+  final IconData icon;
+  final Color background;
+  final VoidCallback onTap;
+}
+
+class _Dass21Banner extends StatelessWidget {
+  const _Dass21Banner();
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const Dass21ScreeningPage()),
-        );
-      },
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const Dass21ScreeningPage()),
+      ),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
@@ -475,11 +685,7 @@ class _BerandaViewState extends State<_BerandaView> {
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           border: Border.all(color: AppColors.midnight, width: 1.8),
           boxShadow: const [
-            BoxShadow(
-              color: AppColors.cartoonShadow,
-              offset: Offset(0, 4),
-              blurRadius: 8,
-            )
+            BoxShadow(color: AppColors.cartoonShadow, offset: Offset(0, 4), blurRadius: 8),
           ],
         ),
         child: Row(
@@ -500,7 +706,7 @@ class _BerandaViewState extends State<_BerandaView> {
                   ),
                   const SizedBox(height: 2),
                   const Text(
-                    'Ukur tingkat Depresi, Cemas & Stresmu secara akurat.',
+                    'Skrining awal untuk depresi, kecemasan, dan stres. Bukan diagnosis.',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.warmTextSecondary,
@@ -538,175 +744,106 @@ class _BerandaViewState extends State<_BerandaView> {
       ),
     );
   }
+}
 
-  // --- Ringkasan Hari Ini ---
-  Widget _buildTodayCard(DailyMetric? today) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: AppColors.cartoonBorder, width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.cartoonShadow,
-            offset: Offset(0, 4),
-            blurRadius: 10,
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Ringkasan Hari Ini',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  color: AppColors.midnight,
-                ),
-              ),
-              WavyBadge(
-                text: today != null ? 'Tercatat Hari Ini' : 'Belum Check-in',
-                color: today != null ? AppColors.moodDisgustBg : AppColors.creamAlt,
-                borderColor: today != null ? AppColors.ewsNormal : AppColors.ewsInsufficient,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (today == null)
-            Row(
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: AppColors.creamAlt,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
-                  ),
-                  child: const Icon(Icons.bedtime_outlined, color: AppColors.warmTextMuted),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Kamu belum check-in hari ini',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: AppColors.midnight,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Isi mood, stres & tidurmu di menu Pelacak Mood.',
-                        style: TextStyle(fontSize: 12, color: AppColors.warmTextSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          else
-            Row(
-              children: [
-                CartoonMoodBlob(mood: _moodTypeFor(today), size: 54),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _todayHeadline(today),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: AppColors.midnight,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Stres: ${today.stressLevel}/5 · Tidur: ${_formatHours(today.sleepHours)} jam',
-                        style: const TextStyle(fontSize: 12, color: AppColors.warmTextSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
+class _CopingRow extends StatelessWidget {
+  const _CopingRow();
 
-  // --- Kalender Mood Mingguan ---
-  Widget _buildWeeklyCalendar(WeeklyMoodSummary summary) {
-    final weekStart = summary.weekStart;
-    final now = DateTime.now();
-
+  @override
+  Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(7, (index) {
-        final date = weekStart?.add(Duration(days: index));
-        final metric = date == null ? null : summary.forDate(date);
-        final isToday = date != null &&
-            date.year == now.year &&
-            date.month == now.month &&
-            date.day == now.day;
-
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: index == 6 ? 0 : 6),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: isToday ? AppColors.moodFearBg : Colors.white,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(
-                  color: isToday ? AppColors.midnight : AppColors.cartoonBorder,
-                  width: isToday ? 2.0 : 1.0,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _dayLabels[index],
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                      color: isToday ? AppColors.midnight : AppColors.warmTextSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  metric != null
-                      ? CartoonMoodBlob(mood: _moodTypeFor(metric), size: 32)
-                      : const _EmptyDayBlob(size: 32),
-                  const SizedBox(height: 6),
-                  Text(
-                    date == null ? '-' : '${date.day}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                      color: AppColors.midnight,
-                    ),
-                  ),
-                ],
-              ),
+      children: [
+        Expanded(
+          child: _CopingCard(
+            title: 'Latihan Napas',
+            subtitle: 'Relaksasi 4-7-8',
+            icon: Icons.air_rounded,
+            color: AppColors.moodFearBg,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const LatihanNapasPage()),
             ),
           ),
-        );
-      }),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _CopingCard(
+            title: 'Jurnal Refleksi',
+            subtitle: 'Tulis yang kamu rasakan',
+            icon: Icons.edit_note_rounded,
+            color: AppColors.moodHappinessBg,
+            onTap: () => MahasiswaShellPage.switchTab(context, 2),
+          ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildErrorCard(BuildContext context, String? message) {
+class _CopingCard extends StatelessWidget {
+  const _CopingCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.midnight, width: 1.5),
+          boxShadow: const [
+            BoxShadow(color: AppColors.cartoonShadow, offset: Offset(0, 4), blurRadius: 6),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: Icon(icon, color: AppColors.midnight, size: 22),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: AppColors.midnight,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 11, color: AppColors.warmTextSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -722,8 +859,12 @@ class _BerandaViewState extends State<_BerandaView> {
               Icon(Icons.wifi_off_rounded, color: AppColors.ewsRisk),
               SizedBox(width: 8),
               Text(
-                'Gagal memuat ringkasan mood',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.midnight),
+                'Gagal memuat Beranda',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: AppColors.midnight,
+                ),
               ),
             ],
           ),
@@ -746,132 +887,6 @@ class _BerandaViewState extends State<_BerandaView> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCopingCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: AppColors.midnight, width: 1.5),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.cartoonShadow,
-              offset: Offset(0, 4),
-              blurRadius: 6,
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: AppColors.midnight, size: 22),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: AppColors.midnight,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.warmTextSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- Helper Tampilan ---
-
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour >= 5 && hour < 11) return 'Selamat Pagi';
-    if (hour >= 11 && hour < 15) return 'Selamat Siang';
-    if (hour >= 15 && hour < 19) return 'Selamat Sore';
-    return 'Selamat Malam';
-  }
-
-  String _todayHeadline(DailyMetric today) {
-    final trigger = _prettifyTrigger(today.academicTrigger);
-    final label = today.emotionLabelText.isNotEmpty ? today.emotionLabelText : 'Mood ${today.moodScore}/5';
-    return trigger.isEmpty ? label : '$label ($trigger)';
-  }
-
-  String _prettifyTrigger(String raw) {
-    if (raw.isEmpty) return '';
-    return raw
-        .split('_')
-        .where((w) => w.isNotEmpty)
-        .map((w) => '${w[0]}${w.substring(1).toLowerCase()}')
-        .join(' ');
-  }
-
-  String _formatHours(double hours) =>
-      hours == hours.roundToDouble() ? hours.toStringAsFixed(0) : hours.toStringAsFixed(1);
-
-  MoodType _moodTypeFor(DailyMetric metric) {
-    switch (metric.emotionLabel) {
-      case 'ANXIOUS':
-        return MoodType.fear;
-      case 'SAD':
-        return MoodType.sadness;
-      case 'ANGRY':
-        return MoodType.anger;
-      case 'TIRED':
-      case 'NEUTRAL':
-        return MoodType.disgust;
-      case 'CALM':
-      case 'JOY':
-        return MoodType.happiness;
-    }
-    if (metric.moodScore >= 4) return MoodType.happiness;
-    if (metric.moodScore == 3) return MoodType.disgust;
-    if (metric.moodScore == 2) return MoodType.fear;
-    return MoodType.sadness;
-  }
-}
-
-class _EmptyDayBlob extends StatelessWidget {
-  const _EmptyDayBlob({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: AppColors.creamAlt,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
-      ),
-      child: Icon(Icons.horizontal_rule_rounded, size: size * 0.5, color: AppColors.warmTextMuted),
     );
   }
 }

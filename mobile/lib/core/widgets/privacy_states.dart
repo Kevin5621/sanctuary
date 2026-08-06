@@ -327,16 +327,61 @@ class EmptyStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StateCard(
+    return Container(
       margin: margin,
-      child: _StateBody(
-        icon: icon,
-        iconColor: AppColors.warmTextSecondary,
-        iconBackground: AppColors.creamAlt,
-        title: title,
-        description: description,
-        footnote: footnote,
-        action: action,
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
+                color: AppColors.creamAlt,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.warmTextMuted, size: 26),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                color: AppColors.midnight,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: AppColors.warmTextSecondary,
+              ),
+            ),
+            if (footnote != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                footnote!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontStyle: FontStyle.italic,
+                  color: AppColors.warmTextMuted,
+                ),
+              ),
+            ],
+            if (action != null) ...[
+              const SizedBox(height: 16),
+              action!,
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -460,12 +505,16 @@ class EwsLevelBadge extends StatelessWidget {
         children: [
           Icon(_iconFor(level), size: dense ? 12 : 14, color: color),
           const SizedBox(width: 5),
-          Text(
-            text,
-            style: TextStyle(
-              color: AppColors.midnight,
-              fontWeight: FontWeight.w700,
-              fontSize: dense ? 11 : 12,
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.midnight,
+                fontWeight: FontWeight.w700,
+                fontSize: dense ? 11 : 12,
+              ),
             ),
           ),
         ],
@@ -521,12 +570,16 @@ class VerificationBadge extends StatelessWidget {
           Icon(Icons.gpp_maybe_outlined,
               size: dense ? 12 : 14, color: AppColors.ewsIntervention),
           const SizedBox(width: 5),
-          Text(
-            'Belum diverifikasi',
-            style: TextStyle(
-              color: AppColors.ewsIntervention,
-              fontWeight: FontWeight.w700,
-              fontSize: dense ? 11 : 12,
+          Flexible(
+            child: Text(
+              'Belum diverifikasi',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.ewsIntervention,
+                fontWeight: FontWeight.w700,
+                fontSize: dense ? 11 : 12,
+              ),
             ),
           ),
         ],

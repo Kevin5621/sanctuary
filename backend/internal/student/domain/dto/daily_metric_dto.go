@@ -13,8 +13,7 @@ type DailyMetricResponse struct {
 	EmotionLabel     string `json:"emotion_label,omitempty"`
 	EmotionLabelText string `json:"emotion_label_text,omitempty"`
 
-	AcademicTrigger     string `json:"academic_trigger,omitempty"`
-	AcademicTriggerText string `json:"academic_trigger_text,omitempty"`
+	AcademicTrigger string `json:"academic_trigger,omitempty"`
 }
 
 // WeeklyMoodSummaryResponse memuat data untuk kartu "Ringkasan Hari Ini" dan
@@ -39,7 +38,7 @@ type SaveDailyMetricRequest struct {
 	StressLevel     int     `json:"stress_level" binding:"required,min=1,max=5"`
 	SleepHours      float64 `json:"sleep_hours" binding:"min=0,max=24"`
 	EmotionLabel    string  `json:"emotion_label" binding:"omitempty,max=24"`
-	AcademicTrigger string  `json:"academic_trigger" binding:"omitempty,max=32"`
+	AcademicTrigger string  `json:"academic_trigger" binding:"omitempty,max=255"`
 }
 
 // ------------------------------------------------------------------
@@ -57,10 +56,9 @@ type CodedOptionResponse struct {
 }
 
 type DailyMetricOptionsResponse struct {
-	MoodScale        []ScaleOptionResponse `json:"mood_scale"`
-	StressScale      []ScaleOptionResponse `json:"stress_scale"`
-	Emotions         []CodedOptionResponse `json:"emotions"`
-	AcademicTriggers []CodedOptionResponse `json:"academic_triggers"`
+	MoodScale   []ScaleOptionResponse `json:"mood_scale"`
+	StressScale []ScaleOptionResponse `json:"stress_scale"`
+	Emotions    []CodedOptionResponse `json:"emotions"`
 	// MaxBackdateDays memberi tahu klien sampai berapa hari ke belakang
 	// pemilih tanggal boleh dibuka, sehingga batas itu tidak diduplikasi.
 	MaxBackdateDays int `json:"max_backdate_days"`

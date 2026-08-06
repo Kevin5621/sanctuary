@@ -8,6 +8,7 @@ import (
 
 	"github.com/gilabs/sanctuary/internal/core/middleware"
 	"github.com/gilabs/sanctuary/internal/core/utils"
+	mentordto "github.com/gilabs/sanctuary/internal/mentor/domain/dto"
 	"github.com/gilabs/sanctuary/internal/mentor/domain/usecase"
 )
 
@@ -93,6 +94,60 @@ func (h *MentorHandler) Profile(c *gin.Context) {
 		return
 	}
 	utils.OK(c, res)
+}
+
+// CreateAdvisorFollowUp godoc: POST /api/v1/mentors/me/students/:id/notes
+func (h *MentorHandler) CreateAdvisorFollowUp(c *gin.Context) {
+	studentID := c.Param("id")
+	if studentID == "" {
+		utils.FailCode(c, utils.CodeInvalidPathParam)
+		return
+	}
+
+	var req mentordto.CreateAdvisorFollowUpRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.FailCode(c, utils.CodeInvalidRequestBody)
+		return
+	}
+
+	res, err := h.uc.CreateAdvisorFollowUp(c.Request.Context(), h.accessFrom(c), studentID, req)
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.Created(c, res)
+}
+
+// ListAdvisorFollowUps godoc: GET /api/v1/mentors/me/students/:id/notes
+func (h *MentorHandler) ListAdvisorFollowUps(c *gin.Context) {
+	studentID := c.Param("id")
+	if studentID == "" {
+		utils.FailCode(c, utils.CodeInvalidPathParam)
+		return
+	}
+
+	res, err := h.uc.ListAdvisorFollowUps(c.Request.Context(), h.accessFrom(c), studentID)
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, res)
+}
+
+// DeleteAdvisorFollowUp godoc: DELETE /api/v1/mentors/me/students/:id/notes/:note_id
+func (h *MentorHandler) DeleteAdvisorFollowUp(c *gin.Context) {
+	studentID := c.Param("id")
+	noteID := c.Param("note_id")
+	if studentID == "" || noteID == "" {
+		utils.FailCode(c, utils.CodeInvalidPathParam)
+		return
+	}
+
+	if err := h.uc.DeleteAdvisorFollowUp(c.Request.Context(), h.accessFrom(c), studentID, noteID); err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, map[string]any{"deleted": true})
 }
 
 func (h *MentorHandler) accessFrom(c *gin.Context) usecase.AccessContext {

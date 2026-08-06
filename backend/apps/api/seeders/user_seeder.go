@@ -30,13 +30,17 @@ var studentSpecs = []studentSpec{
 	{"mahasiswa3@sanctuary.ac.id", "Citra Larasati", "220003", 2022},
 	{"mahasiswa4@sanctuary.ac.id", "Dimas Prasetyo", "220004", 2022},
 	{"mahasiswa5@sanctuary.ac.id", "Erika Handayani", "220005", 2022},
-	{"mahasiswa6@sanctuary.ac.id", "Fajar Ramadhan", "230006", 2023},
-	{"mahasiswa7@sanctuary.ac.id", "Gita Anindya", "230007", 2023},
+	{"mahasiswa6@sanctuary.ac.id", "Fajar Ramadhan", "220006", 2022},
+	{"mahasiswa7@sanctuary.ac.id", "Gita Anindya", "220007", 2022},
 	{"mahasiswa8@sanctuary.ac.id", "Hendra Wijaya", "230008", 2023},
+	{"mahasiswa9@sanctuary.ac.id", "Intan Maharani", "230009", 2023},
+	{"mahasiswa10@sanctuary.ac.id", "Joko Setiawan", "230010", 2023},
 }
 
 // adviseeSplit adalah jumlah mahasiswa pertama yang dibimbing Dosen 1.
-const adviseeSplit = 5
+// Nilainya sengaja di atas ambang k-anonymity (5) supaya kelompok Dosen 1
+// tetap lolos meski satu-dua mahasiswa menolak ikut statistik.
+const adviseeSplit = 7
 
 func (s *Seeder) seedUsers(
 	ctx context.Context,
@@ -94,6 +98,16 @@ func (s *Seeder) seedUsers(
 		return SeededUsers{}, err
 	}
 
+	// Dijaga di runtime, bukan lewat komentar: menambah mahasiswa tanpa
+	// menambah profilnya akan langsung berhenti di sini, bukan diam-diam
+	// membuat akun tanpa data.
+	if len(demoProfiles) != len(studentSpecs) {
+		return SeededUsers{}, fmt.Errorf(
+			"jumlah profil (%d) tidak cocok dengan jumlah mahasiswa (%d)",
+			len(demoProfiles), len(studentSpecs),
+		)
+	}
+
 	students := make([]authmodels.User, 0, len(studentSpecs))
 	for i, spec := range studentSpecs {
 		advisor := lecturer1
@@ -123,6 +137,7 @@ func (s *Seeder) seedUsers(
 		Lecturer1: lecturer1,
 		Lecturer2: lecturer2,
 		Students:  students,
+		Profiles:  demoProfiles,
 	}, nil
 }
 

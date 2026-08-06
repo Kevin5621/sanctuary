@@ -8,7 +8,8 @@ enum MoodType {
   fear('Fear', 'Cemas', AppColors.moodFear, AppColors.moodFearBg),
   sadness('Sadness', 'Sedih', AppColors.moodSadness, AppColors.moodSadnessBg),
   anger('Anger', 'Marah', AppColors.moodAnger, AppColors.moodAngerBg),
-  happiness('Happiness', 'Bahagia', AppColors.moodHappiness, AppColors.moodHappinessBg);
+  happiness('Happiness', 'Baik', AppColors.moodHappiness, AppColors.moodHappinessBg),
+  great('Great', 'Sangat baik', AppColors.moodGreat, AppColors.moodGreatBg);
 
   const MoodType(this.labelEn, this.labelId, this.color, this.bgColor);
   final String labelEn;
@@ -43,7 +44,12 @@ class CartoonMoodBlob extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutBack,
-        transform: Matrix4.identity()..scale(isSelected ? 1.08 : 1.0),
+        transform: Matrix4.identity()..scaleByDouble(
+          isSelected ? 1.08 : 1.0,
+          isSelected ? 1.08 : 1.0,
+          1.0,
+          1.0,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -153,7 +159,27 @@ class _MoodBlobPainter extends CustomPainter {
           final r = (i % 2 == 0) ? radius * 0.95 : radius * 0.8;
           final x = center.dx + r * math.cos(angle);
           final y = center.dy + r * math.sin(angle);
-          if (i == 0) path.moveTo(x, y); else path.lineTo(x, y);
+          if (i == 0) {
+            path.moveTo(x, y);
+          } else {
+            path.lineTo(x, y);
+          }
+        }
+        path.close();
+        break;
+
+      case MoodType.great:
+        // Radiant sun shape with 12 sun rays (☀️)
+        for (int i = 0; i < 24; i++) {
+          final angle = (i * math.pi / 12) - math.pi / 2;
+          final r = (i % 2 == 0) ? radius * 0.95 : radius * 0.72;
+          final x = center.dx + r * math.cos(angle);
+          final y = center.dy + r * math.sin(angle);
+          if (i == 0) {
+            path.moveTo(x, y);
+          } else {
+            path.lineTo(x, y);
+          }
         }
         path.close();
         break;
@@ -260,6 +286,28 @@ class _MoodBlobPainter extends CustomPainter {
           ..moveTo(center.dx - radius * 0.3, center.dy + radius * 0.2)
           ..quadraticBezierTo(center.dx, center.dy + radius * 0.5, center.dx + radius * 0.3, center.dy + radius * 0.2);
         canvas.drawPath(mouth, facePaint);
+        break;
+
+      case MoodType.great:
+        // Mata terpejam gembira ^^ dan senyum sangat lebar gembira
+        final eyeY = center.dy - radius * 0.12;
+        final leftEye = Path()
+          ..moveTo(center.dx - radius * 0.38, eyeY)
+          ..quadraticBezierTo(center.dx - radius * 0.25, eyeY - radius * 0.25, center.dx - radius * 0.12, eyeY);
+        canvas.drawPath(leftEye, facePaint);
+        final rightEye = Path()
+          ..moveTo(center.dx + radius * 0.12, eyeY)
+          ..quadraticBezierTo(center.dx + radius * 0.25, eyeY - radius * 0.25, center.dx + radius * 0.38, eyeY);
+        canvas.drawPath(rightEye, facePaint);
+        // Mulut tersenyum lebar bahagia terbuka :D
+        final mouth = Path()
+          ..moveTo(center.dx - radius * 0.32, center.dy + radius * 0.12)
+          ..quadraticBezierTo(center.dx, center.dy + radius * 0.55, center.dx + radius * 0.32, center.dy + radius * 0.12)
+          ..close();
+        canvas.drawPath(mouth, facePaint);
+        // Pipi merah gembira (kecil)
+        canvas.drawCircle(Offset(center.dx - radius * 0.4, center.dy + radius * 0.12), radius * 0.07, fillEyePaint);
+        canvas.drawCircle(Offset(center.dx + radius * 0.4, center.dy + radius * 0.12), radius * 0.07, fillEyePaint);
         break;
     }
   }

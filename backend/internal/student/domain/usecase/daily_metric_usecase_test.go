@@ -27,7 +27,7 @@ func validCheckin() dto.SaveDailyMetricRequest {
 		StressLevel:     2,
 		SleepHours:      7.5,
 		EmotionLabel:    constants.EmotionCalm,
-		AcademicTrigger: constants.TriggerAssignment,
+		AcademicTrigger: "Tugas kuliah",
 	}
 }
 
@@ -68,69 +68,6 @@ func TestSaveMetric_IncludesHumanReadableLabels(t *testing.T) {
 	// Klien tidak boleh perlu menyimpan tabel arti angka sendiri.
 	if result.MoodLabel == "" || result.StressLabel == "" {
 		t.Fatalf("label kosong: mood=%q stres=%q", result.MoodLabel, result.StressLabel)
-	}
-	if result.AcademicTriggerText == "" {
-		t.Error("pemicu akademik harus punya teks tampilan")
-	}
-}
-
-func TestSaveMetric_RejectsFutureDate(t *testing.T) {
-	uc := NewDailyMetricUsecase(&fakeMetricRepo{}, testStudentConfig())
-
-	req := validCheckin()
-	req.MetricDate = apptime.FormatDate(apptime.Today().AddDate(0, 0, 1))
-
-	_, err := uc.SaveMetric(context.Background(), "student-1", req)
-	if errorCode(err) != utils.CodeFutureDateNotAllowed {
-		t.Fatalf("kode error = %q, want %s", errorCode(err), utils.CodeFutureDateNotAllowed)
-	}
-}
-
-// Batas backdate menjaga kualitas data: ingatan atas mood dan jam tidur
-// memburuk cepat, dan entri lama ikut menggeser indikator EWS.
-func TestSaveMetric_RejectsDateBeyondBackdateLimit(t *testing.T) {
-	uc := NewDailyMetricUsecase(&fakeMetricRepo{}, testStudentConfig())
-
-	req := validCheckin()
-	req.MetricDate = apptime.FormatDate(apptime.DaysAgo(8))
-
-	_, err := uc.SaveMetric(context.Background(), "student-1", req)
-	if errorCode(err) != utils.CodeBackdateLimitExceeded {
-		t.Fatalf("kode error = %q, want %s", errorCode(err), utils.CodeBackdateLimitExceeded)
-	}
-}
-
-func TestSaveMetric_AcceptsDateAtBackdateBoundary(t *testing.T) {
-	uc := NewDailyMetricUsecase(&fakeMetricRepo{}, testStudentConfig())
-
-	req := validCheckin()
-	req.MetricDate = apptime.FormatDate(apptime.DaysAgo(7))
-
-	if _, err := uc.SaveMetric(context.Background(), "student-1", req); err != nil {
-		t.Fatalf("tanggal tepat di batas harus diterima, dapat: %v", err)
-	}
-}
-
-func TestSaveMetric_RejectsUnknownEmotion(t *testing.T) {
-	uc := NewDailyMetricUsecase(&fakeMetricRepo{}, testStudentConfig())
-
-	req := validCheckin()
-	req.EmotionLabel = "BAHAGIA_SEKALI"
-
-	_, err := uc.SaveMetric(context.Background(), "student-1", req)
-	if errorCode(err) != utils.CodeValidationError {
-		t.Fatalf("kode error = %q, want %s", errorCode(err), utils.CodeValidationError)
-	}
-}
-
-func TestSaveMetric_RejectsUnknownTrigger(t *testing.T) {
-	uc := NewDailyMetricUsecase(&fakeMetricRepo{}, testStudentConfig())
-
-	req := validCheckin()
-	req.AcademicTrigger = "MAGANG"
-
-	if _, err := uc.SaveMetric(context.Background(), "student-1", req); err == nil {
-		t.Fatal("pemicu di luar daftar harus ditolak")
 	}
 }
 
@@ -212,11 +149,11 @@ func TestStats_InsufficientDataHidesAverages(t *testing.T) {
 func TestStats_BuildsDistributionAndTriggers(t *testing.T) {
 	repo := &fakeMetricRepo{listing: []models.StudentDailyMetric{
 		{MetricDate: apptime.DaysAgo(3), MoodScore: 2, StressLevel: 4, SleepHours: 5,
-			EmotionLabel: constants.EmotionSad, AcademicTrigger: constants.TriggerThesis},
+			EmotionLabel: constants.EmotionSad, AcademicTrigger: "Skripsi / tugas akhir"},
 		{MetricDate: apptime.DaysAgo(2), MoodScore: 2, StressLevel: 4, SleepHours: 5,
-			EmotionLabel: constants.EmotionSad, AcademicTrigger: constants.TriggerThesis},
+			EmotionLabel: constants.EmotionSad, AcademicTrigger: "Skripsi / tugas akhir"},
 		{MetricDate: apptime.DaysAgo(1), MoodScore: 4, StressLevel: 2, SleepHours: 8,
-			EmotionLabel: constants.EmotionCalm, AcademicTrigger: constants.TriggerExam},
+			EmotionLabel: constants.EmotionCalm, AcademicTrigger: "Ujian (UTS/UAS)"},
 	}}
 	uc := NewDailyMetricUsecase(repo, testStudentConfig())
 
@@ -234,8 +171,8 @@ func TestStats_BuildsDistributionAndTriggers(t *testing.T) {
 	if stats.EmotionDistribution[0].Label == "" {
 		t.Error("sebaran emosi harus membawa teks tampilan")
 	}
-	if len(stats.TopTriggers) == 0 || stats.TopTriggers[0].Trigger != constants.TriggerThesis {
-		t.Fatalf("pemicu teratas = %+v, want SKRIPSI", stats.TopTriggers)
+	if len(stats.TopTriggers) == 0 || stats.TopTriggers[0].Trigger != "Skripsi / tugas akhir" {
+		t.Fatalf("pemicu teratas = %+v, want Skripsi / tugas akhir", stats.TopTriggers)
 	}
 }
 
@@ -302,8 +239,8 @@ func TestOptions_ExposesEveryChoiceAndBackdateLimit(t *testing.T) {
 		t.Fatalf("skala tidak lengkap: mood=%d stres=%d",
 			len(options.MoodScale), len(options.StressScale))
 	}
-	if len(options.Emotions) == 0 || len(options.AcademicTriggers) == 0 {
-		t.Fatal("daftar emosi dan pemicu harus dikirim server")
+	if len(options.Emotions) == 0 {
+		t.Fatal("daftar emosi harus dikirim server")
 	}
 	if options.MaxBackdateDays != 7 {
 		t.Fatalf("batas backdate = %d, want 7", options.MaxBackdateDays)

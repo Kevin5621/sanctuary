@@ -1,4 +1,5 @@
 import '../../../../core/network/dio_client.dart';
+import '../../domain/entities/advisor_note.dart';
 import '../../domain/entities/advisee.dart';
 import '../../domain/entities/group_condition.dart';
 
@@ -80,5 +81,48 @@ class MentorRepository {
           MentorProfile.fromJson(data as Map<String, dynamic>? ?? const {}),
     );
     return result.data;
+  }
+
+  /// Memuat catatan pendampingan privat dosen untuk satu mahasiswa.
+  Future<List<AdvisorNote>> fetchAdvisorNotes(String studentId) async {
+    final result = await _client.get<List<AdvisorNote>>(
+      '$_basePath/students/$studentId/notes',
+      parser: (data) => (data as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AdvisorNote.fromJson)
+          .toList(),
+    );
+    return result.data;
+  }
+
+  /// Membuat catatan pendampingan privat dosen baru.
+  Future<AdvisorNote> createAdvisorNote({
+    required String studentId,
+    required String channel,
+    required String status,
+    required String remark,
+  }) async {
+    final result = await _client.post<AdvisorNote>(
+      '$_basePath/students/$studentId/notes',
+      body: {
+        'channel': channel,
+        'status': status,
+        'remark': remark,
+      },
+      parser: (data) =>
+          AdvisorNote.fromJson(data as Map<String, dynamic>? ?? const {}),
+    );
+    return result.data;
+  }
+
+  /// Menghapus catatan pendampingan privat dosen.
+  Future<void> deleteAdvisorNote({
+    required String studentId,
+    required String noteId,
+  }) async {
+    await _client.delete<void>(
+      '$_basePath/students/$studentId/notes/$noteId',
+      parser: (_) {},
+    );
   }
 }

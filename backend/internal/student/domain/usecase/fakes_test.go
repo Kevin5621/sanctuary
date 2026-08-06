@@ -5,6 +5,7 @@ import (
 	"time"
 
 	authmodels "github.com/gilabs/sanctuary/internal/auth/data/models"
+	authrepo "github.com/gilabs/sanctuary/internal/auth/data/repositories"
 	"github.com/gilabs/sanctuary/internal/core/apptime"
 	"github.com/gilabs/sanctuary/internal/core/utils"
 	"github.com/gilabs/sanctuary/internal/student/data/models"
@@ -220,3 +221,28 @@ func (f *fakeUserRepo) FindByID(context.Context, string) (*authmodels.User, erro
 func (f *fakeUserRepo) TouchLastLogin(context.Context, *gorm.DB, string) error { return nil }
 
 func (f *fakeUserRepo) CountAdvisees(context.Context, string) (int64, error) { return 0, nil }
+
+// Bagian tulis & kelola akun tidak dipakai usecase mahasiswa; hanya ada agar
+// fake ini tetap memenuhi kontrak repository.
+
+func (f *fakeUserRepo) Create(context.Context, *authmodels.User) error { return f.err }
+
+func (f *fakeUserRepo) Update(context.Context, *authmodels.User, map[string]any) error {
+	return f.err
+}
+
+func (f *fakeUserRepo) List(context.Context, utils.Pagination, authrepo.UserFilter) ([]authmodels.User, int64, error) {
+	return nil, 0, f.err
+}
+
+func (f *fakeUserRepo) EmailTaken(context.Context, string, string) (bool, error) {
+	return false, f.err
+}
+
+func (f *fakeUserRepo) StudentNumberTaken(context.Context, string, string) (bool, error) {
+	return false, f.err
+}
+
+func (f *fakeUserRepo) LecturerNumberTaken(context.Context, string, string) (bool, error) {
+	return false, f.err
+}

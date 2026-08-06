@@ -24,17 +24,17 @@ class EdukasiModelPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
               border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
             ),
-            child: Column(
+            child: const Column(
               children: [
-                const CartoonMoodBlob(mood: MoodType.fear, size: 80),
-                const SizedBox(height: AppSpacing.md),
-                const Text(
+                CartoonMoodBlob(mood: MoodType.fear, size: 80),
+                SizedBox(height: AppSpacing.md),
+                Text(
                   'Bagaimana Analisis Emosi Bekerja?',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.midnight),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                const Text(
+                SizedBox(height: AppSpacing.sm),
+                Text(
                   'Sanctuary menggunakan model bahasa alami IndoBERT yang dilatih secara spesifik menggunakan korpus bahasa Indonesia konteks akademik.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.warmTextSecondary, fontSize: 13, height: 1.45),

@@ -12,16 +12,15 @@ import (
 
 func ToDailyMetricResponse(m models.StudentDailyMetric) dto.DailyMetricResponse {
 	return dto.DailyMetricResponse{
-		Date:                apptime.FormatDate(m.MetricDate),
-		MoodScore:           m.MoodScore,
-		MoodLabel:           service.MoodScaleLabel(m.MoodScore),
-		StressLevel:         m.StressLevel,
-		StressLabel:         service.StressScaleLabel(m.StressLevel),
-		SleepHours:          m.SleepHours,
-		EmotionLabel:        m.EmotionLabel,
-		EmotionLabelText:    service.EmotionLabelText(m.EmotionLabel),
-		AcademicTrigger:     m.AcademicTrigger,
-		AcademicTriggerText: constants.AcademicTriggerLabel(m.AcademicTrigger),
+		Date:             apptime.FormatDate(m.MetricDate),
+		MoodScore:        m.MoodScore,
+		MoodLabel:        service.MoodScaleLabel(m.MoodScore),
+		StressLevel:      m.StressLevel,
+		StressLabel:      service.StressScaleLabel(m.StressLevel),
+		SleepHours:       m.SleepHours,
+		EmotionLabel:     m.EmotionLabel,
+		EmotionLabelText: service.EmotionLabelText(m.EmotionLabel),
+		AcademicTrigger:  m.AcademicTrigger,
 	}
 }
 
@@ -82,17 +81,11 @@ func ToDailyMetricOptions(maxBackdateDays int) dto.DailyMetricOptionsResponse {
 		emotions = append(emotions, dto.CodedOptionResponse{Value: option.Value, Label: option.Label})
 	}
 
-	triggers := make([]dto.CodedOptionResponse, 0, len(constants.AcademicTriggerOptions))
-	for _, option := range constants.AcademicTriggerOptions {
-		triggers = append(triggers, dto.CodedOptionResponse{Value: option.Value, Label: option.Label})
-	}
-
 	return dto.DailyMetricOptionsResponse{
-		MoodScale:        moodScale,
-		StressScale:      stressScale,
-		Emotions:         emotions,
-		AcademicTriggers: triggers,
-		MaxBackdateDays:  maxBackdateDays,
+		MoodScale:       moodScale,
+		StressScale:     stressScale,
+		Emotions:        emotions,
+		MaxBackdateDays: maxBackdateDays,
 	}
 }
 
