@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gilabs/sanctuary/apps/api/seeders"
 	"github.com/gilabs/sanctuary/internal/core/infrastructure/config"
 	"github.com/gilabs/sanctuary/internal/core/infrastructure/database"
 	"github.com/gilabs/sanctuary/internal/core/infrastructure/redis"
@@ -29,6 +30,16 @@ func main() {
 		if err := database.AutoMigrate(db); err != nil {
 			log.Fatalf("auto-migrate: %v", err)
 		}
+	}
+
+	if cfg.Database.AutoSeed {
+		log.Println("[db] running auto-seed...")
+		seedCtx, seedCancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		if err := seeders.New(db, cfg).Run(seedCtx); err != nil {
+			seedCancel()
+			log.Fatalf("auto-seed: %v", err)
+		}
+		seedCancel()
 	}
 
 	redisClient := redis.Connect(cfg)
