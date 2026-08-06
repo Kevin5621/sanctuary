@@ -58,16 +58,27 @@ class PembimbingCubit extends Cubit<PembimbingState> {
   final ProgramRepository _repository;
 
   Future<void> load() async {
-    emit(state.copyWith(status: LoadStatus.loading, clearError: true));
+    emit(state.copyWith(
+      status: LoadStatus.loading,
+      clearError: true,
+      clearSuccess: true,
+    ));
     await refresh();
   }
 
   Future<void> refresh() async {
     try {
-      final advisors = await _repository.fetchAdvisors();
+      final results = await Future.wait([
+        _repository.fetchAdvisors(),
+        _repository.fetchStudents(),
+      ]);
+      final advisors = results[0] as List<AdvisorLoad>;
+      final students = results[1] as List<ProgramStudent>;
+
       emit(state.copyWith(
         status: LoadStatus.ready,
         advisors: advisors,
+        students: students,
         clearError: true,
       ));
     } on ApiException catch (error) {
@@ -76,6 +87,35 @@ class PembimbingCubit extends Cubit<PembimbingState> {
         errorMessage: error.message,
       ));
     }
+  }
+
+  Future<bool> assignAdvisees({
+    required String? advisorId,
+    required List<String> studentIds,
+  }) async {
+    emit(state.copyWith(isSaving: true, clearError: true, clearSuccess: true));
+    try {
+      await _repository.assignAdvisor(
+        advisorId: advisorId,
+        studentIds: studentIds,
+      );
+      await refresh();
+      emit(state.copyWith(
+        isSaving: false,
+        successMessage: 'Alokasi mahasiswa bimbingan berhasil disimpan.',
+      ));
+      return true;
+    } on ApiException catch (error) {
+      emit(state.copyWith(
+        isSaving: false,
+        errorMessage: error.message,
+      ));
+      return false;
+    }
+  }
+
+  void clearMessages() {
+    emit(state.copyWith(clearError: true, clearSuccess: true));
   }
 }
 

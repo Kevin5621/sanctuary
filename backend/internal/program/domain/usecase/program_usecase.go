@@ -25,6 +25,8 @@ import (
 type ProgramUsecase interface {
 	Dashboard(ctx context.Context, access Access, periodDays int) (dto.ProgramDashboardResponse, error)
 	Advisors(ctx context.Context, access Access) ([]dto.AdvisorLoadResponse, error)
+	Students(ctx context.Context, access Access) ([]dto.ProgramStudentResponse, error)
+	AssignAdvisor(ctx context.Context, access Access, req dto.AssignAdvisorRequest) error
 	CohortReport(ctx context.Context, access Access, periodDays int) ([]dto.CohortReportResponse, error)
 	// Profile mengisi tab Profil kaprodi (K-PRO-01).
 	Profile(ctx context.Context, access Access) (dto.ProgramProfileResponse, error)
@@ -151,19 +153,71 @@ func (u *programUsecase) Advisors(ctx context.Context, access Access) ([]dto.Adv
 		return nil, err
 	}
 
-	// Beban bimbingan adalah data administratif (bukan data kondisi),
+	// Beban bimbingan & alokasi mahasiswa adalah data administratif (bukan data kondisi),
 	// sehingga tidak tunduk pada k-anonymity.
 	out := make([]dto.AdvisorLoadResponse, 0, len(loads))
 	for _, load := range loads {
+		advisees, err := u.programs.AdviseesByAdvisor(ctx, load.AdvisorID)
+		if err != nil {
+			return nil, err
+		}
+
+		adviseeList := make([]dto.AdviseeSummaryResponse, 0, len(advisees))
+		for _, a := range advisees {
+			adviseeList = append(adviseeList, dto.AdviseeSummaryResponse{
+				ID:            a.ID,
+				FullName:      a.FullName,
+				StudentNumber: a.StudentNumber,
+				Email:         a.Email,
+			})
+		}
+
 		out = append(out, dto.AdvisorLoadResponse{
 			AdvisorID:      load.AdvisorID,
 			FullName:       load.FullName,
 			LecturerNumber: load.LecturerNumber,
 			Email:          load.Email,
 			AdviseeCount:   load.AdviseeCount,
+			Advisees:       adviseeList,
 		})
 	}
 	return out, nil
+}
+
+func (u *programUsecase) Students(ctx context.Context, access Access) ([]dto.ProgramStudentResponse, error) {
+	if access.ProgramID == "" {
+		return nil, utils.NewError(utils.CodeForbidden).WithDetails(map[string]any{
+			"reason": "akun kaprodi belum terhubung ke program studi",
+		})
+	}
+
+	students, err := u.programs.StudentsInProgram(ctx, access.ProgramID)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]dto.ProgramStudentResponse, 0, len(students))
+	for _, s := range students {
+		out = append(out, dto.ProgramStudentResponse{
+			ID:            s.ID,
+			FullName:      s.FullName,
+			StudentNumber: s.StudentNumber,
+			Email:         s.Email,
+			AdvisorID:     s.AdvisorID,
+			AdvisorName:   s.AdvisorName,
+		})
+	}
+	return out, nil
+}
+
+func (u *programUsecase) AssignAdvisor(ctx context.Context, access Access, req dto.AssignAdvisorRequest) error {
+	if access.ProgramID == "" {
+		return utils.NewError(utils.CodeForbidden).WithDetails(map[string]any{
+			"reason": "akun kaprodi belum terhubung ke program studi",
+		})
+	}
+
+	return u.programs.AssignAdvisor(ctx, access.ProgramID, req.AdvisorID, req.StudentIDs)
 }
 
 func (u *programUsecase) CohortReport(ctx context.Context, access Access, periodDays int) ([]dto.CohortReportResponse, error) {

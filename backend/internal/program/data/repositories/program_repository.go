@@ -25,6 +25,16 @@ type CohortCount struct {
 	StudentCount int `gorm:"column:student_count" json:"student_count"`
 }
 
+// AdviseeInfo membawa data mahasiswa pembimbing (administratif).
+type AdviseeInfo struct {
+	ID            string  `gorm:"column:id" json:"id"`
+	FullName      string  `gorm:"column:full_name" json:"full_name"`
+	StudentNumber string  `gorm:"column:student_number" json:"student_number"`
+	Email         string  `gorm:"column:email" json:"email"`
+	AdvisorID     *string `gorm:"column:advisor_id" json:"advisor_id,omitempty"`
+	AdvisorName   string  `gorm:"column:advisor_name" json:"advisor_name,omitempty"`
+}
+
 type ProgramRepository interface {
 	// ConsentedStudentIDs mengembalikan mahasiswa prodi yang MENGIZINKAN
 	// datanya ikut statistik prodi (allow_program_statistic = true).
@@ -35,6 +45,9 @@ type ProgramRepository interface {
 	// ProgramName dipakai judul layar Profil kaprodi.
 	ProgramName(ctx context.Context, programID string) (string, error)
 	AdvisorLoads(ctx context.Context, programID string) ([]AdvisorLoad, error)
+	AdviseesByAdvisor(ctx context.Context, advisorID string) ([]AdviseeInfo, error)
+	StudentsInProgram(ctx context.Context, programID string) ([]AdviseeInfo, error)
+	AssignAdvisor(ctx context.Context, programID string, advisorID *string, studentIDs []string) error
 	CohortCounts(ctx context.Context, programID string) ([]CohortCount, error)
 }
 
@@ -110,6 +123,85 @@ func (r *programRepository) AdvisorLoads(ctx context.Context, programID string) 
 		Order("advisee_count DESC").
 		Scan(&loads).Error
 	return loads, utils.TranslateDBError(err, "")
+}
+
+func (r *programRepository) AdviseesByAdvisor(ctx context.Context, advisorID string) ([]AdviseeInfo, error) {
+	ctx, cancel := utils.DBContext(ctx)
+	defer cancel()
+
+	var students []AdviseeInfo
+	err := r.db.WithContext(ctx).Model(&authmodels.User{}).
+		Select(`users.id,
+		        users.full_name,
+		        COALESCE(users.student_number, '') AS student_number,
+		        users.email,
+		        users.advisor_id`).
+		Joins("JOIN roles ON roles.id = users.role_id").
+		Where("users.advisor_id = ? AND users.is_active = true AND users.deleted_at IS NULL", advisorID).
+		Where("roles.code = ?", constants.RoleStudent).
+		Order("users.full_name ASC").
+		Scan(&students).Error
+
+	return students, utils.TranslateDBError(err, "")
+}
+
+func (r *programRepository) StudentsInProgram(ctx context.Context, programID string) ([]AdviseeInfo, error) {
+	ctx, cancel := utils.DBContext(ctx)
+	defer cancel()
+
+	var students []AdviseeInfo
+	err := r.db.WithContext(ctx).Model(&authmodels.User{}).
+		Select(`users.id,
+		        users.full_name,
+		        COALESCE(users.student_number, '') AS student_number,
+		        users.email,
+		        users.advisor_id,
+		        COALESCE(advisors.full_name, '') AS advisor_name`).
+		Joins("JOIN roles ON roles.id = users.role_id").
+		Joins("LEFT JOIN users advisors ON advisors.id = users.advisor_id").
+		Where("users.study_program_id = ? AND users.is_active = true AND users.deleted_at IS NULL", programID).
+		Where("roles.code = ?", constants.RoleStudent).
+		Order("users.full_name ASC").
+		Scan(&students).Error
+
+	return students, utils.TranslateDBError(err, "")
+}
+
+func (r *programRepository) AssignAdvisor(ctx context.Context, programID string, advisorID *string, studentIDs []string) error {
+	ctx, cancel := utils.DBContext(ctx)
+	defer cancel()
+
+	if len(studentIDs) == 0 {
+		return nil
+	}
+
+	if advisorID != nil && *advisorID != "" {
+		var count int64
+		err := r.db.WithContext(ctx).Model(&authmodels.User{}).
+			Joins("JOIN roles ON roles.id = users.role_id").
+			Where("users.id = ? AND users.study_program_id = ? AND users.is_active = true", *advisorID, programID).
+			Where("roles.code = ?", constants.RoleLecturer).
+			Count(&count).Error
+		if err != nil {
+			return utils.TranslateDBError(err, "")
+		}
+		if count == 0 {
+			return utils.NewError(utils.CodeInvalidQueryParam).WithDetails(map[string]any{
+				"reason": "dosen pembimbing tidak ditemukan di program studi ini",
+			})
+		}
+	}
+
+	var targetAdvisorID *string
+	if advisorID != nil && *advisorID != "" {
+		targetAdvisorID = advisorID
+	}
+
+	err := r.db.WithContext(ctx).Model(&authmodels.User{}).
+		Where("id IN ? AND study_program_id = ? AND is_active = true", studentIDs, programID).
+		Update("advisor_id", targetAdvisorID).Error
+
+	return utils.TranslateDBError(err, "")
 }
 
 func (r *programRepository) CohortCounts(ctx context.Context, programID string) ([]CohortCount, error) {
