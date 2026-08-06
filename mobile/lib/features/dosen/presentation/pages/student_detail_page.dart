@@ -353,9 +353,9 @@ class _AdvisorNotesHistoryTab extends StatelessWidget {
         else if (notes.isEmpty)
           const EmptyStateCard(
             icon: Icons.history_rounded,
-            title: 'Belum Ada Riwayat Pendampingan',
+            title: 'Belum ada riwayat',
             description:
-                'Anda belum mencatat hasil bimbingan/sapaan untuk mahasiswa ini. Tekan tombol "+ Catat" untuk menambahkan catatan baru.',
+                'Tekan tombol "Catat" di atas untuk menambahkan catatan baru.',
           )
         else
           // Timeline List of Notes

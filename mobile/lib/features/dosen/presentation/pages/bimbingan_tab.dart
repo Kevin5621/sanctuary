@@ -120,11 +120,11 @@ class _BimbinganViewState extends State<_BimbinganView> {
                       EmptyStateCard(
                         icon: Icons.check_circle_outline_rounded,
                         title: _selectedFilter == 'INTERVENTION'
-                            ? 'Tidak ada mahasiswa perlu intervensi'
-                            : 'Tidak ada mahasiswa ditemukan',
+                            ? 'Semua Mahasiswa Stabil'
+                            : 'Tidak Ada Data',
                         description: _selectedFilter == 'INTERVENTION'
-                            ? 'Seluruh mahasiswa bimbingan Anda saat ini dalam kondisi relatif aman dan stabil.'
-                            : 'Tidak ada mahasiswa yang sesuai dengan kriteria filter yang dipilih.',
+                            ? 'Tidak ada mahasiswa yang membutuhkan intervensi saat ini.'
+                            : 'Tidak ada mahasiswa sesuai filter yang dipilih.',
                       )
                     else
                       for (final advisee in filteredAdvisees)

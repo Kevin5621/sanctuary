@@ -78,6 +78,10 @@ func (s *Seeder) Run(ctx context.Context) error {
 		return fmt.Errorf("student data: %w", err)
 	}
 
+	if err := s.seedAdvisorNotes(ctx, users); err != nil {
+		return fmt.Errorf("advisor notes: %w", err)
+	}
+
 	if err := s.seedEmergencyContacts(ctx); err != nil {
 		return fmt.Errorf("emergency contacts: %w", err)
 	}
