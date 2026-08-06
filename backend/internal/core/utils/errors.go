@@ -44,6 +44,7 @@ const (
 	CodeNotFound                 = "NOT_FOUND"
 	CodeUserNotFound             = "USER_NOT_FOUND"
 	CodeStudentNotFound          = "STUDENT_NOT_FOUND"
+	CodeStudyProgramNotFound     = "STUDY_PROGRAM_NOT_FOUND"
 	CodeEmergencyContactNotFound = "EMERGENCY_CONTACT_NOT_FOUND"
 	CodeConflict                 = "CONFLICT"
 	CodeResourceAlreadyExists    = "RESOURCE_ALREADY_EXISTS"
@@ -85,6 +86,17 @@ const (
 	CodeContactRequestExists = "CONTACT_REQUEST_ALREADY_OPEN"
 	// 422 - mahasiswa belum memiliki dosen pembimbing.
 	CodeAdvisorNotAssigned = "ADVISOR_NOT_ASSIGNED"
+
+	// 409 - identitas pendaftaran sudah dipakai akun lain. Sengaja dipisah dari
+	// RESOURCE_ALREADY_EXISTS supaya klien dapat menyorot field yang benar.
+	CodeEmailAlreadyRegistered   = "EMAIL_ALREADY_REGISTERED"
+	CodeStudentNumberRegistered  = "STUDENT_NUMBER_ALREADY_REGISTERED"
+	CodeLecturerNumberRegistered = "LECTURER_NUMBER_ALREADY_REGISTERED"
+	// 422 - konfirmasi kata sandi tidak sama.
+	CodePasswordMismatch = "PASSWORD_CONFIRMATION_MISMATCH"
+	// 403 - peran yang diminta tidak boleh dibuat lewat endpoint tersebut
+	// (mis. Admin mencoba membuat akun ADMIN atau STUDENT lewat kelola akun).
+	CodeRoleNotAssignable = "ROLE_NOT_ASSIGNABLE"
 )
 
 var ErrorCodeMap = map[string]ErrorInfo{
@@ -113,6 +125,7 @@ var ErrorCodeMap = map[string]ErrorInfo{
 	CodeNotFound:                 {http.StatusNotFound, "Data tidak ditemukan"},
 	CodeUserNotFound:             {http.StatusNotFound, "Pengguna tidak ditemukan"},
 	CodeStudentNotFound:          {http.StatusNotFound, "Mahasiswa tidak ditemukan"},
+	CodeStudyProgramNotFound:     {http.StatusNotFound, "Program studi tidak ditemukan"},
 	CodeEmergencyContactNotFound: {http.StatusNotFound, "Layanan bantuan tidak ditemukan"},
 	CodeConflict:                 {http.StatusConflict, "Terjadi konflik dengan data saat ini"},
 	CodeResourceAlreadyExists:    {http.StatusConflict, "Data sudah ada"},
@@ -136,6 +149,12 @@ var ErrorCodeMap = map[string]ErrorInfo{
 	CodeBackdateLimitExceeded:     {http.StatusUnprocessableEntity, "Tanggal terlalu jauh ke belakang"},
 	CodeContactRequestExists:      {http.StatusConflict, "Permintaan dihubungi sebelumnya masih terbuka"},
 	CodeAdvisorNotAssigned:        {http.StatusUnprocessableEntity, "Kamu belum memiliki dosen pembimbing"},
+
+	CodeEmailAlreadyRegistered:   {http.StatusConflict, "Email ini sudah terdaftar"},
+	CodeStudentNumberRegistered:  {http.StatusConflict, "NIM ini sudah terdaftar"},
+	CodeLecturerNumberRegistered: {http.StatusConflict, "NIDN ini sudah terdaftar"},
+	CodePasswordMismatch:         {http.StatusUnprocessableEntity, "Konfirmasi kata sandi tidak sama"},
+	CodeRoleNotAssignable:        {http.StatusForbidden, "Peran ini tidak dapat dibuat dari halaman kelola akun"},
 }
 
 // FieldError mengikuti format field_errors pada standar error.

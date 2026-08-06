@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/domain/entities/app_user.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/admin/presentation/pages/admin_shell_page.dart';
 import '../../features/dosen/presentation/pages/dosen_shell_page.dart';
 import '../../features/kaprodi/presentation/pages/kaprodi_shell_page.dart';
@@ -20,11 +21,18 @@ const _rolePathPrefix = {
   UserRole.admin: '/admin',
 };
 
+/// Rute yang boleh dibuka tanpa sesi.
+///
+/// Pendaftaran ikut di sini karena justru dipakai oleh orang yang belum punya
+/// akun; tanpa pengecualian ini gerbang di bawah akan memantulkannya kembali
+/// ke /login tepat saat ia menekan "Daftar".
+const _publicRoutes = {'/login', '/register'};
+
 /// Router aplikasi dengan gerbang berbasis peran.
 ///
 /// Aturan redirect:
 ///  1. Sesi belum diketahui  -> layar splash (memulihkan token).
-///  2. Belum masuk           -> /login.
+///  2. Belum masuk           -> /login atau /register.
 ///  3. Sudah masuk           -> shell sesuai peran; deep link ke shell peran
 ///     lain otomatis dialihkan kembali ke beranda perannya.
 ///
@@ -43,14 +51,14 @@ GoRouter createRouter(AuthCubit authCubit) {
       }
 
       if (auth.status == AuthStatus.unauthenticated) {
-        return location == '/login' ? null : '/login';
+        return _publicRoutes.contains(location) ? null : '/login';
       }
 
       final home = auth.role.homeRoute;
       final prefix = _rolePathPrefix[auth.role];
 
       if (prefix == null) return '/login';
-      if (location == '/' || location == '/login') return home;
+      if (location == '/' || _publicRoutes.contains(location)) return home;
       if (!location.startsWith(prefix)) return home;
 
       return null;
@@ -58,6 +66,7 @@ GoRouter createRouter(AuthCubit authCubit) {
     routes: [
       GoRoute(path: '/', builder: (_, __) => const _SplashPage()),
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
+      GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
 
       // ---------------- MAHASISWA: 5 tab (Beranda, Mood, Jurnal, Terapis AI, Profil) ----------------
       GoRoute(
@@ -119,14 +128,18 @@ GoRouter createRouter(AuthCubit authCubit) {
         builder: (_, __) => const KaprodiShellPage(),
       ),
 
-      // ---------------- ADMIN: 2 tab ----------------
+      // ---------------- ADMIN: 3 tab ----------------
       GoRoute(
         path: '/admin/support',
-        builder: (_, __) => const AdminShellPage(),
+        builder: (_, __) => const AdminShellPage(initialIndex: 0),
+      ),
+      GoRoute(
+        path: '/admin/users',
+        builder: (_, __) => const AdminShellPage(initialIndex: 1),
       ),
       GoRoute(
         path: '/admin/profile',
-        builder: (_, __) => const AdminShellPage(),
+        builder: (_, __) => const AdminShellPage(initialIndex: 2),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/responsive.dart';
 import '../cubit/auth_cubit.dart';
+import '../widgets/auth_brand_header.dart';
+import '../widgets/auth_footer_link.dart';
+import '../widgets/auth_password_field.dart';
+import '../widgets/auth_submit_button.dart';
+import '../widgets/auth_text_field.dart';
 
-/// Layar masuk (Login Page) - Redesain Minimalis.
+/// Layar masuk (Login Page) — minimalis, tanpa kartu, menempel pada canvas.
 ///
-/// Tampilan simpel, bersih, minim kartu (cardless), dan minim elemen visual berlebih,
-/// dengan penggunaan tema & sistem warna aplikasi yang konsisten.
+/// Elemen formulirnya dibagi dengan layar daftar lewat `widgets/`, sehingga
+/// kedua pintu masuk aplikasi tidak dapat menyimpang satu sama lain.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -21,7 +26,6 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -71,24 +75,75 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header Identitas Brand Minimalis
-                      const _BrandHeader(),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Form Input Tanpa Kartu (Frameless Form)
-                      _LoginForm(
-                        formKey: _formKey,
-                        emailController: _emailController,
-                        passwordController: _passwordController,
-                        obscurePassword: _obscurePassword,
-                        onToggleObscure: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
-                        onSubmit: _submit,
-                        state: state,
+                      const AuthBrandHeader(
+                        title: 'Sanctuary',
+                        subtitle: 'Ruang aman untuk merawat kesehatan mentalmu',
                       ),
                       const SizedBox(height: AppSpacing.xl),
 
-                      // Akses Bantuan Sekunder
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            AuthTextField(
+                              label: 'Email Kampus',
+                              controller: _emailController,
+                              hintText: 'nama@sanctuary.ac.id',
+                              prefixIcon: Icons.mail_outline_rounded,
+                              keyboardType: TextInputType.emailAddress,
+                              autofillHints: const [AutofillHints.email],
+                              enabled: !state.isSubmitting,
+                              errorText: state.fieldErrors['email'],
+                              validator: (value) {
+                                final email = value?.trim() ?? '';
+                                if (email.isEmpty) return 'Email wajib diisi';
+                                if (!RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$')
+                                    .hasMatch(email)) {
+                                  return 'Format email tidak valid';
+                                }
+                                return null;
+                              },
+                            ),
+                            AuthPasswordField(
+                              label: 'Kata Sandi',
+                              controller: _passwordController,
+                              textInputAction: TextInputAction.done,
+                              autofillHints: const [AutofillHints.password],
+                              enabled: !state.isSubmitting,
+                              errorText: state.fieldErrors['password'],
+                              onFieldSubmitted: (_) => _submit(),
+                              validator: (value) {
+                                if ((value ?? '').isEmpty) {
+                                  return 'Kata sandi wajib diisi';
+                                }
+                                if ((value ?? '').length < 8) {
+                                  return 'Kata sandi minimal 8 karakter';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            AuthSubmitButton(
+                              label: 'Masuk',
+                              isLoading: state.isSubmitting,
+                              onPressed: _submit,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+
+                      // Hanya mahasiswa yang mendaftar sendiri; dosen & kaprodi
+                      // menerima akun dari Admin, jadi kalimatnya menyebut itu
+                      // agar mereka tidak menunggu tautan yang bukan untuknya.
+                      AuthFooterLink(
+                        question: 'Mahasiswa baru?',
+                        actionLabel: 'Daftar di sini',
+                        onTap: () => context.go('/register'),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
                       const _EmergencyHelpLink(),
                     ],
                   ),
@@ -97,193 +152,6 @@ class _LoginPageState extends State<LoginPage> {
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-/// Identitas visual brand yang bersih, elegan, dan minim hiasan.
-class _BrandHeader extends StatelessWidget {
-  const _BrandHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Column(
-      children: [
-        // Badge Ikon Minimalis
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.darkSurfaceAlt
-                : theme.colorScheme.primaryContainer,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.spa_rounded,
-            size: 28,
-            color: isDark
-                ? AppColors.lavender
-                : theme.colorScheme.onPrimaryContainer,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          'Sanctuary',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'Ruang aman untuk merawat kesehatan mentalmu',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.8),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Form login tanpa wrapper kartu, menempel langsung pada canvas latar belakang.
-class _LoginForm extends StatelessWidget {
-  const _LoginForm({
-    required this.formKey,
-    required this.emailController,
-    required this.passwordController,
-    required this.obscurePassword,
-    required this.onToggleObscure,
-    required this.onSubmit,
-    required this.state,
-  });
-
-  final GlobalKey<FormState> formKey;
-  final TextEditingController emailController;
-  final TextEditingController passwordController;
-  final bool obscurePassword;
-  final VoidCallback onToggleObscure;
-  final VoidCallback onSubmit;
-  final AuthState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Form(
-      key: formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Input Email Kampus
-          TextFormField(
-            controller: emailController,
-            keyboardType: TextInputType.emailAddress,
-            autofillHints: const [AutofillHints.email],
-            textInputAction: TextInputAction.next,
-            enabled: !state.isSubmitting,
-            decoration: InputDecoration(
-              labelText: 'Email Kampus',
-              hintText: 'nama@sanctuary.ac.id',
-              prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
-              errorText: state.fieldErrors['email'],
-            ),
-            validator: (value) {
-              final email = value?.trim() ?? '';
-              if (email.isEmpty) return 'Email wajib diisi';
-              if (!RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$').hasMatch(email)) {
-                return 'Format email tidak valid';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: AppSpacing.md),
-
-          // Input Kata Sandi
-          TextFormField(
-            controller: passwordController,
-            obscureText: obscurePassword,
-            autofillHints: const [AutofillHints.password],
-            textInputAction: TextInputAction.done,
-            enabled: !state.isSubmitting,
-            onFieldSubmitted: (_) => onSubmit(),
-            decoration: InputDecoration(
-              labelText: 'Kata Sandi',
-              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-              errorText: state.fieldErrors['password'],
-              suffixIcon: IconButton(
-                onPressed: onToggleObscure,
-                icon: Icon(
-                  obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  size: 20,
-                ),
-                tooltip: obscurePassword
-                    ? 'Tampilkan kata sandi'
-                    : 'Sembunyikan kata sandi',
-              ),
-            ),
-            validator: (value) {
-              if ((value ?? '').isEmpty) return 'Kata sandi wajib diisi';
-              if ((value ?? '').length < 8) {
-                return 'Kata sandi minimal 8 karakter';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // Tombol Masuk Utama
-          SizedBox(
-            height: 50,
-            child: FilledButton(
-              onPressed: state.isSubmitting ? null : onSubmit,
-              style: FilledButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-                elevation: 0,
-              ),
-              child: state.isSubmitting
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.colorScheme.onPrimary,
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Masuk',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 18,
-                          color: theme.colorScheme.onPrimary,
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-        ],
       ),
     );
   }

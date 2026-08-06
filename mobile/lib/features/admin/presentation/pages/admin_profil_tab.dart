@@ -19,7 +19,9 @@ class AdminProfilTab extends StatelessWidget {
     'Anda tidak dapat melihat data mahasiswa apa pun — indikator maupun agregat.',
     'Anda tidak dapat membaca jurnal maupun percakapan Terapis AI.',
     'Anda tidak dapat melihat daftar bimbingan dosen atau dashboard prodi.',
-    'Peran Anda mengelola konfigurasi layanan, bukan mengawasi orang.',
+    'Anda membuat akun dosen & kaprodi, tetapi tidak dapat melihat data yang '
+        'mereka akses lewat akun itu.',
+    'Peran Anda mengelola konfigurasi layanan dan akun, bukan mengawasi orang.',
   ];
 
   @override

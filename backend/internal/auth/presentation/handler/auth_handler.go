@@ -40,6 +40,39 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	utils.OK(c, result.Session)
 }
 
+// Register godoc: POST /api/v1/auth/register
+//
+// Pendaftaran mandiri mahasiswa. Berhasil mendaftar berarti langsung punya
+// sesi — memaksa pengguna mengetik ulang kredensial yang baru saja dibuatnya
+// tidak menambah keamanan apa pun.
+func (h *AuthHandler) Register(c *gin.Context) {
+	var req dto.RegisterStudentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.FailBinding(c, err)
+		return
+	}
+
+	result, err := h.uc.Register(c.Request.Context(), req, h.metaFrom(c))
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+
+	h.writeSession(c, &result)
+	utils.Created(c, result.Session)
+}
+
+// StudyPrograms godoc: GET /api/v1/auth/study-programs
+// Publik: formulir pendaftaran membutuhkannya sebelum ada sesi.
+func (h *AuthHandler) StudyPrograms(c *gin.Context) {
+	programs, err := h.uc.StudyPrograms(c.Request.Context())
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, programs)
+}
+
 // Refresh godoc: POST /api/v1/auth/refresh
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req dto.RefreshRequest

@@ -12,6 +12,7 @@ import (
 	"github.com/gilabs/sanctuary/internal/auth/domain/dto"
 	"github.com/gilabs/sanctuary/internal/auth/domain/mapper"
 	"github.com/gilabs/sanctuary/internal/core/apptime"
+	"github.com/gilabs/sanctuary/internal/core/constants"
 	"github.com/gilabs/sanctuary/internal/core/infrastructure/config"
 	"github.com/gilabs/sanctuary/internal/core/utils"
 )
@@ -38,9 +39,11 @@ type SessionResult struct {
 
 type AuthUsecase interface {
 	Login(ctx context.Context, req dto.LoginRequest, meta LoginMeta) (SessionResult, error)
+	Register(ctx context.Context, req dto.RegisterStudentRequest, meta LoginMeta) (SessionResult, error)
 	Refresh(ctx context.Context, refreshToken string, meta LoginMeta) (SessionResult, error)
 	Logout(ctx context.Context, refreshToken, userID string, meta LoginMeta) error
 	Me(ctx context.Context, userID string) (dto.UserResponse, error)
+	StudyPrograms(ctx context.Context) ([]dto.StudyProgramResponse, error)
 }
 
 type authUsecase struct {
@@ -48,6 +51,8 @@ type authUsecase struct {
 	users     repositories.UserRepository
 	tokens    repositories.RefreshTokenRepository
 	audits    repositories.AuditRepository
+	roles     repositories.RoleRepository
+	programs  repositories.StudyProgramRepository
 	jwt       *utils.JWTManager
 	limiter   RateLimiter
 	loginRate int
@@ -58,6 +63,8 @@ func NewAuthUsecase(
 	users repositories.UserRepository,
 	tokens repositories.RefreshTokenRepository,
 	audits repositories.AuditRepository,
+	roles repositories.RoleRepository,
+	programs repositories.StudyProgramRepository,
 	jwt *utils.JWTManager,
 	limiter RateLimiter,
 	cfg *config.Config,
@@ -67,6 +74,8 @@ func NewAuthUsecase(
 		users:     users,
 		tokens:    tokens,
 		audits:    audits,
+		roles:     roles,
+		programs:  programs,
 		jwt:       jwt,
 		limiter:   limiter,
 		loginRate: cfg.RateLimit.LoginPerMinute,
@@ -112,6 +121,124 @@ func (u *authUsecase) Login(ctx context.Context, req dto.LoginRequest, meta Logi
 		RequestID: meta.RequestID,
 	})
 	return result, nil
+}
+
+// Register membuat akun mahasiswa baru lalu langsung menerbitkan sesi.
+//
+// Peran dikunci ke STUDENT di sini, bukan diambil dari request: satu-satunya
+// jalan menjadi dosen/kaprodi adalah dibuatkan Admin.
+//
+// Pendaftar TIDAK otomatis mendapat dosen pembimbing (advisor_id tetap NULL) —
+// penempatan pembimbing adalah keputusan prodi, dan menebaknya di sini berarti
+// mengalirkan data seorang mahasiswa ke dosen yang belum tentu berhak.
+// Baris privasi juga tidak dibuat: default paling tertutup sudah berlaku bagi
+// mahasiswa yang belum punya baris (lihat PrivacyRepository.GetOrDefault).
+func (u *authUsecase) Register(ctx context.Context, req dto.RegisterStudentRequest, meta LoginMeta) (SessionResult, error) {
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	studentNumber := strings.TrimSpace(req.StudentNumber)
+
+	// Limit per-IP dipasang di router; limit ini menahan pembuatan akun massal
+	// yang datang dari banyak IP namun menyasar satu alamat email.
+	allowed, err := u.limiter.Allow(ctx, "register_email", utils.HashToken(email), u.loginRate)
+	if err != nil && !allowed {
+		return SessionResult{}, utils.NewError(utils.CodeServiceUnavailable).WithCause(err)
+	}
+	if !allowed {
+		return SessionResult{}, utils.NewError(utils.CodeRateLimitExceeded)
+	}
+
+	if req.Password != req.PasswordConfirmation {
+		return SessionResult{}, utils.NewError(utils.CodePasswordMismatch)
+	}
+
+	if taken, err := u.users.EmailTaken(ctx, email, ""); err != nil {
+		return SessionResult{}, err
+	} else if taken {
+		return SessionResult{}, utils.NewError(utils.CodeEmailAlreadyRegistered)
+	}
+	if taken, err := u.users.StudentNumberTaken(ctx, studentNumber, ""); err != nil {
+		return SessionResult{}, err
+	} else if taken {
+		return SessionResult{}, utils.NewError(utils.CodeStudentNumberRegistered)
+	}
+
+	// Program studi divalidasi ke database, bukan sekadar dicek format UUID-nya:
+	// nilai asal akan membuat mahasiswa tak pernah muncul di dashboard prodi
+	// mana pun, dan kesalahan itu baru ketahuan berbulan-bulan kemudian.
+	if _, err := u.programs.FindByID(ctx, req.StudyProgramID); err != nil {
+		return SessionResult{}, err
+	}
+
+	role, err := u.roles.FindByCode(ctx, constants.RoleStudent)
+	if err != nil {
+		return SessionResult{}, err
+	}
+
+	hash, err := utils.HashPassword(req.Password)
+	if err != nil {
+		return SessionResult{}, utils.WrapInternal(err)
+	}
+
+	programID := req.StudyProgramID
+	cohortYear := req.CohortYear
+	user := &models.User{
+		RoleID:         role.ID,
+		Role:           role,
+		FullName:       strings.TrimSpace(req.FullName),
+		Email:          email,
+		PasswordHash:   hash,
+		Phone:          strings.TrimSpace(req.Phone),
+		StudentNumber:  &studentNumber,
+		CohortYear:     &cohortYear,
+		StudyProgramID: &programID,
+		IsActive:       true,
+	}
+
+	if err := u.users.Create(ctx, user); err != nil {
+		return SessionResult{}, translateIdentityConflict(err)
+	}
+
+	result, err := u.issueSession(ctx, user, meta, nil)
+	if err != nil {
+		return SessionResult{}, err
+	}
+
+	u.recordAudit(ctx, repositories.AuditEntry{
+		ActorID:    user.ID,
+		ActorRole:  constants.RoleStudent.String(),
+		Action:     models.ActionRegister,
+		Resource:   "user",
+		ResourceID: user.ID,
+		IPAddress:  meta.IPAddress,
+		RequestID:  meta.RequestID,
+	})
+	return result, nil
+}
+
+func (u *authUsecase) StudyPrograms(ctx context.Context) ([]dto.StudyProgramResponse, error) {
+	programs, err := u.programs.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return mapper.ToStudyProgramResponses(programs), nil
+}
+
+// translateIdentityConflict menerjemahkan tabrakan unique index menjadi pesan
+// yang dapat ditindaklanjuti. Ini jaring pengaman untuk dua permintaan
+// bersamaan yang sama-sama lolos pemeriksaan awal.
+//
+// Field yang bentrok sengaja TIDAK ditebak: pada titik ini email, NIM, dan
+// NIDN sama-sama mungkin, dan menunjuk field yang keliru akan membuat orang
+// mengganti data yang sebenarnya sudah benar.
+func translateIdentityConflict(err error) error {
+	appErr := utils.AsAppError(err)
+	if appErr.Code != utils.CodeResourceAlreadyExists {
+		return err
+	}
+	return utils.NewErrorWithMessage(
+		utils.CodeConflict,
+		"Sebagian data identitas sudah dipakai akun lain. Periksa email, NIM, atau NIDN.",
+	)
 }
 
 // Refresh melakukan rotasi token: token lama langsung dicabut, token baru dibuat.
