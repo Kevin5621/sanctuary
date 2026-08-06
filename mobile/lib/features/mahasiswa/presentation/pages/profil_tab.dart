@@ -4,12 +4,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/privacy_states.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../privacy/presentation/pages/privacy_settings_page.dart';
 import 'bantuan_darurat_page.dart';
 import 'dass21_screening_page.dart';
 import 'edukasi_model_page.dart';
 import 'latihan_napas_page.dart';
 import 'pengingat_settings_page.dart';
-import 'privacy_settings_page.dart';
 import 'riwayat_analisis_page.dart';
 
 class ProfilTab extends StatelessWidget {
@@ -104,7 +104,7 @@ class ProfilTab extends StatelessWidget {
               icon: Icons.shield_outlined,
               title: '1. Privasi & Berbagi Data',
               subtitle: 'Atur seberapa banyak pembimbing dapat melihat.',
-              destination: const MahasiswaPrivacySettingsPage(),
+              destination: const PrivacySettingsPage(),
             ),
 
             // 2. Skrining DASS-21

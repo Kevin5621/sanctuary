@@ -118,44 +118,55 @@ Titik-titik di mana dokumen fungsi, skema DB, dan kode belum sepakat. Rekomendas
 
 ## 5. Mahasiswa
 
-### 5.1 Beranda — `M-BER` 🟡
+### 5.1 Beranda — `M-BER` ✅
+
+Beranda kini menjadi **satu-satunya tempat check-in diisi** (dipindah dari tab Mood).
+Alasannya: check-in adalah tindakan harian yang harus ada di layar pertama, sementara riwayat adalah tempat merenung yang dibuka sesekali.
 
 | ID | Fitur | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
 | M-BER-01 | Sapaan bernama (dari `/auth/me`) | ✅ | ✅ | |
-| M-BER-02 | Ringkasan kondisi hari ini | ✅ | ✅ | `GET /students/me/daily-metrics/weekly-summary` |
+| M-BER-02 | Ringkasan kondisi hari ini | ✅ | ✅ | `GET /students/me/daily-metrics/weekly-summary` + `current_streak` |
 | M-BER-03 | Kalender mood mingguan | ✅ | ✅ | hari kosong = state "belum check-in" |
-| M-BER-04 | Pintasan ke skrining DASS-21 | 🔒 | ✅ | tombol ada, endpoint DASS belum (`M-DASS-*`) |
-| M-BER-05 | Empty state pengguna baru (belum ada data sama sekali) | — | ⬜ | jangan tampilkan grafik kosong; tampilkan ajakan check-in pertama |
+| M-BER-04 | Pintasan ke skrining DASS-21 | ✅ | ✅ | |
+| M-BER-05 | Empty state pengguna baru | ✅ | ✅ | `isFirstTime` → ajakan check-in pertama, bukan kalender kosong |
+| M-BER-06 | **Form check-in** (bottom sheet) | ✅ | ✅ | pilihan skala/emosi/pemicu/batas backdate dari `GET …/options` |
+| M-BER-07 | Mode ubah check-in hari ini | ✅ | ✅ | upsert per tanggal; sheet terbuka terisi nilai lama |
 
-### 5.2 Mood — `M-MOOD` 🟡
+**Catatan perubahan perilaku.** Pintasan mood di header dulu langsung menyimpan dengan `stress=2, sleep=7.0` yang tidak pernah diisi siapa pun. Sekarang pintasan itu **membuka form dengan mood terpilih**, tidak menyimpan diam-diam — dua angka karangan tadi ikut dibaca indikator EWS `LOW_SLEEP_NIGHTS`, dan dosen akan menerima sinyal yang tidak dimaksudkan siapa pun.
 
-| ID | Fitur | BE | FE | Catatan |
-|---|---|:--:|:--:|---|
-| M-MOOD-01 | Check-in harian: mood 1–5, stres 1–5, jam tidur, faktor pemicu akademik | ✅ | ✅ | `POST /students/me/daily-metrics`, upsert per tanggal |
-| M-MOOD-02 | Pemilih tanggal untuk hari yang terlewat | ✅ | 🟡 | backend menerima `metric_date`; FE belum punya pemilih. Batas 7 hari (D-8) belum divalidasi |
-| M-MOOD-03 | Grafik ritme mood (30 hari) | ⬜ | ⬜ | butuh `GET /students/me/daily-metrics?range=30d` |
-| M-MOOD-04 | Sebaran emosi | ⬜ | ⬜ | sumber = analisis jurnal (D-3), bukan check-in |
-| M-MOOD-05 | Validasi satu check-in per hari (edit, bukan duplikat) | ✅ | 🟡 | unique index sudah ada; FE belum menampilkan mode "ubah" |
-
-### 5.3 Jurnal — `M-JUR` 🟡
+### 5.2 Mood — `M-MOOD` ✅ (riwayat saja)
 
 | ID | Fitur | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
-| M-JUR-01 | Tulis / lihat / hapus catatan bebas | ✅ | 🟡 | endpoint lengkap; FE belum tersambung API |
-| M-JUR-02 | Tombol Analisis Emosi | 🟡 | ⬜ | `POST /journals/:id/analyze` jalan, tapi memakai **leksikon mock** (`mock-lexicon-v1`) |
-| M-JUR-03 | **IndoBERT sungguhan** menggantikan mock | ⬜ | — | interface `EmotionAnalyzer` sengaja kecil; penggantian tidak menyentuh usecase |
-| M-JUR-04 | Saran latihan coping sesuai emosi terdeteksi | ✅ | ⬜ | `coping_suggestions` sudah di response |
-| M-JUR-05 | Deteksi tanda krisis otomatis + kartu bantuan | ✅ | ⬜ | `is_crisis_flagged` + `crisis_message`; FE harus memunculkan nomor darurat, bukan sekadar teks |
-| M-JUR-06 | Jurnal dapat diberi tanggal mundur (maks 7 hari, D-8) | 🟡 | ⬜ | `journal_date` ada; batas belum divalidasi |
-| M-JUR-07 | Daftar jurnal berhalaman | ✅ | ⬜ | maks 20/halaman sesuai standar |
+| M-MOOD-01 | ~~Check-in harian di tab ini~~ | — | — | **dipindah ke `M-BER-06`** |
+| M-MOOD-02 | Pemilih tanggal untuk hari yang terlewat | ✅ | ✅ | batas backdate dari server (`max_backdate_days`), divalidasi ulang di usecase |
+| M-MOOD-03 | Grafik ritme mood | ✅ | ✅ | `GET …/stats?period_days=30\|90\|120` |
+| M-MOOD-04 | Sebaran emosi | ✅ | ✅ | dari label check-in; sebaran hasil model ada di `M-PRO-02` |
+| M-MOOD-05 | Satu check-in per hari (ubah, bukan duplikat) | ✅ | ✅ | unique index + upsert |
+| M-MOOD-06 | **Kalender mood bulanan** | ✅ | ✅ | `GET …/monthly?month=YYYY-MM`, navigasi antar bulan |
+| M-MOOD-07 | Pemicu tersering + rangkaian check-in | ✅ | ✅ | `top_triggers`, `current_streak`, `longest_streak` |
+| M-MOOD-08 | State "Data belum cukup" (< 3 titik) | ✅ | ✅ | server tidak mengirim rata-rata sama sekali saat belum cukup |
+
+### 5.3 Jurnal — `M-JUR` ✅ (kecuali model sungguhan)
+
+| ID | Fitur | BE | FE | Catatan |
+|---|---|:--:|:--:|---|
+| M-JUR-01 | Tulis / lihat / hapus catatan bebas | ✅ | ✅ | |
+| M-JUR-02 | Tombol Analisis Emosi | 🟡 | ✅ | alurnya lengkap, analyzer-nya masih **leksikon mock** (`mock-lexicon-v1`) |
+| M-JUR-03 | **IndoBERT sungguhan** menggantikan mock | ⬜ | — | interface `EmotionAnalyzer` sengaja kecil; penggantian tidak menyentuh usecase maupun klien |
+| M-JUR-04 | Saran latihan coping sesuai emosi terdeteksi | ✅ | ✅ | |
+| M-JUR-05 | Deteksi tanda krisis otomatis + kartu bantuan | ✅ | ✅ | kartu krisis tampil paling atas dan menautkan ke layanan bantuan |
+| M-JUR-06 | Tanggal mundur (maks 7 hari, D-8) | ✅ | ✅ | |
+| M-JUR-07 | Daftar jurnal berhalaman | ✅ | ✅ | |
+| M-JUR-08 | Simpan tanpa analisis | ✅ | ✅ | analisis adalah pilihan pemiliknya, bukan syarat untuk boleh bercerita |
 
 ### 5.4 Profil — `M-PRO` 🟡
 
 | ID | Menu | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
-| M-PRO-01 | **Skrining DASS-21** — riwayat, tren, pengisian baru | ⬜ | 🟡 | UI kuesioner ada; **tidak ada endpoint** — jawaban belum tersimpan. Model & tabel siap |
-| M-PRO-02 | **Riwayat Analisis Emosi** — hasil + tren | 🟡 | 🟡 | data ada di `student_journals`; belum ada endpoint agregasi tren |
+| M-PRO-01 | **Skrining DASS-21** — riwayat, tren, pengisian baru | ✅ | ✅ | katalog soal & ambang di server; klien hanya kirim jawaban mentah |
+| M-PRO-02 | **Riwayat Analisis Emosi** — hasil + tren | ✅ | ✅ | `GET …/journals/emotion-history` |
 | M-PRO-03 | **Tentang model ini** — IndoBERT, 4 label (D-2), akurasi ±77%, batasan | — | ✅ | teks wajib disesuaikan setelah D-2 |
 | M-PRO-04 | **Butuh bantuan sekarang** — nomor darurat & konseling | ✅ | ✅ | tersambung API; empty state jujur (A-BAN-03) |
 | M-PRO-05 | **Latihan menenangkan diri** — napas, grounding, refleksi | — | 🟡 | latihan napas ✅; grounding & refleksi ⬜ (murni klien, tanpa backend) |
@@ -178,8 +189,8 @@ Titik-titik di mana dokumen fungsi, skema DB, dan kode belum sepakat. Rekomendas
 
 | ID | Fitur | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
-| M-X-01 | Tombol "minta dihubungi" pembimbing | ⬜ | ⬜ | `POST /students/me/contact-requests`; satu permintaan OPEN per mahasiswa (unique index ada). Berlaku walau `CLOSED` (D-7) |
-| M-X-02 | Batalkan permintaan | ⬜ | ⬜ | status → `CANCELLED` |
+| M-X-01 | Tombol "minta dihubungi" pembimbing | ✅ | ✅ | satu permintaan OPEN per mahasiswa; berlaku walau `CLOSED` (D-7). Penjelasan batas dikirim server, bukan ditulis ulang klien |
+| M-X-02 | Batalkan permintaan | ✅ | ✅ | status → `CANCELLED` |
 | M-X-03 | Onboarding privasi saat login pertama | ⬜ | ⬜ | jelaskan default tertutup, jangan paksa berbagi |
 
 ---
@@ -298,7 +309,7 @@ Perubahan berlaku untuk seluruh pengguna begitu tersimpan (D-10: cakupan global)
 | C-11 | Claymorphism design system | ✅ | `ClayContainer`, `ClayCard`, `ClayButton` |
 | C-12 | Kode error khusus Sanctuary didokumentasikan | ⬜ | `PRIVATE_CONTENT_FORBIDDEN`, `INSUFFICIENT_GROUP_SIZE`, dll. belum masuk `api-error-codes.md` |
 | C-13 | URL staging/production sungguhan | ⬜ | masih placeholder `sanctuary.ac.id`. Satu paket dengan `applicationId` Android yang masih `com.example.sanctuary` dan keystore release yang masih memakai kunci debug — ketiganya harus diganti sebelum rilis |
-| C-14 | Duplikat `privacy_settings_page.dart` (di `features/mahasiswa` dan `features/privacy`) | ⬜ | sisakan satu — versi `features/privacy` yang tersambung cubit |
+| C-14 | Duplikat `privacy_settings_page.dart` | ✅ | versi `features/mahasiswa` dihapus (state lokal, kode `SUMMARY_ONLY` yang bahkan tidak ada di backend); tab Profil kini menunjuk `features/privacy` yang tersambung cubit |
 | C-15 | Test kebocoran privasi otomatis | 🟡 | BE: `privacy_leak_test.go` memindai sumber (go/ast) DTO dosen & kaprodi + repository mentor. FE: `dosen_privacy_test.dart` (14 test) menjaga CLOSED≠Normal, null≠0, dan `note` tidak terurai. Belum mencakup permukaan mahasiswa |
 
 ---
@@ -313,15 +324,19 @@ Base `/api/v1`. `me` selalu berarti pemilik token — tidak ada endpoint yang me
 | POST/GET | `/auth/logout`, `/auth/me` | terautentikasi | ✅ |
 | GET/PUT | `/students/me/privacy-settings` | Mahasiswa | ✅ |
 | GET | `/students/me/privacy-settings/options` | Mahasiswa | ✅ |
-| GET/POST | `/students/me/daily-metrics` | Mahasiswa | 🟡 POST ✅, GET rentang ⬜ |
+| POST | `/students/me/daily-metrics` | Mahasiswa | ✅ upsert per tanggal |
+| GET | `/students/me/daily-metrics/options` | Mahasiswa | ✅ skala, emosi, pemicu, batas backdate |
 | GET | `/students/me/daily-metrics/weekly-summary` | Mahasiswa | ✅ |
+| GET | `/students/me/daily-metrics/monthly?month=YYYY-MM` | Mahasiswa | ✅ M-MOOD-06 |
+| GET | `/students/me/daily-metrics/stats?period_days=30` | Mahasiswa | ✅ M-MOOD-03/04/07 |
 | GET/POST | `/students/me/journals` | Mahasiswa (`PrivateContentGuard`) | ✅ |
 | GET/DELETE | `/students/me/journals/:id` | Mahasiswa (pemilik) | ✅ |
 | POST | `/students/me/journals/:id/analyze` | Mahasiswa (pemilik) | 🟡 mock analyzer |
-| GET | `/students/me/journals/emotion-trend` | Mahasiswa | ⬜ M-PRO-02 |
-| GET/POST | `/students/me/dass21` | Mahasiswa | ⬜ M-PRO-01 |
+| GET | `/students/me/journals/emotion-history` | Mahasiswa | ✅ M-PRO-02 |
+| GET | `/students/me/dass21/questions` | Mahasiswa | ✅ katalog soal dari server |
+| GET/POST | `/students/me/dass21` | Mahasiswa | ✅ M-PRO-01 (skoring server-side) |
 | GET/POST | `/students/me/chats` | Mahasiswa (`PrivateContentGuard`) | ⬜ M-AI-02 |
-| POST/DELETE | `/students/me/contact-requests` | Mahasiswa | ⬜ M-X-01 |
+| GET/POST/DELETE | `/students/me/contact-requests` | Mahasiswa | ✅ M-X-01/02 |
 | GET | `/mentors/me/students` | Dosen | ✅ |
 | GET | `/mentors/me/students/:id` | Dosen (wajib pembimbingnya) | ✅ |
 | GET | `/mentors/me/condition?period_days=30\|90\|120` | Dosen (k ≥ 5) | ✅ |
@@ -339,17 +354,17 @@ Base `/api/v1`. `me` selalu berarti pemilik token — tidak ada endpoint yang me
 
 Diurutkan berdasarkan apa yang membuka jalan bagi yang lain, bukan berdasarkan kemudahan.
 
-**Tahap 1 — Menutup lingkaran data mahasiswa.** Tanpa ini EWS berjalan dengan bahan setengah.
-`M-BER-05` · `M-MOOD-02..05` · `M-JUR-01..02, 04..07` · `M-PRO-01` (DASS — membuka indikator EWS ke-3) · `M-X-01`
+**Tahap 1 — Menutup lingkaran data mahasiswa.** ✅ selesai.
+Seluruh fitur mahasiswa (kecuali Terapis AI) tersambung API, tanpa data contoh di klien. Indikator EWS ke-3 (`DASS_WORSENING`) kini punya sumber data.
 
 **Tahap 2 — Membuat sinyal terpakai.** Data sudah masuk; sekarang dosen harus bisa membacanya.
-`L-BIM-01..05` · `L-KON-01..04` · `L-PRO-02..03` · `C-15` (test kebocoran — kerjakan **sebelum** layar dosen rilis, bukan sesudah)
+`L-BIM-01..05` · `L-KON-01..04` · `L-PRO-02..03` · `C-15` (perluas ke permukaan mahasiswa)
 
 **Tahap 3 — Tingkat prodi & konfigurasi.**
 `K-DAS-*` · `K-PEM-01` · `K-LAP-01` · `A-BAN-01..03`
 
 **Tahap 4 — AI & penghalusan.**
-`D-5` diputuskan → `M-AI-01..05` · `M-JUR-03` (IndoBERT sungguhan) · `M-PRO-05, 07, 08, 09` · `M-PRO-02`
+`D-5` diputuskan → `M-AI-01..05` · `M-JUR-03` (IndoBERT sungguhan) · `M-PRO-05, 07, 08, 09`
 
 **Blocker rilis — tidak bisa dinegosiasikan.**
 `A-BAN-04` (nomor darurat terverifikasi) · `C-15` (test kebocoran) · `D-1` (copy privasi jujur) · `D-5` (consent AI) · `C-13` (URL sungguhan) · **signing Android** (`applicationId` masih `com.example.*`, release masih ditandatangani kunci debug)

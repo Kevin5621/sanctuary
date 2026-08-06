@@ -43,7 +43,12 @@ class CartoonMoodBlob extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutBack,
-        transform: Matrix4.identity()..scale(isSelected ? 1.08 : 1.0),
+        transform: Matrix4.identity()..scaleByDouble(
+          isSelected ? 1.08 : 1.0,
+          isSelected ? 1.08 : 1.0,
+          1.0,
+          1.0,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -153,7 +158,11 @@ class _MoodBlobPainter extends CustomPainter {
           final r = (i % 2 == 0) ? radius * 0.95 : radius * 0.8;
           final x = center.dx + r * math.cos(angle);
           final y = center.dy + r * math.sin(angle);
-          if (i == 0) path.moveTo(x, y); else path.lineTo(x, y);
+          if (i == 0) {
+            path.moveTo(x, y);
+          } else {
+            path.lineTo(x, y);
+          }
         }
         path.close();
         break;

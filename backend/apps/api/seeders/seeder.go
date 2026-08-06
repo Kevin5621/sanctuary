@@ -91,7 +91,7 @@ func (s *Seeder) Run(ctx context.Context) error {
 // agar kegagalan menunjuk langsung ke bagian yang salah.
 func (s *Seeder) seedStudentData(ctx context.Context, users SeededUsers) error {
 	for i, student := range users.Students {
-		profile := demoProfiles[i]
+		profile := users.Profiles[i]
 
 		if err := s.seedPrivacySetting(ctx, student.ID, profile); err != nil {
 			return fmt.Errorf("privacy %s: %w", student.Email, err)
