@@ -13,7 +13,9 @@ import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/dosen/data/repositories/mentor_repository.dart';
 import 'features/kaprodi/data/repositories/program_repository.dart';
+import 'features/mahasiswa/data/repositories/ai_chat_repository.dart';
 import 'features/mahasiswa/data/repositories/daily_metric_repository.dart';
+import 'features/mahasiswa/data/repositories/journal_repository.dart';
 import 'features/privacy/data/repositories/privacy_repository.dart';
 import 'features/support/data/repositories/emergency_contact_repository.dart';
 
@@ -40,6 +42,8 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
   late final ThemeCubit _themeCubit;
   late final PrivacyRepository _privacyRepository;
   late final DailyMetricRepository _dailyMetricRepository;
+  late final JournalRepository _journalRepository;
+  late final AiChatRepository _aiChatRepository;
   late final MentorRepository _mentorRepository;
   late final ProgramRepository _programRepository;
   late final EmergencyContactRepository _emergencyContactRepository;
@@ -68,6 +72,8 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
     _dioClient = client;
     _privacyRepository = PrivacyRepository(_dioClient);
     _dailyMetricRepository = DailyMetricRepository(_dioClient);
+    _journalRepository = JournalRepository(_dioClient);
+    _aiChatRepository = AiChatRepository(_dioClient);
     _mentorRepository = MentorRepository(_dioClient);
     _programRepository = ProgramRepository(_dioClient);
     _emergencyContactRepository = EmergencyContactRepository(_dioClient);
@@ -93,6 +99,8 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
         RepositoryProvider<DioClient>.value(value: _dioClient),
         RepositoryProvider<PrivacyRepository>.value(value: _privacyRepository),
         RepositoryProvider<DailyMetricRepository>.value(value: _dailyMetricRepository),
+        RepositoryProvider<JournalRepository>.value(value: _journalRepository),
+        RepositoryProvider<AiChatRepository>.value(value: _aiChatRepository),
         RepositoryProvider<MentorRepository>.value(value: _mentorRepository),
         RepositoryProvider<ProgramRepository>.value(value: _programRepository),
         RepositoryProvider<EmergencyContactRepository>.value(

@@ -59,6 +59,26 @@ class AppColors {
   static const ewsIntervention = Color(0xFFD95B5B);
   static const ewsInsufficient = Color(0xFF9E9BAE);
 
+  /// Warna per label emosi hasil analisis jurnal.
+  ///
+  /// Pemetaan ini tetap PER EMOSI, bukan per urutan pada grafik: irisan "Sedih"
+  /// harus berwarna sama walau posisinya berubah saat rentang waktu diganti.
+  ///
+  /// Catatan aksesibilitas: palet pastel Sanctuary tidak lolos ambang
+  /// keterbedaan buta warna (mis. NEUTRAL vs TIRED sangat berdekatan). Karena
+  /// itu grafik sebaran emosi TIDAK BOLEH mengandalkan warna sebagai satu-
+  /// satunya penanda — setiap batang wajib diberi label teks, jumlah, dan
+  /// persentase langsung di sebelahnya.
+  static Color emotion(String label) => switch (label) {
+        'JOY' => moodHappiness,
+        'SAD' => moodSadness,
+        'ANXIOUS' => moodFear,
+        'ANGRY' => moodAnger,
+        'CALM' => moodDisgust,
+        'TIRED' => lavender,
+        _ => warmTextMuted, // NEUTRAL & label tak dikenal
+      };
+
   static Color ewsLevel(String? level) => switch (level) {
         'NORMAL' => ewsNormal,
         'WATCH' => ewsWatch,

@@ -73,6 +73,43 @@ type EmotionHistoryItemResponse struct {
 	CopingSuggestions []string `json:"coping_suggestions,omitempty"`
 }
 
+// ------------------------------------------------------------------
+// Sebaran Emosi (M-MOOD-04) — tab Mood.
+//
+// Bentuk ini sengaja HANYA berisi angka. Tidak ada `content`, tidak ada
+// `preview`, tidak ada judul jurnal: grafik sebaran tidak membutuhkannya, dan
+// mengirim tulisan pribadi ke layar yang tidak menampilkannya hanya menambah
+// permukaan kebocoran tanpa manfaat.
+//
+// D-3: seluruh angka di sini berasal dari analisis jurnal, BUKAN dari check-in
+// mood manual — supaya EWS #2 (NEGATIVE_EMOTION_RATIO) tidak menghitung satu
+// hari buruk dua kali.
+// ------------------------------------------------------------------
+
+type EmotionDistributionResponse struct {
+	PeriodDays int    `json:"period_days"`
+	From       string `json:"from"`
+	To         string `json:"to"`
+
+	Distribution []EmotionShareResponse `json:"distribution"`
+
+	TotalAnalyzed       int     `json:"total_analyzed"`
+	CrisisFlaggedCount  int     `json:"crisis_flagged_count"`
+	DominantEmotion     string  `json:"dominant_emotion,omitempty"`
+	DominantEmotionText string  `json:"dominant_emotion_text,omitempty"`
+	NegativeRatio       float64 `json:"negative_ratio"`
+
+	// ModelVersion menjaga transparansi: angka pada grafik adalah keluaran
+	// model versi ini, dengan segala keterbatasannya.
+	ModelVersion string `json:"model_version"`
+
+	// IsEmpty membuat klien menampilkan empty state yang jujur ("belum ada
+	// jurnal dianalisis") alih-alih menggambar grafik kosong yang terlihat
+	// seperti "emosimu nol".
+	IsEmpty bool   `json:"is_empty"`
+	Message string `json:"message,omitempty"`
+}
+
 // EmotionTrendPointResponse adalah satu titik pada grafik perkembangan
 // sentimen, diurutkan dari yang paling lama.
 type EmotionTrendPointResponse struct {
@@ -87,11 +124,11 @@ type EmotionHistoryResponse struct {
 	Distribution []EmotionShareResponse       `json:"distribution"`
 	Trend        []EmotionTrendPointResponse  `json:"trend"`
 
-	TotalAnalyzed      int     `json:"total_analyzed"`
-	CrisisFlaggedCount int     `json:"crisis_flagged_count"`
-	DominantEmotion    string  `json:"dominant_emotion,omitempty"`
-	DominantEmotionText string `json:"dominant_emotion_text,omitempty"`
-	NegativeRatio      float64 `json:"negative_ratio"`
+	TotalAnalyzed       int     `json:"total_analyzed"`
+	CrisisFlaggedCount  int     `json:"crisis_flagged_count"`
+	DominantEmotion     string  `json:"dominant_emotion,omitempty"`
+	DominantEmotionText string  `json:"dominant_emotion_text,omitempty"`
+	NegativeRatio       float64 `json:"negative_ratio"`
 
 	// ModelVersion & Accuracy ikut dikirim agar layar riwayat dapat menyatakan
 	// batas ketelitian di tempat hasilnya dibaca, bukan hanya di layar edukasi.

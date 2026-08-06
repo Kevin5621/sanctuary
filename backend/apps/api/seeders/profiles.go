@@ -196,6 +196,7 @@ var profileRisk = conditionProfile{
 	Dass: []dassSeed{
 		{DaysAgo: 20, DepressionRaw: 4, AnxietyRaw: 5, StressRaw: 6},
 	},
+	ChatSample:    true,
 	ExpectedLevel: constants.EWSLevelRisk,
 }
 
@@ -239,6 +240,7 @@ var profileWatch = conditionProfile{
 	Dass: []dassSeed{
 		{DaysAgo: 15, DepressionRaw: 2, AnxietyRaw: 3, StressRaw: 4},
 	},
+	ChatSample:    true,
 	ExpectedLevel: constants.EWSLevelWatch,
 }
 
@@ -394,6 +396,7 @@ var profileWatchWithRequest = conditionProfile{
 	},
 	Dass:           profileWatch.Dass,
 	ContactRequest: true,
+	ChatSample:     true,
 	ExpectedLevel:  constants.EWSLevelWatch,
 }
 

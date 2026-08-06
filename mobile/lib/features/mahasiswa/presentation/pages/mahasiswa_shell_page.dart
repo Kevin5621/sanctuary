@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/widgets/floating_cartoon_navbar.dart';
+import '../../data/repositories/journal_repository.dart';
+import '../cubit/sebaran_emosi_cubit.dart';
 import 'beranda_tab.dart';
 import 'jurnal_tab.dart';
 import 'mood_tab.dart';
@@ -77,18 +81,26 @@ class _MahasiswaShellPageState extends State<MahasiswaShellPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true, // Floating navbar over scrollable background
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _tabs,
-      ),
-      bottomNavigationBar: FloatingCartoonNavbar(
-        selectedIndex: _currentIndex,
-        onTap: (index) {
-          setTab(index);
-        },
-        items: _navItems,
+    // SebaranEmosiCubit hidup di level shell, bukan di dalam tab Mood.
+    // Alasannya: tab Jurnal perlu menyegarkannya setelah sebuah analisis
+    // selesai, sehingga grafik di tab Mood tidak tertinggal satu analisis dari
+    // kenyataan. Satu instance dipakai bersama kedua tab.
+    return BlocProvider<SebaranEmosiCubit>(
+      create: (context) =>
+          SebaranEmosiCubit(context.read<JournalRepository>())..load(),
+      child: Scaffold(
+        extendBody: true, // Floating navbar over scrollable background
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _tabs,
+        ),
+        bottomNavigationBar: FloatingCartoonNavbar(
+          selectedIndex: _currentIndex,
+          onTap: (index) {
+            setTab(index);
+          },
+          items: _navItems,
+        ),
       ),
     );
   }

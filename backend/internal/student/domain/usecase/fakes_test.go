@@ -9,6 +9,7 @@ import (
 	"github.com/gilabs/sanctuary/internal/core/utils"
 	"github.com/gilabs/sanctuary/internal/student/data/models"
 	"github.com/gilabs/sanctuary/internal/student/data/repositories"
+	"github.com/gilabs/sanctuary/internal/student/domain/service"
 	"gorm.io/gorm"
 )
 
@@ -192,6 +193,51 @@ func (f *fakeJournalRepo) CountCrisisFlaggedForUser(context.Context, string) (in
 	return 0, nil
 }
 
+// EmotionDistributionForUser meniru GROUP BY di SQL: hanya jurnal yang sudah
+// dianalisis, berlabel, dan berada di dalam rentang yang ikut dihitung.
+func (f *fakeJournalRepo) EmotionDistributionForUser(_ context.Context, _ string, from, to time.Time) ([]repositories.EmotionCount, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+
+	counts := map[string]int{}
+	for _, j := range f.stored {
+		if j.AnalyzedAt == nil || j.EmotionLabel == "" {
+			continue
+		}
+		date := apptime.StartOfDay(j.JournalDate)
+		if date.Before(from) || date.After(to) {
+			continue
+		}
+		counts[j.EmotionLabel]++
+	}
+
+	out := make([]repositories.EmotionCount, 0, len(counts))
+	for label, total := range counts {
+		out = append(out, repositories.EmotionCount{EmotionLabel: label, Total: total})
+	}
+	return out, nil
+}
+
+func (f *fakeJournalRepo) CountCrisisFlaggedForUserRange(_ context.Context, _ string, from, to time.Time) (int64, error) {
+	if f.err != nil {
+		return 0, f.err
+	}
+
+	var count int64
+	for _, j := range f.stored {
+		if !j.IsCrisisFlagged {
+			continue
+		}
+		date := apptime.StartOfDay(j.JournalDate)
+		if date.Before(from) || date.After(to) {
+			continue
+		}
+		count++
+	}
+	return count, nil
+}
+
 func (f *fakeJournalRepo) ListAnalyzedByUser(_ context.Context, _ string, limit int) ([]models.StudentJournal, error) {
 	if f.err != nil {
 		return nil, f.err
@@ -200,6 +246,115 @@ func (f *fakeJournalRepo) ListAnalyzedByUser(_ context.Context, _ string, limit 
 		return f.stored[:limit], nil
 	}
 	return f.stored, nil
+}
+
+// ------------------------------------------------------------------
+
+type fakeChatRepo struct {
+	messages  []models.StudentChatMessage
+	sessionID string
+	deleted   bool
+	err       error
+	// lastLimit merekam limit yang diminta usecase, sehingga test dapat
+	// membuktikan pemangkasan 100 giliran benar-benar terjadi di server.
+	lastLimit int
+}
+
+var _ repositories.ChatRepository = (*fakeChatRepo)(nil)
+
+func (f *fakeChatRepo) Append(_ context.Context, message *models.StudentChatMessage) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.messages = append(f.messages, *message)
+	return nil
+}
+
+func (f *fakeChatRepo) AppendAll(_ context.Context, messages []*models.StudentChatMessage) error {
+	if f.err != nil {
+		return f.err
+	}
+	for _, m := range messages {
+		f.messages = append(f.messages, *m)
+	}
+	return nil
+}
+
+func (f *fakeChatRepo) ListRecentForUser(_ context.Context, _, _ string, limit int) ([]models.StudentChatMessage, error) {
+	f.lastLimit = limit
+	if f.err != nil {
+		return nil, f.err
+	}
+	if limit > 0 && len(f.messages) > limit {
+		return f.messages[len(f.messages)-limit:], nil
+	}
+	return f.messages, nil
+}
+
+func (f *fakeChatRepo) LatestSessionID(context.Context, string) (string, error) {
+	return f.sessionID, f.err
+}
+
+func (f *fakeChatRepo) CountForSession(context.Context, string, string) (int64, error) {
+	return int64(len(f.messages)), f.err
+}
+
+func (f *fakeChatRepo) DeleteAllForUser(context.Context, string) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.deleted = true
+	f.messages = nil
+	return nil
+}
+
+// ------------------------------------------------------------------
+
+type fakeConsentRepo struct {
+	consent *models.AIChatConsent
+	saved   []models.AIChatConsent
+	err     error
+}
+
+var _ repositories.AIConsentRepository = (*fakeConsentRepo)(nil)
+
+func (f *fakeConsentRepo) FindByUser(context.Context, string) (*models.AIChatConsent, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.consent, nil
+}
+
+func (f *fakeConsentRepo) Upsert(_ context.Context, consent *models.AIChatConsent) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.saved = append(f.saved, *consent)
+	f.consent = consent
+	return nil
+}
+
+// ------------------------------------------------------------------
+
+// fakeTherapist menggantikan panggilan ke Gemini.
+//
+// calls mencatat SETIAP pemanggilan, sehingga test dapat membuktikan hal yang
+// paling penting dari D-5: penyedia pihak ketiga tidak pernah dihubungi ketika
+// consent belum diberikan.
+type fakeTherapist struct {
+	reply string
+	err   error
+	calls [][]service.ChatTurn
+}
+
+var _ service.AITherapist = (*fakeTherapist)(nil)
+
+func (f *fakeTherapist) Reply(_ context.Context, history []service.ChatTurn) (string, error) {
+	f.calls = append(f.calls, history)
+	if f.err != nil {
+		return "", f.err
+	}
+	return f.reply, nil
 }
 
 // ------------------------------------------------------------------

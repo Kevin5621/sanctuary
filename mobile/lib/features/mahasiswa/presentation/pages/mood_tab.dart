@@ -5,16 +5,32 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cartoon_mood_blob.dart';
 import '../../data/repositories/daily_metric_repository.dart';
+import '../widgets/sebaran_emosi_card.dart';
 
 
-class MoodTab extends StatefulWidget {
+/// Tab Mood.
+///
+/// Sebaran Emosi (M-MOOD-04) memakai SebaranEmosiCubit yang disediakan
+/// MahasiswaShellPage — instance yang sama dipakai tab Jurnal agar grafik ikut
+/// tersegarkan setiap kali sebuah jurnal selesai dianalisis.
+///
+/// Sumber datanya berbeda dari check-in di layar ini: sebaran emosi membaca
+/// hasil analisis JURNAL (D-3), bukan daily-metrics.
+class MoodTab extends StatelessWidget {
   const MoodTab({super.key});
 
   @override
-  State<MoodTab> createState() => _MoodTabState();
+  Widget build(BuildContext context) => const _MoodTabView();
 }
 
-class _MoodTabState extends State<MoodTab> {
+class _MoodTabView extends StatefulWidget {
+  const _MoodTabView();
+
+  @override
+  State<_MoodTabView> createState() => _MoodTabState();
+}
+
+class _MoodTabState extends State<_MoodTabView> {
   MoodType _selectedMood = MoodType.happiness;
   double _stressLevel = 2.0; // 1 to 5
   double _sleepHours = 7.5; // 0 to 12
@@ -374,34 +390,9 @@ class _MoodTabState extends State<MoodTab> {
 
               const SizedBox(height: AppSpacing.lg),
 
-              // 3. Sebaran Emosi (Emotion Distribution Breakdown)
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                  border: Border.all(color: AppColors.cartoonBorder, width: 1.5),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Sebaran Emosi',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.midnight),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildEmotionProgress('Bahagia (Happiness)', 0.45, AppColors.moodHappiness),
-                    const SizedBox(height: 8),
-                    _buildEmotionProgress('Cemas (Fear)', 0.25, AppColors.moodFear),
-                    const SizedBox(height: 8),
-                    _buildEmotionProgress('Jijik/Apatis (Disgust)', 0.15, AppColors.moodDisgust),
-                    const SizedBox(height: 8),
-                    _buildEmotionProgress('Sedih (Sadness)', 0.10, AppColors.moodSadness),
-                    const SizedBox(height: 8),
-                    _buildEmotionProgress('Marah (Anger)', 0.05, AppColors.moodAnger),
-                  ],
-                ),
-              ),
+              // 3. Sebaran Emosi (M-MOOD-04) — data sungguhan dari hasil
+              // analisis jurnal (D-3), bukan angka contoh.
+              const SebaranEmosiCard(),
               const SizedBox(height: 100),
             ],
           ),
@@ -410,28 +401,4 @@ class _MoodTabState extends State<MoodTab> {
     );
   }
 
-  Widget _buildEmotionProgress(String label, double pct, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.midnight)),
-            Text('${(pct * 100).toInt()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.midnight)),
-          ],
-        ),
-        const SizedBox(height: 4),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: pct,
-            minHeight: 8,
-            backgroundColor: AppColors.creamAlt,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
 }

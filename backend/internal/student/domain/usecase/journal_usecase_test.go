@@ -7,6 +7,7 @@ import (
 
 	"github.com/gilabs/sanctuary/internal/core/apptime"
 	"github.com/gilabs/sanctuary/internal/core/constants"
+	"github.com/gilabs/sanctuary/internal/core/infrastructure/config"
 	"github.com/gilabs/sanctuary/internal/core/utils"
 	"github.com/gilabs/sanctuary/internal/student/data/models"
 	"github.com/gilabs/sanctuary/internal/student/domain/dto"
@@ -14,7 +15,13 @@ import (
 )
 
 func newJournalUC(repo *fakeJournalRepo) JournalUsecase {
-	return NewJournalUsecase(repo, service.NewEmotionAnalyzer())
+	// Nilai yang sama dengan default config, agar batas D-8 (7 hari) yang
+	// diuji di sini benar-benar batas yang dipakai aplikasi.
+	return NewJournalUsecase(repo, service.NewEmotionAnalyzer(), config.StudentConfig{
+		MaxBackdateDays:        7,
+		MoodStatsDefaultPeriod: 30,
+		MoodStatsMaxPeriod:     365,
+	})
 }
 
 // analyzedJournal membangun jurnal yang sudah punya hasil analisis.
