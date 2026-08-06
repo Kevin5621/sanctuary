@@ -7,7 +7,7 @@ enum UserRole {
   student('STUDENT', 'Mahasiswa', 4),
   lecturer('LECTURER', 'Dosen Pembimbing', 3),
   headOfProgram('HEAD_OF_PROGRAM', 'Kaprodi', 4),
-  admin('ADMIN', 'Admin', 2),
+  admin('ADMIN', 'Admin', 3),
   unknown('UNKNOWN', 'Tidak dikenal', 0);
 
   const UserRole(this.code, this.label, this.tabCount);

@@ -34,7 +34,10 @@ func New(cfg *config.Config, db *gorm.DB, redisClient *goredis.Client) *gin.Engi
 		middleware.SecurityHeaders(cfg),
 		middleware.CORS(cfg),
 		middleware.BodyLimit(),
-		middleware.CSRF("/api/v1/auth/login"),
+		// /auth/register ikut dikecualikan dengan alasan yang sama seperti
+		// /auth/login: pendaftar belum memiliki cookie csrf_token untuk
+		// dicocokkan — endpoint inilah yang justru menerbitkannya.
+		middleware.CSRF("/api/v1/auth/login", "/api/v1/auth/register"),
 		middleware.AccessLog(),
 	)
 

@@ -1,53 +1,94 @@
 part of 'jurnal_cubit.dart';
 
+enum JurnalStatus { initial, loading, ready, failure }
+
 class JurnalState extends Equatable {
   const JurnalState({
-    this.isAnalyzing = false,
-    this.journal,
+    this.status = JurnalStatus.initial,
+    this.entries = const [],
     this.analysis,
-    this.showCrisisCard = false,
-    this.isDateError = false,
+    this.page = 1,
+    this.hasNextPage = false,
+    this.isSubmitting = false,
+    this.isLoadingMore = false,
+    this.analyzingId,
     this.errorMessage,
+    this.successMessage,
+    this.isDateError = false,
   });
 
-  final bool isAnalyzing;
-  final Journal? journal;
+  final JurnalStatus status;
+  final List<JournalListItem> entries;
 
-  /// Hasil analisis terakhir. null = belum ada analisis pada sesi layar ini,
-  /// sehingga UI tidak menampilkan kartu hasil sama sekali (bukan kartu
-  /// berisi angka contoh).
+  /// Hasil analisis terakhir, ditampilkan sebagai kartu di bawah form.
+  /// Null berarti belum ada analisis yang perlu ditampilkan — bukan berarti
+  /// hasilnya netral.
   final JournalAnalysis? analysis;
 
-  final bool showCrisisCard;
+  final int page;
+  final bool hasNextPage;
+  final bool isSubmitting;
+  final bool isLoadingMore;
+
+  /// Id catatan yang sedang dianalisis ulang dari daftar.
+  final String? analyzingId;
+
+  final String? errorMessage;
+  final String? successMessage;
 
   /// Error berkaitan dengan tanggal (D-8), ditempelkan pada pemilih tanggal.
   final bool isDateError;
 
-  final String? errorMessage;
+  bool get isLoading => status == JurnalStatus.loading || status == JurnalStatus.initial;
+  bool get isEmpty => status == JurnalStatus.ready && entries.isEmpty;
 
-  bool get hasAnalysis => analysis != null;
+  /// Analisis terakhir menandai krisis — layar wajib memunculkan jalur bantuan.
+  bool get showCrisisCard => analysis?.isCrisisFlagged ?? false;
 
   JurnalState copyWith({
-    bool? isAnalyzing,
-    Journal? journal,
+    JurnalStatus? status,
+    List<JournalListItem>? entries,
     JournalAnalysis? analysis,
-    bool? showCrisisCard,
-    bool? isDateError,
+    int? page,
+    bool? hasNextPage,
+    bool? isSubmitting,
+    bool? isLoadingMore,
+    String? analyzingId,
     String? errorMessage,
-    bool clearError = false,
+    String? successMessage,
+    bool? isDateError,
     bool clearAnalysis = false,
+    bool clearAnalyzingId = false,
+    bool clearError = false,
+    bool clearSuccess = false,
   }) {
     return JurnalState(
-      isAnalyzing: isAnalyzing ?? this.isAnalyzing,
-      journal: journal ?? this.journal,
+      status: status ?? this.status,
+      entries: entries ?? this.entries,
       analysis: clearAnalysis ? null : (analysis ?? this.analysis),
-      showCrisisCard: clearAnalysis ? false : (showCrisisCard ?? this.showCrisisCard),
-      isDateError: clearError ? false : (isDateError ?? this.isDateError),
+      page: page ?? this.page,
+      hasNextPage: hasNextPage ?? this.hasNextPage,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      analyzingId: clearAnalyzingId ? null : (analyzingId ?? this.analyzingId),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      isDateError: clearError ? false : (isDateError ?? this.isDateError),
     );
   }
 
   @override
-  List<Object?> get props =>
-      [isAnalyzing, journal, analysis, showCrisisCard, isDateError, errorMessage];
+  List<Object?> get props => [
+        status,
+        entries,
+        analysis,
+        page,
+        hasNextPage,
+        isSubmitting,
+        isLoadingMore,
+        analyzingId,
+        errorMessage,
+        successMessage,
+        isDateError,
+      ];
 }

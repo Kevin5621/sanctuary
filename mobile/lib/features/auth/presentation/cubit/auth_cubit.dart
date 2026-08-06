@@ -56,6 +56,50 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  /// Pendaftaran mahasiswa. Sukses berarti sesi langsung aktif, sehingga
+  /// gerbang router memindahkan pengguna ke beranda mahasiswa tanpa navigasi
+  /// manual — persis seperti setelah login.
+  Future<bool> register({
+    required String fullName,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+    required String studentNumber,
+    required int cohortYear,
+    required String studyProgramId,
+    String? phone,
+  }) async {
+    emit(state.copyWith(isSubmitting: true, clearError: true));
+
+    try {
+      final user = await _repository.register(
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+        studentNumber: studentNumber.trim(),
+        cohortYear: cohortYear,
+        studyProgramId: studyProgramId,
+        phone: phone?.trim(),
+      );
+      emit(state.copyWith(
+        status: AuthStatus.authenticated,
+        user: user,
+        isSubmitting: false,
+      ));
+      return true;
+    } on ApiException catch (error) {
+      emit(state.copyWith(
+        isSubmitting: false,
+        errorMessage: error.message,
+        fieldErrors: {
+          for (final field in error.fieldErrors) field.field: field.message,
+        },
+      ));
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     emit(const AuthState(status: AuthStatus.unauthenticated));

@@ -44,6 +44,7 @@ const (
 	CodeNotFound                 = "NOT_FOUND"
 	CodeUserNotFound             = "USER_NOT_FOUND"
 	CodeStudentNotFound          = "STUDENT_NOT_FOUND"
+	CodeStudyProgramNotFound     = "STUDY_PROGRAM_NOT_FOUND"
 	CodeEmergencyContactNotFound = "EMERGENCY_CONTACT_NOT_FOUND"
 	CodeConflict                 = "CONFLICT"
 	CodeResourceAlreadyExists    = "RESOURCE_ALREADY_EXISTS"
@@ -98,6 +99,17 @@ const (
 	CodeAIConsentVersionMismatch = "AI_CONSENT_VERSION_MISMATCH"
 	// 503 - penyedia AI tidak dikonfigurasi di server (GEMINI_API_KEY kosong).
 	CodeAIServiceUnavailable = "AI_SERVICE_UNAVAILABLE"
+
+	// 409 - identitas pendaftaran sudah dipakai akun lain. Sengaja dipisah dari
+	// RESOURCE_ALREADY_EXISTS supaya klien dapat menyorot field yang benar.
+	CodeEmailAlreadyRegistered   = "EMAIL_ALREADY_REGISTERED"
+	CodeStudentNumberRegistered  = "STUDENT_NUMBER_ALREADY_REGISTERED"
+	CodeLecturerNumberRegistered = "LECTURER_NUMBER_ALREADY_REGISTERED"
+	// 422 - konfirmasi kata sandi tidak sama.
+	CodePasswordMismatch = "PASSWORD_CONFIRMATION_MISMATCH"
+	// 403 - peran yang diminta tidak boleh dibuat lewat endpoint tersebut
+	// (mis. Admin mencoba membuat akun ADMIN atau STUDENT lewat kelola akun).
+	CodeRoleNotAssignable = "ROLE_NOT_ASSIGNABLE"
 )
 
 var ErrorCodeMap = map[string]ErrorInfo{
@@ -126,6 +138,7 @@ var ErrorCodeMap = map[string]ErrorInfo{
 	CodeNotFound:                 {http.StatusNotFound, "Data tidak ditemukan"},
 	CodeUserNotFound:             {http.StatusNotFound, "Pengguna tidak ditemukan"},
 	CodeStudentNotFound:          {http.StatusNotFound, "Mahasiswa tidak ditemukan"},
+	CodeStudyProgramNotFound:     {http.StatusNotFound, "Program studi tidak ditemukan"},
 	CodeEmergencyContactNotFound: {http.StatusNotFound, "Layanan bantuan tidak ditemukan"},
 	CodeConflict:                 {http.StatusConflict, "Terjadi konflik dengan data saat ini"},
 	CodeResourceAlreadyExists:    {http.StatusConflict, "Data sudah ada"},
@@ -153,6 +166,12 @@ var ErrorCodeMap = map[string]ErrorInfo{
 	CodeAIConsentRequired:        {http.StatusForbidden, "Kamu perlu menyetujui pemrosesan percakapan oleh layanan pihak ketiga sebelum memakai Terapis AI"},
 	CodeAIConsentVersionMismatch: {http.StatusBadRequest, "Pemberitahuan privasi telah diperbarui, silakan baca dan putuskan kembali"},
 	CodeAIServiceUnavailable:     {http.StatusServiceUnavailable, "Terapis AI sedang tidak tersedia"},
+
+	CodeEmailAlreadyRegistered:   {http.StatusConflict, "Email ini sudah terdaftar"},
+	CodeStudentNumberRegistered:  {http.StatusConflict, "NIM ini sudah terdaftar"},
+	CodeLecturerNumberRegistered: {http.StatusConflict, "NIDN ini sudah terdaftar"},
+	CodePasswordMismatch:         {http.StatusUnprocessableEntity, "Konfirmasi kata sandi tidak sama"},
+	CodeRoleNotAssignable:        {http.StatusForbidden, "Peran ini tidak dapat dibuat dari halaman kelola akun"},
 }
 
 // FieldError mengikuti format field_errors pada standar error.

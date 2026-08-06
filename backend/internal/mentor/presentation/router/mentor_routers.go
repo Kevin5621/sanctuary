@@ -18,6 +18,9 @@ func RegisterMentorRoutes(rg *gin.RouterGroup, h *handler.MentorHandler) {
 
 	g.GET("/students", h.ListAdvisees)
 	g.GET("/students/:id", h.StudentIndicator)
+	g.GET("/students/:id/notes", h.ListAdvisorFollowUps)
+	g.POST("/students/:id/notes", h.CreateAdvisorFollowUp)
+	g.DELETE("/students/:id/notes/:note_id", h.DeleteAdvisorFollowUp)
 	g.GET("/contact-requests", h.ListContactRequests)
 	g.GET("/condition", h.GroupCondition)
 	g.GET("/profile", h.Profile)

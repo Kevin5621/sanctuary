@@ -5,10 +5,36 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required,min=8,max=128"`
 }
 
+// RegisterStudentRequest adalah pendaftaran mandiri mahasiswa.
+//
+// Peran TIDAK ADA di payload ini: endpoint /auth/register selalu membuat akun
+// STUDENT. Akun dosen & kaprodi hanya lahir dari kelola akun Admin, sehingga
+// tidak ada jalur bagi pendaftar untuk memilih perannya sendiri.
+type RegisterStudentRequest struct {
+	FullName             string `json:"full_name" binding:"required,min=3,max=128"`
+	Email                string `json:"email" binding:"required,email,max=160"`
+	Password             string `json:"password" binding:"required,min=8,max=128"`
+	PasswordConfirmation string `json:"password_confirmation" binding:"required,min=8,max=128"`
+	StudentNumber        string `json:"student_number" binding:"required,min=3,max=32"`
+	CohortYear           int    `json:"cohort_year" binding:"required,gte=2000,lte=2100"`
+	StudyProgramID       string `json:"study_program_id" binding:"required,uuid"`
+	Phone                string `json:"phone" binding:"omitempty,max=32"`
+}
+
 // RefreshRequest hanya dipakai klien native; klien web mengirim refresh token
 // lewat cookie HttpOnly sehingga body boleh kosong.
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"omitempty,max=1024"`
+}
+
+// StudyProgramResponse mengisi dropdown program studi. Dapat diakses tanpa
+// sesi karena formulir pendaftaran membutuhkannya sebelum akun ada — isinya
+// murni data referensi kampus, tanpa satu pun atribut pengguna.
+type StudyProgramResponse struct {
+	ID      string `json:"id"`
+	Code    string `json:"code"`
+	Name    string `json:"name"`
+	Faculty string `json:"faculty,omitempty"`
 }
 
 // UserResponse tidak pernah memuat data klinis.

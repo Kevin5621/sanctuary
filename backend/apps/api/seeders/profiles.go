@@ -415,7 +415,57 @@ var profileInsufficient = conditionProfile{
 	ExpectedLevel:         constants.EWSLevelInsufficient,
 }
 
+// profileRiskNoStats: berbagi penuh ke pembimbing tetapi menolak ikut agregat
+// prodi. Dipakai membuktikan bahwa kedua izin itu benar-benar terpisah —
+// dosennya melihat indikator, sementara dashboard kaprodi tidak menghitungnya.
+var profileRiskNoStats = conditionProfile{
+	Key:                   "risk-no-stats",
+	ShareLevel:            constants.ShareLevelSummaryTrend,
+	AllowEarlyWarning:     true,
+	AllowProgramStatistic: false,
+	Moods:                 profileRisk.Moods,
+	Stress:                profileRisk.Stress,
+	Sleep:                 profileRisk.Sleep,
+	Emotions:              profileRisk.Emotions,
+	BaselineDays:          metricHistoryDays,
+	BaselineMood:          3,
+	BaselineStress:        3,
+	BaselineSleep:         6.5,
+	BaselineFillRate:      0.55,
+	BaselineEmotions:      profileRisk.BaselineEmotions,
+	Journals: []journalSeed{
+		{
+			DaysAgo:  2,
+			Title:    "Tidak ingin jadi angka",
+			Content:  "Aku mau pembimbingku tahu kalau aku sedang berat, tapi tidak nyaman jadi bagian statistik prodi.",
+			Analyzed: true,
+		},
+	},
+	Dass:          profileRisk.Dass,
+	ExpectedLevel: constants.EWSLevelRisk,
+}
+
+// profileNewcomer: akun yang baru dipakai hari ini. Satu check-in, tanpa
+// jurnal dan tanpa skrining — inilah kondisi yang dilihat setiap mahasiswa
+// pada hari pertama, dan justru state itu yang paling sering lupa diuji.
+var profileNewcomer = conditionProfile{
+	Key:                   "newcomer",
+	ShareLevel:            constants.ShareLevelClosed,
+	AllowEarlyWarning:     false,
+	AllowProgramStatistic: false,
+	Moods:                 []int{3},
+	Stress:                []int{3},
+	Sleep:                 []float64{7.0},
+	Emotions:              []string{constants.EmotionNeutral},
+	BaselineDays:          0,
+	ExpectedLevel:         constants.EWSLevelInsufficient,
+}
+
 // demoProfiles dipasangkan dengan studentSpecs berdasarkan urutan.
+//
+// Tujuh profil pertama menjadi bimbingan Dosen 1 (di atas ambang k-anonymity,
+// sehingga tab Kondisi dan sebaran tingkat perhatian punya isi), tiga sisanya
+// bimbingan Dosen 2 (di bawah ambang, memaksa state "Data belum cukup").
 var demoProfiles = []conditionProfile{
 	profileIntervention,
 	profileRisk,
@@ -425,4 +475,6 @@ var demoProfiles = []conditionProfile{
 	profileClosed,
 	profileWatchWithRequest,
 	profileInsufficient,
+	profileRiskNoStats,
+	profileNewcomer,
 }

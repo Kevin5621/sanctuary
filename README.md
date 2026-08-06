@@ -235,7 +235,12 @@ Base: `/api/v1` · Semua response memakai amplop standar.
 | Method | Path | Akses |
 |---|---|---|
 | POST | `/auth/login`, `/auth/refresh` | publik (rate-limited per IP + per email) |
+| POST | `/auth/register` | publik (rate-limited per IP + per email) — selalu membuat akun Mahasiswa |
+| GET | `/auth/study-programs` | publik (dropdown formulir pendaftaran) |
 | POST/GET | `/auth/logout`, `/auth/me` | terautentikasi |
+| GET/POST | `/admin/users` | Admin (hanya peran Dosen & Kaprodi) |
+| GET/PUT | `/admin/users/:id` | Admin |
+| GET | `/admin/user-options` | Admin (pilihan peran + program studi) |
 | GET/PUT | `/students/me/privacy-settings` | Mahasiswa |
 | GET | `/students/me/privacy-settings/options` | Mahasiswa |
 | GET/POST | `/students/me/journals` | Mahasiswa (PrivateContentGuard) |

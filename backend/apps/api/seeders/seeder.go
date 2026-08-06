@@ -79,6 +79,10 @@ func (s *Seeder) Run(ctx context.Context) error {
 		return fmt.Errorf("student data: %w", err)
 	}
 
+	if err := s.seedAdvisorNotes(ctx, users); err != nil {
+		return fmt.Errorf("advisor notes: %w", err)
+	}
+
 	if err := s.seedEmergencyContacts(ctx); err != nil {
 		return fmt.Errorf("emergency contacts: %w", err)
 	}
@@ -92,7 +96,7 @@ func (s *Seeder) Run(ctx context.Context) error {
 // agar kegagalan menunjuk langsung ke bagian yang salah.
 func (s *Seeder) seedStudentData(ctx context.Context, users SeededUsers) error {
 	for i, student := range users.Students {
-		profile := demoProfiles[i]
+		profile := users.Profiles[i]
 
 		if err := s.seedPrivacySetting(ctx, student.ID, profile); err != nil {
 			return fmt.Errorf("privacy %s: %w", student.Email, err)

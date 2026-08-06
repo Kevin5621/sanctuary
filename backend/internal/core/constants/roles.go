@@ -15,6 +15,24 @@ func (r Role) String() string { return string(r) }
 // AllRoles dipakai seeder & validasi.
 var AllRoles = []Role{RoleStudent, RoleLecturer, RoleHeadOfProgram, RoleAdmin}
 
+// StaffRoles adalah peran yang akunnya dibuatkan Admin, bukan mendaftar sendiri.
+//
+// STUDENT sengaja di luar daftar ini: mahasiswa mendaftar lewat
+// POST /auth/register. ADMIN juga di luar daftar — akun admin baru hanya lahir
+// dari seeder/DBA, sehingga satu akun admin yang bocor tidak dapat memperbanyak
+// dirinya sendiri lewat API.
+var StaffRoles = []Role{RoleLecturer, RoleHeadOfProgram}
+
+// IsStaffRole menjawab apakah peran boleh dibuat lewat kelola akun Admin.
+func IsStaffRole(code string) bool {
+	for _, r := range StaffRoles {
+		if string(r) == code {
+			return true
+		}
+	}
+	return false
+}
+
 var roleDisplayName = map[Role]string{
 	RoleStudent:       "Mahasiswa",
 	RoleLecturer:      "Dosen Pembimbing",
@@ -40,7 +58,7 @@ func (r Role) TabCount() int {
 	case RoleHeadOfProgram:
 		return 4 // Dashboard, Pembimbing, Laporan, Profil
 	case RoleAdmin:
-		return 2 // Bantuan, Profil
+		return 3 // Bantuan, Kelola Akun, Profil
 	default:
 		return 0
 	}

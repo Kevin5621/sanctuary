@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/privacy_states.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../dosen/presentation/pages/dosen_profil_tab.dart' show DarkModeCard;
 
 /// Tab Profil Admin (A-PRO-01).
 ///
@@ -20,7 +19,9 @@ class AdminProfilTab extends StatelessWidget {
     'Anda tidak dapat melihat data mahasiswa apa pun — indikator maupun agregat.',
     'Anda tidak dapat membaca jurnal maupun percakapan Terapis AI.',
     'Anda tidak dapat melihat daftar bimbingan dosen atau dashboard prodi.',
-    'Peran Anda mengelola konfigurasi layanan, bukan mengawasi orang.',
+    'Anda membuat akun dosen & kaprodi, tetapi tidak dapat melihat data yang '
+        'mereka akses lewat akun itu.',
+    'Peran Anda mengelola konfigurasi layanan dan akun, bukan mengawasi orang.',
   ];
 
   @override
@@ -44,8 +45,8 @@ class AdminProfilTab extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 54,
-                    height: 54,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
                       color: AppColors.moodFearBg,
                       shape: BoxShape.circle,
@@ -58,7 +59,7 @@ class AdminProfilTab extends StatelessWidget {
                             : '?',
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,
-                          fontSize: 22,
+                          fontSize: 24,
                           color: AppColors.midnight,
                         ),
                       ),
@@ -73,11 +74,11 @@ class AdminProfilTab extends StatelessWidget {
                           user?.fullName ?? '—',
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
-                            fontSize: 17,
+                            fontSize: 18,
                             color: AppColors.midnight,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
                           user?.email ?? '',
                           style: const TextStyle(
@@ -94,28 +95,63 @@ class AdminProfilTab extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
 
             const AccessLimitsCard(limits: _accessLimits),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.lg),
 
-            const DarkModeCard(),
-            const SizedBox(height: AppSpacing.md),
-
-            OutlinedButton.icon(
-              onPressed: () => context.read<AuthCubit>().logout(),
-              icon: const Icon(Icons.logout_rounded, size: 18),
-              label: const Text('Keluar',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.ewsIntervention,
-                side: const BorderSide(
-                    color: AppColors.ewsIntervention, width: 1.5),
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                ),
-              ),
-            ),
-            const SizedBox(height: 100),
+            const _LogoutButton(roleTitle: 'akun Administrator'),
+            const SizedBox(height: 96),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  const _LogoutButton({required this.roleTitle});
+
+  final String roleTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Keluar Sesi'),
+            content: Text(
+                'Apakah Anda yakin ingin keluar dari $roleTitle?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.ewsIntervention,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  context.read<AuthCubit>().logout();
+                },
+                child: const Text('Keluar'),
+              ),
+            ],
+          ),
+        );
+      },
+      icon: const Icon(Icons.logout_rounded, size: 24),
+      label: const Text(
+        'Keluar Sesi',
+        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.ewsIntervention,
+        side: const BorderSide(color: AppColors.ewsIntervention, width: 1.5),
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
         ),
       ),
     );

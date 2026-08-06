@@ -27,11 +27,20 @@ func RegisterRoutes(api *gin.RouterGroup, deps Deps) (repositories.UserRepositor
 	userRepo := repositories.NewUserRepository(deps.DB)
 	tokenRepo := repositories.NewRefreshTokenRepository(deps.DB)
 	auditRepo := repositories.NewAuditRepository(deps.DB)
+	roleRepo := repositories.NewRoleRepository(deps.DB)
+	programRepo := repositories.NewStudyProgramRepository(deps.DB)
 
-	authUC := usecase.NewAuthUsecase(deps.DB, userRepo, tokenRepo, auditRepo, deps.JWT, deps.Limiter, deps.Config)
+	authUC := usecase.NewAuthUsecase(
+		deps.DB, userRepo, tokenRepo, auditRepo, roleRepo, programRepo,
+		deps.JWT, deps.Limiter, deps.Config,
+	)
 	authHandler := handler.NewAuthHandler(authUC, deps.Config)
-
 	router.RegisterAuthRoutes(api, authHandler, deps.JWT, deps.Limiter, deps.Config)
+
+	// Kelola akun dosen & kaprodi tinggal satu slice dengan auth: ia menyentuh
+	// tabel dan invarian yang sama (peran, identitas, sesi aktif).
+	userMgmtUC := usecase.NewUserManagementUsecase(userRepo, roleRepo, programRepo, tokenRepo, auditRepo)
+	router.RegisterUserManagementRoutes(api, handler.NewUserManagementHandler(userMgmtUC), deps.JWT)
 
 	return userRepo, auditRepo
 }

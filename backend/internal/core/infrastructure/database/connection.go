@@ -25,6 +25,13 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 		SkipDefaultTransaction: true,
 		PrepareStmt:            true,
 		NowFunc:                func() time.Time { return time.Now().UTC() },
+		// Tanpa ini, pelanggaran unique index datang sebagai error driver mentah
+		// dan berakhir sebagai 500 — padahal utils.TranslateDBError sudah
+		// menyiapkan pemetaan gorm.ErrDuplicatedKey → RESOURCE_ALREADY_EXISTS.
+		// Relevan pada dua pendaftaran bersamaan dengan email/NIM yang sama:
+		// yang kalah balapan berhak tahu datanya bentrok, bukan disuguhi
+		// "kesalahan server".
+		TranslateError: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("open postgres: %w", err)

@@ -155,15 +155,15 @@ class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: BorderSide(color: AppColors.cartoonBorder, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.cartoonBorder, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: BorderSide(color: AppColors.cartoonBorder, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.cartoonBorder, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: BorderSide(color: AppColors.midnight, width: 2.0),
+          borderSide: const BorderSide(color: AppColors.midnight, width: 2.0),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -213,7 +213,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          side: BorderSide(color: AppColors.cartoonBorder, width: 1.2),
+          side: const BorderSide(color: AppColors.cartoonBorder, width: 1.2),
         ),
       ),
       snackBarTheme: SnackBarThemeData(

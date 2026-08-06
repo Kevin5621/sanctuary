@@ -45,9 +45,13 @@ class AppColors {
   static const moodAnger = Color(0xFFF5B667);
   static const moodAngerBg = Color(0xFFFDECD4);
 
-  // 5. Happiness (Senang / Bahagia) - Soft Pink
+  // 5. Happiness (Senang / Baik) - Soft Pink
   static const moodHappiness = Color(0xFFFA9BB0);
   static const moodHappinessBg = Color(0xFFFDE2E8);
+
+  // 6. Great / Sun (Sangat baik) - Sunshine Gold / Amber
+  static const moodGreat = Color(0xFFFFB703);
+  static const moodGreatBg = Color(0xFFFFF3D6);
 
   // Extra Mood Accents
   static const sunnyYellow = Color(0xFFFBD76B);

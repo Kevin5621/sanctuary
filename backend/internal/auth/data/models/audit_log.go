@@ -30,4 +30,7 @@ const (
 	ActionUpdatePrivacy        = "UPDATE_PRIVACY_SETTING"
 	ActionLogin                = "LOGIN"
 	ActionLogout               = "LOGOUT"
+	ActionRegister             = "REGISTER"
+	ActionCreateUser           = "CREATE_USER"
+	ActionUpdateUser           = "UPDATE_USER"
 )

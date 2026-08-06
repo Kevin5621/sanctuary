@@ -3,197 +3,188 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/clay_container.dart';
+import '../../../../core/widgets/cartoon_mood_blob.dart';
 import '../../../../core/widgets/vector_illustrations.dart';
 import '../../data/repositories/journal_repository.dart';
 import '../../domain/entities/journal.dart';
 import '../cubit/jurnal_cubit.dart';
 import '../cubit/sebaran_emosi_cubit.dart';
+import '../widgets/jurnal_composer_sheet.dart';
+import '../widgets/mood_visuals.dart';
 import 'bantuan_darurat_page.dart';
 import 'latihan_napas_page.dart';
 import 'mahasiswa_shell_page.dart';
 
 /// Tab Jurnal (M-JUR-02, M-JUR-04, M-JUR-05, M-JUR-06).
-///
-/// Perubahan penting dibanding versi sebelumnya:
-///   - Tombol "Analisis Emosi" benar-benar memanggil backend, bukan menunda
-///     900 ms lalu menampilkan hasil yang ditulis di kode.
-///   - Daftar kata kunci krisis di sisi klien DIHAPUS. Penanda krisis kini
-///     hanya datang dari server, yang memakai leksikon tunggal yang sama
-///     dengan Terapis AI. Dua daftar di dua tempat pasti menyimpang.
-///   - Pemilih tanggal dibatasi 7 hari ke belakang (D-8), sama dengan batas
-///     yang ditegakkan server.
 class JurnalTab extends StatelessWidget {
   const JurnalTab({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<JurnalCubit>(
-      create: (context) => JurnalCubit(context.read<JournalRepository>()),
+      create: (context) => JurnalCubit(context.read<JournalRepository>())..load(),
       child: const _JurnalView(),
     );
   }
 }
 
-class _JurnalView extends StatefulWidget {
+class _JurnalView extends StatelessWidget {
   const _JurnalView();
 
   @override
-  State<_JurnalView> createState() => _JurnalViewState();
-}
-
-class _JurnalViewState extends State<_JurnalView> {
-  final TextEditingController _noteController = TextEditingController();
-  DateTime _journalDate = DateTime.now();
-
-  /// Batas backdate (D-8). Nilainya sama dengan STUDENT_MAX_BACKDATE_DAYS di
-  /// server; klien hanya mencegah mahasiswa memilih tanggal yang pasti
-  /// ditolak — keputusan sesungguhnya tetap milik backend.
-  static const _maxBackdateDays = 7;
-
-  @override
-  void dispose() {
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _journalDate,
-      firstDate: now.subtract(const Duration(days: _maxBackdateDays)),
-      lastDate: now,
-      helpText: 'Maksimal $_maxBackdateDays hari ke belakang',
-    );
-    if (picked != null) setState(() => _journalDate = picked);
-  }
-
-  void _submit() {
-    context.read<JurnalCubit>().saveAndAnalyze(
-          content: _noteController.text,
-          journalDate: _journalDate,
-        );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return BlocConsumer<JurnalCubit, JurnalState>(
-      listenWhen: (previous, current) =>
-          previous.analysis != current.analysis && current.analysis != null,
-      listener: (context, state) {
-        // Sebaran Emosi di tab Mood ikut disegarkan supaya grafiknya tidak
-        // tertinggal satu analisis dari kenyataan.
-        context.read<SebaranEmosiCubit>().refresh();
-      },
-      builder: (context, state) {
-        return Scaffold(
-          backgroundColor: AppColors.creamBg,
-          body: SafeArea(
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: AppColors.creamBg,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => JurnalComposerSheet.show(context),
+        backgroundColor: AppColors.midnight,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(Icons.add_rounded, size: 22),
+        label: const Text(
+          'Tulis Catatan',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        ),
+      ),
+      body: SafeArea(
+        child: BlocConsumer<JurnalCubit, JurnalState>(
+          listenWhen: (previous, current) =>
+              previous.analysis != current.analysis && current.analysis != null ||
+              previous.successMessage != current.successMessage ||
+              previous.errorMessage != current.errorMessage,
+          listener: (context, state) {
+            // Sebaran Emosi di tab Mood ikut disegarkan supaya grafiknya tidak
+            // tertinggal satu analisis dari kenyataan.
+            if (state.analysis != null) {
+              context.read<SebaranEmosiCubit>().refresh();
+            }
+
+            final message = state.successMessage ?? state.errorMessage;
+            if (message == null) return;
+
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(message)));
+            context.read<JurnalCubit>().clearMessages();
+          },
+          builder: (context, state) {
+            return RefreshIndicator(
+              color: AppColors.midnight,
+              backgroundColor: Colors.white,
+              onRefresh: () => context.read<JurnalCubit>().refresh(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 children: [
-                  _Header(
-                    journalDate: _journalDate,
-                    onPickDate: _pickDate,
-                    isDateError: state.isDateError,
-                  ),
+                  _buildHeader(context),
                   const SizedBox(height: AppSpacing.md),
 
-                  // M-JUR-05 — kartu krisis, hanya bila SERVER menandainya.
+                  // Kartu krisis tampil paling atas: bila sistem mendeteksi
+                  // tanda krisis, jalur bantuan tidak boleh perlu di-scroll.
                   if (state.showCrisisCard && state.analysis != null)
                     CrisisAlertCardWidget(
                       message: state.analysis!.crisisMessage.isNotEmpty
                           ? state.analysis!.crisisMessage
                           : 'Sistem mendeteksi tanda krisis. Kamu tidak sendirian.',
                       onCallHotline: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const BantuanDaruratPage(),
+                        MaterialPageRoute<void>(builder: (_) => const BantuanDaruratPage()),
+                      ),
+                      onDismiss: () => context.read<JurnalCubit>().dismissAnalysis(),
+                    ),
+
+                  if (state.analysis != null && !state.showCrisisCard) ...[
+                    _AnalysisCard(analysis: state.analysis!),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+
+                  const Text(
+                    'Catatan Sebelumnya',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: AppColors.midnight,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  if (state.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(child: CircularProgressIndicator(color: AppColors.midnight)),
+                    )
+                  else if (state.status == JurnalStatus.failure)
+                    _ListErrorCard(message: state.errorMessage)
+                  else if (state.isEmpty)
+                    const _EmptyJournalCard()
+                  else ...[
+                    for (final entry in state.entries)
+                      _JournalCard(entry: entry, isAnalyzing: state.analyzingId == entry.id),
+                    if (state.hasNextPage)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.sm),
+                        child: OutlinedButton(
+                          onPressed: state.isLoadingMore
+                              ? null
+                              : () => context.read<JurnalCubit>().loadMore(),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.midnight,
+                            side: const BorderSide(color: AppColors.midnight, width: 1.5),
+                            minimumSize: const Size.fromHeight(44),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                            ),
+                          ),
+                          child: Text(
+                            state.isLoadingMore ? 'Memuat…' : 'Muat lebih banyak',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ),
-                      onDismiss: context.read<JurnalCubit>().dismissCrisisCard,
-                    ),
-
-                  _ComposerCard(
-                    controller: _noteController,
-                    isAnalyzing: state.isAnalyzing,
-                    onSubmit: _submit,
-                  ),
-
-                  if (state.errorMessage != null) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    _ErrorCard(
-                      message: state.errorMessage!,
-                      onDismiss: context.read<JurnalCubit>().clearError,
-                    ),
                   ],
-
-                  if (state.analysis != null) ...[
-                    const SizedBox(height: AppSpacing.lg),
-                    _AnalysisResultCard(analysis: state.analysis!),
-                  ],
-
                   const SizedBox(height: 100),
                 ],
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
-}
 
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.journalDate,
-    required this.onPickDate,
-    required this.isDateError,
-  });
-
-  final DateTime journalDate;
-  final VoidCallback onPickDate;
-  final bool isDateError;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Jurnal Refleksi',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 22,
-                color: AppColors.midnight,
-                letterSpacing: -0.3,
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Jurnal Refleksi',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                  color: AppColors.midnight,
+                  letterSpacing: -0.3,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '${journalDate.day}/${journalDate.month}/${journalDate.year}',
-              style: TextStyle(
-                color: isDateError ? AppColors.ewsIntervention : AppColors.warmTextSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+              SizedBox(height: 2),
+              Text(
+                'Hanya kamu yang bisa membaca catatan ini.',
+                style: TextStyle(color: AppColors.warmTextSecondary, fontSize: 13),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        OutlinedButton.icon(
-          onPressed: onPickDate,
-          icon: const Icon(Icons.calendar_today_rounded, size: 15),
-          label: const Text('Pilih Tanggal'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.midnight,
-            side: const BorderSide(color: AppColors.midnight, width: 1.5),
+        ElevatedButton.icon(
+          onPressed: () => JurnalComposerSheet.show(context),
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('Tulis', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.midnight,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
             ),
@@ -204,129 +195,35 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _ComposerCard extends StatelessWidget {
-  const _ComposerCard({
-    required this.controller,
-    required this.isAnalyzing,
-    required this.onSubmit,
-  });
+// ------------------------------------------------------------------
+// Hasil analisis
+// ------------------------------------------------------------------
 
-  final TextEditingController controller;
-  final bool isAnalyzing;
-  final VoidCallback onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClayContainer(
-      color: AppColors.cardBg,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Refleksi Hari Ini',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: AppColors.midnight,
-            ),
-          ),
-          const SizedBox(height: 2),
-          const Text(
-            'Tuliskan pikiran atau perasaanmu secara bebas. Catatanmu bersifat '
-            'privat — hanya kamu yang bisa membacanya.',
-            style: TextStyle(fontSize: 12, color: AppColors.warmTextSecondary),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: controller,
-            maxLines: 6,
-            minLines: 4,
-            enabled: !isAnalyzing,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.midnight,
-              height: 1.45,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Apa yang kamu rasakan atau alami hari ini?…',
-              hintStyle: const TextStyle(
-                color: AppColors.warmTextMuted,
-                fontSize: 13,
-              ),
-              filled: true,
-              fillColor: AppColors.creamBg,
-              contentPadding: const EdgeInsets.all(14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                borderSide: const BorderSide(
-                  color: AppColors.cartoonBorder,
-                  width: 1.2,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                borderSide: const BorderSide(
-                  color: AppColors.cartoonBorder,
-                  width: 1.2,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                borderSide: const BorderSide(
-                  color: AppColors.midnight,
-                  width: 1.8,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ClayButton(
-            label: isAnalyzing ? 'Menganalisis emosi…' : 'Analisis & Simpan Jurnal',
-            icon: Icons.auto_awesome_rounded,
-            isLoading: isAnalyzing,
-            color: AppColors.midnight,
-            foregroundColor: Colors.white,
-            onPressed: isAnalyzing ? null : onSubmit,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// M-JUR-02 + M-JUR-04 — hasil analisis sungguhan dari server.
-class _AnalysisResultCard extends StatelessWidget {
-  const _AnalysisResultCard({required this.analysis});
+class _AnalysisCard extends StatelessWidget {
+  const _AnalysisCard({required this.analysis});
 
   final JournalAnalysis analysis;
 
   @override
   Widget build(BuildContext context) {
-    final accent = AppColors.emotion(analysis.emotionLabel);
+    final mood = MoodVisuals.forEmotion(analysis.emotionLabel);
 
-    return ClayContainer(
-      color: AppColors.cardBg,
+    return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: mood.bgColor,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.midnight, width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: AppColors.cartoonShadow, offset: Offset(0, 4), blurRadius: 8),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: accent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.cartoonBorder),
-                ),
-                child: const Icon(
-                  Icons.psychology_rounded,
-                  color: AppColors.midnight,
-                  size: 22,
-                ),
-              ),
+              CartoonMoodBlob(mood: mood, size: 44),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -342,24 +239,26 @@ class _AnalysisResultCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Emosi dominan: ${analysis.emotionLabelText} '
-                      '(${analysis.confidencePercent}% keyakinan)',
-                      style: const TextStyle(
+                      '${analysis.emotionLabelText} · keyakinan ${analysis.confidencePercent}%',
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.warmTextSecondary,
+                        color: AppColors.midnight.withValues(alpha: 0.8),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
+              IconButton(
+                onPressed: () => context.read<JurnalCubit>().dismissAnalysis(),
+                icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.midnight),
+              ),
             ],
           ),
-
           if (analysis.copingSuggestions.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
             const Text(
-              'Saran yang bisa kamu coba',
+              'Yang bisa kamu coba:',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
@@ -367,8 +266,8 @@ class _AnalysisResultCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            ...analysis.copingSuggestions.map(
-              (suggestion) => Padding(
+            for (final suggestion in analysis.copingSuggestions)
+              Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,9 +275,9 @@ class _AnalysisResultCard extends StatelessWidget {
                     const Padding(
                       padding: EdgeInsets.only(top: 2),
                       child: Icon(
-                        Icons.lightbulb_outline_rounded,
+                        Icons.check_circle_outline_rounded,
                         size: 16,
-                        color: AppColors.sageDark,
+                        color: AppColors.midnight,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -386,86 +285,63 @@ class _AnalysisResultCard extends StatelessWidget {
                       child: Text(
                         suggestion,
                         style: const TextStyle(
-                          fontSize: 12.5,
-                          height: 1.4,
-                          color: AppColors.warmTextSecondary,
+                          fontSize: 12,
+                          color: AppColors.midnight,
+                          height: 1.35,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
           ],
-
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
-                child: _QuickAction(
-                  icon: Icons.air_rounded,
-                  label: 'Latihan Napas',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const LatihanNapasPage()),
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const LatihanNapasPage()),
+                  ),
+                  icon: const Icon(Icons.air_rounded, size: 16),
+                  label: const Text('Latihan Napas', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.midnight,
+                    side: const BorderSide(color: AppColors.midnight, width: 1.2),
+                    minimumSize: const Size.fromHeight(40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _QuickAction(
-                  icon: Icons.psychology_rounded,
-                  label: 'Terapis AI',
-                  onTap: () => MahasiswaShellPage.switchTab(context, 3),
+                child: OutlinedButton.icon(
+                  onPressed: () => MahasiswaShellPage.switchTab(context, 3),
+                  icon: const Icon(Icons.psychology_rounded, size: 16),
+                  label: const Text('Terapis AI', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.midnight,
+                    side: const BorderSide(color: AppColors.midnight, width: 1.2),
+                    minimumSize: const Size.fromHeight(40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: AppSpacing.sm),
-          // Transparansi: sebut versi model yang sebenarnya dipakai, bukan
-          // nama model yang belum terpasang.
+          const SizedBox(height: 6),
+          // Transparansi model ditempatkan di tempat hasilnya dibaca, bukan
+          // hanya di layar edukasi yang jarang dibuka.
           Text(
-            'Model: ${analysis.modelVersion}',
-            style: const TextStyle(fontSize: 10.5, color: AppColors.warmTextMuted),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClayContainer(
-      color: AppColors.creamAlt,
-      onTap: onTap,
-      depth: 8,
-      spread: 4,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.midnight, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-                color: AppColors.midnight,
-              ),
-              overflow: TextOverflow.ellipsis,
+            'Analisis otomatis (${analysis.modelVersion}) bisa keliru — kamu yang paling tahu perasaanmu.',
+            style: TextStyle(
+              fontSize: 10,
+              fontStyle: FontStyle.italic,
+              color: AppColors.midnight.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -474,32 +350,222 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({required this.message, required this.onDismiss});
+// ------------------------------------------------------------------
+// Daftar catatan
+// ------------------------------------------------------------------
 
-  final String message;
-  final VoidCallback onDismiss;
+class _JournalCard extends StatelessWidget {
+  const _JournalCard({required this.entry, required this.isAnalyzing});
+
+  final JournalListItem entry;
+  final bool isAnalyzing;
 
   @override
   Widget build(BuildContext context) {
-    return ClayContainer(
-      color: AppColors.moodAngerBg,
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(
+          color: entry.isCrisisFlagged ? AppColors.ewsIntervention : AppColors.cartoonBorder,
+          width: entry.isCrisisFlagged ? 1.6 : 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              size: 20, color: AppColors.midnight),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(fontSize: 12.5, color: AppColors.midnight),
+          Row(
+            children: [
+              if (entry.isAnalyzed)
+                CartoonMoodBlob(mood: MoodVisuals.forEmotion(entry.emotionLabel), size: 32)
+              else
+                const EmptyDayCell(size: 32),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.title.isEmpty ? _formatDate(entry.journalDate) : entry.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.midnight,
+                      ),
+                    ),
+                    Text(
+                      entry.isAnalyzed
+                          ? '${_formatDate(entry.journalDate)} · ${entry.emotionLabelText}'
+                          : '${_formatDate(entry.journalDate)} · belum dianalisis',
+                      style: const TextStyle(fontSize: 11, color: AppColors.warmTextSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, color: AppColors.warmTextSecondary),
+                onSelected: (value) {
+                  if (value == 'analyze') {
+                    context.read<JurnalCubit>().analyzeExisting(entry.id);
+                  } else if (value == 'delete') {
+                    _confirmDelete(context);
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (!entry.isAnalyzed)
+                    const PopupMenuItem(value: 'analyze', child: Text('Analisis emosi')),
+                  const PopupMenuItem(value: 'delete', child: Text('Hapus catatan')),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            entry.preview,
+            style: const TextStyle(fontSize: 13, color: AppColors.midnight, height: 1.4),
+          ),
+          if (entry.isCrisisFlagged) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                const Icon(Icons.favorite_rounded, size: 14, color: AppColors.ewsIntervention),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Catatan ini menyentuh hal berat. Bantuan tersedia kapan saja.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ewsIntervention.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (isAnalyzing)
+            const Padding(
+              padding: EdgeInsets.only(top: AppSpacing.sm),
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final cubit = context.read<JurnalCubit>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus catatan ini?'),
+        content: const Text('Catatan yang dihapus tidak dapat dikembalikan.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Hapus', style: TextStyle(color: AppColors.ewsIntervention)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed ?? false) await cubit.delete(entry.id);
+  }
+
+  static String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
+}
+
+class _EmptyJournalCard extends StatelessWidget {
+  const _EmptyJournalCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.menu_book_rounded, size: 36, color: AppColors.warmTextMuted),
+          const SizedBox(height: AppSpacing.sm),
+          const Text(
+            'Belum ada catatan',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              color: AppColors.midnight,
             ),
           ),
-          IconButton(
-            onPressed: onDismiss,
-            icon: const Icon(Icons.close_rounded, size: 18),
-            color: AppColors.midnight,
+          const SizedBox(height: 4),
+          const Text(
+            'Tidak perlu rapi atau panjang. Satu kalimat pun sudah cukup.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: AppColors.warmTextSecondary, height: 1.4),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ElevatedButton.icon(
+            onPressed: () => JurnalComposerSheet.show(context),
+            icon: const Icon(Icons.edit_note_rounded, size: 18),
+            label: const Text(
+              'Tulis Catatan Pertama',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.midnight,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ListErrorCard extends StatelessWidget {
+  const _ListErrorCard({this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            message ?? 'Gagal memuat catatan.',
+            style: const TextStyle(fontSize: 13, color: AppColors.midnight),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          OutlinedButton(
+            onPressed: () => context.read<JurnalCubit>().load(),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.midnight,
+              side: const BorderSide(color: AppColors.midnight, width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+              ),
+            ),
+            child: const Text('Coba Lagi', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),

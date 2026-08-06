@@ -28,6 +28,7 @@ func AllModels() []any {
 		&studentmodels.Dass21Result{},
 		&studentmodels.StudentContactRequest{},
 		&mentormodels.EarlyWarningLog{},
+		&mentormodels.AdvisorNote{},
 		&supportmodels.EmergencyContact{},
 	}
 }
