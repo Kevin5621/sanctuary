@@ -77,8 +77,10 @@ class Journal extends Equatable {
   final bool isCrisisFlagged;
   final DateTime? analyzedAt;
 
+  bool get isAnalyzed => analyzedAt != null;
+
   @override
-  List<Object?> get props => [id, content, journalDate, emotionLabel];
+  List<Object?> get props => [id, title, content, journalDate, emotionLabel, isCrisisFlagged, analyzedAt];
 }
 
 /// Hasil analisis emosi satu catatan.
@@ -96,6 +98,7 @@ class JournalAnalysis extends Equatable {
     required this.copingSuggestions,
     required this.crisisMessage,
     required this.modelVersion,
+    this.analyzedAt = '',
   });
 
   factory JournalAnalysis.fromJson(Map<String, dynamic> json) => JournalAnalysis(
@@ -105,10 +108,12 @@ class JournalAnalysis extends Equatable {
         emotionConfidence: (json['emotion_confidence'] as num?)?.toDouble() ?? 0,
         sentimentScore: (json['sentiment_score'] as num?)?.toDouble() ?? 0,
         isCrisisFlagged: json['is_crisis_flagged'] as bool? ?? false,
-        copingSuggestions:
-            (json['coping_suggestions'] as List<dynamic>? ?? const []).whereType<String>().toList(),
+        copingSuggestions: (json['coping_suggestions'] as List<dynamic>? ?? const [])
+            .whereType<String>()
+            .toList(),
         crisisMessage: json['crisis_message'] as String? ?? '',
         modelVersion: json['model_version'] as String? ?? '',
+        analyzedAt: json['analyzed_at'] as String? ?? '',
       );
 
   final String journalId;
@@ -120,12 +125,24 @@ class JournalAnalysis extends Equatable {
   final List<String> copingSuggestions;
   final String crisisMessage;
   final String modelVersion;
+  final String analyzedAt;
 
   /// Keyakinan dalam persen bulat, untuk ditampilkan di badge.
   int get confidencePercent => (emotionConfidence * 100).round();
 
   @override
-  List<Object?> get props => [journalId, emotionLabel, emotionConfidence, isCrisisFlagged];
+  List<Object?> get props => [
+        journalId,
+        emotionLabel,
+        emotionLabelText,
+        emotionConfidence,
+        sentimentScore,
+        isCrisisFlagged,
+        copingSuggestions,
+        crisisMessage,
+        modelVersion,
+        analyzedAt,
+      ];
 }
 
 /// Satu hasil analisis pada layar "Riwayat Analisis Emosi".
@@ -302,4 +319,109 @@ class _EmotionShareParser {
         percentage: (json['percentage'] as num?)?.toDouble() ?? 0,
         isNegative: json['is_negative'] as bool? ?? false,
       );
+}
+
+/// Satu irisan grafik sebaran emosi.
+class EmotionShare extends Equatable {
+  const EmotionShare({
+    required this.emotion,
+    required this.label,
+    required this.count,
+    required this.percentage,
+    required this.isNegative,
+  });
+
+  factory EmotionShare.fromJson(Map<String, dynamic> json) => EmotionShare(
+        emotion: json['emotion'] as String? ?? '',
+        label: json['label'] as String? ?? '',
+        count: json['count'] as int? ?? 0,
+        percentage: (json['percentage'] as num?)?.toDouble() ?? 0,
+        isNegative: json['is_negative'] as bool? ?? false,
+      );
+
+  final String emotion;
+  final String label;
+  final int count;
+  final double percentage;
+  final bool isNegative;
+
+  @override
+  List<Object?> get props => [emotion, label, count, percentage, isNegative];
+}
+
+/// Sebaran Emosi (M-MOOD-04) — tab Mood.
+///
+/// D-3: seluruh angka di sini berasal dari analisis jurnal, BUKAN dari check-in
+/// mood manual — supaya EWS #2 (NEGATIVE_EMOTION_RATIO) tidak menghitung satu
+/// hari buruk dua kali.
+class EmotionDistribution extends Equatable {
+  const EmotionDistribution({
+    required this.periodDays,
+    required this.distribution,
+    required this.totalAnalyzed,
+    required this.crisisFlaggedCount,
+    required this.dominantEmotion,
+    required this.dominantEmotionText,
+    required this.negativeRatio,
+    required this.modelVersion,
+    this.isEmpty = true,
+    this.message = '',
+  });
+
+  factory EmotionDistribution.fromJson(Map<String, dynamic> json) =>
+      EmotionDistribution(
+        periodDays: json['period_days'] as int? ?? 30,
+        distribution: (json['distribution'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(EmotionShare.fromJson)
+            .toList(),
+        totalAnalyzed: json['total_analyzed'] as int? ?? 0,
+        crisisFlaggedCount: json['crisis_flagged_count'] as int? ?? 0,
+        dominantEmotion: json['dominant_emotion'] as String? ?? '',
+        dominantEmotionText: json['dominant_emotion_text'] as String? ?? '',
+        negativeRatio: (json['negative_ratio'] as num?)?.toDouble() ?? 0,
+        modelVersion: json['model_version'] as String? ?? '',
+        isEmpty: json['is_empty'] as bool? ?? false,
+        message: json['message'] as String? ?? '',
+      );
+
+  const EmotionDistribution.initial()
+      : periodDays = 30,
+        distribution = const [],
+        totalAnalyzed = 0,
+        crisisFlaggedCount = 0,
+        dominantEmotion = '',
+        dominantEmotionText = '',
+        negativeRatio = 0,
+        modelVersion = '',
+        isEmpty = true,
+        message = '';
+
+  final int periodDays;
+  final List<EmotionShare> distribution;
+  final int totalAnalyzed;
+  final int crisisFlaggedCount;
+  final String dominantEmotion;
+  final String dominantEmotionText;
+  final double negativeRatio;
+  final String modelVersion;
+
+  /// Server yang memutuskan ini kosong, sehingga UI menampilkan empty state
+  /// yang jujur alih-alih menggambar grafik nol.
+  final bool isEmpty;
+  final String message;
+
+  @override
+  List<Object?> get props => [
+        periodDays,
+        distribution,
+        totalAnalyzed,
+        crisisFlaggedCount,
+        dominantEmotion,
+        dominantEmotionText,
+        negativeRatio,
+        modelVersion,
+        isEmpty,
+        message,
+      ];
 }

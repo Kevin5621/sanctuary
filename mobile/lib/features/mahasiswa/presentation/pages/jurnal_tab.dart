@@ -8,17 +8,20 @@ import '../../../../core/widgets/vector_illustrations.dart';
 import '../../data/repositories/journal_repository.dart';
 import '../../domain/entities/journal.dart';
 import '../cubit/jurnal_cubit.dart';
+import '../cubit/sebaran_emosi_cubit.dart';
 import '../widgets/jurnal_composer_sheet.dart';
 import '../widgets/mood_visuals.dart';
 import 'bantuan_darurat_page.dart';
 import 'latihan_napas_page.dart';
+import 'mahasiswa_shell_page.dart';
 
+/// Tab Jurnal (M-JUR-02, M-JUR-04, M-JUR-05, M-JUR-06).
 class JurnalTab extends StatelessWidget {
   const JurnalTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
+    return BlocProvider<JurnalCubit>(
       create: (context) => JurnalCubit(context.read<JournalRepository>())..load(),
       child: const _JurnalView(),
     );
@@ -46,9 +49,16 @@ class _JurnalView extends StatelessWidget {
       body: SafeArea(
         child: BlocConsumer<JurnalCubit, JurnalState>(
           listenWhen: (previous, current) =>
+              previous.analysis != current.analysis && current.analysis != null ||
               previous.successMessage != current.successMessage ||
               previous.errorMessage != current.errorMessage,
           listener: (context, state) {
+            // Sebaran Emosi di tab Mood ikut disegarkan supaya grafiknya tidak
+            // tertinggal satu analisis dari kenyataan.
+            if (state.analysis != null) {
+              context.read<SebaranEmosiCubit>().refresh();
+            }
+
             final message = state.successMessage ?? state.errorMessage;
             if (message == null) return;
 
@@ -71,9 +81,11 @@ class _JurnalView extends StatelessWidget {
 
                   // Kartu krisis tampil paling atas: bila sistem mendeteksi
                   // tanda krisis, jalur bantuan tidak boleh perlu di-scroll.
-                  if (state.showCrisisCard)
+                  if (state.showCrisisCard && state.analysis != null)
                     CrisisAlertCardWidget(
-                      message: state.analysis!.crisisMessage,
+                      message: state.analysis!.crisisMessage.isNotEmpty
+                          ? state.analysis!.crisisMessage
+                          : 'Sistem mendeteksi tanda krisis. Kamu tidak sendirian.',
                       onCallHotline: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(builder: (_) => const BantuanDaruratPage()),
                       ),
@@ -284,20 +296,42 @@ class _AnalysisCard extends StatelessWidget {
               ),
           ],
           const SizedBox(height: AppSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const LatihanNapasPage()),
-            ),
-            icon: const Icon(Icons.air_rounded, size: 16),
-            label: const Text('Latihan Napas', style: TextStyle(fontSize: 12)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.midnight,
-              side: const BorderSide(color: AppColors.midnight, width: 1.2),
-              minimumSize: const Size.fromHeight(40),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const LatihanNapasPage()),
+                  ),
+                  icon: const Icon(Icons.air_rounded, size: 16),
+                  label: const Text('Latihan Napas', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.midnight,
+                    side: const BorderSide(color: AppColors.midnight, width: 1.2),
+                    minimumSize: const Size.fromHeight(40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => MahasiswaShellPage.switchTab(context, 3),
+                  icon: const Icon(Icons.psychology_rounded, size: 16),
+                  label: const Text('Terapis AI', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.midnight,
+                    side: const BorderSide(color: AppColors.midnight, width: 1.2),
+                    minimumSize: const Size.fromHeight(40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           // Transparansi model ditempatkan di tempat hasilnya dibaca, bukan

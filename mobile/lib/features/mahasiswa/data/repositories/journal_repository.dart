@@ -20,7 +20,7 @@ class JournalPage {
 
 /// Repository jurnal — KONTEN PRIVAT.
 ///
-/// Seluruh endpoint berada di bawah /students/me/journals dan dilindungi
+/// Seluruh endpoint berada di bawah /students/me/journals and dilindungi
 /// PrivateContentGuard di server. Tidak ada method di sini yang menerima id
 /// mahasiswa: identitas selalu diambil dari token.
 class JournalRepository {
@@ -83,6 +83,22 @@ class JournalRepository {
     return result.data;
   }
 
+  /// Alias untuk create yang mengembalikan record type untuk kompabilitas
+  Future<({Journal journal, JournalAnalysis? analysis})> createJournal({
+    required String content,
+    String title = '',
+    String? journalDate,
+    bool analyzeNow = true,
+  }) async {
+    final result = await create(
+      content: content,
+      title: title,
+      journalDate: journalDate,
+      analyzeNow: analyzeNow,
+    );
+    return (journal: result.journal, analysis: result.analysis);
+  }
+
   Future<JournalAnalysis> analyze(String id) async {
     final result = await _client.post<JournalAnalysis>(
       '$_basePath/$id/analyze',
@@ -100,6 +116,18 @@ class JournalRepository {
     final result = await _client.get<EmotionHistory>(
       '$_basePath/emotion-history',
       parser: (data) => EmotionHistory.fromJson(data as Map<String, dynamic>),
+    );
+    return result.data;
+  }
+
+  /// Sebaran emosi untuk tab Mood (M-MOOD-04).
+  ///
+  /// Respons endpoint ini sengaja hanya berisi angka — tidak ada isi jurnal.
+  Future<EmotionDistribution> fetchEmotionDistribution({int rangeDays = 30}) async {
+    final result = await _client.get<EmotionDistribution>(
+      '$_basePath/emotion-distribution',
+      query: {'range': '${rangeDays}d'},
+      parser: (data) => EmotionDistribution.fromJson(data as Map<String, dynamic>),
     );
     return result.data;
   }

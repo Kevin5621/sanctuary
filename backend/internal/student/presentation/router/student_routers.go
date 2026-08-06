@@ -25,9 +25,26 @@ func RegisterJournalRoutes(rg *gin.RouterGroup, h *handler.JournalHandler) {
 	g.POST("", h.Create)
 	g.GET("", h.List)
 	g.GET("/emotion-history", h.EmotionHistory)
+	g.GET("/emotion-distribution", h.EmotionDistribution)
 	g.GET("/:id", h.Detail)
 	g.POST("/:id/analyze", h.Analyze)
 	g.DELETE("/:id", h.Delete)
+}
+
+// RegisterChatRoutes — Terapis AI (M-AI).
+//
+// PrivateContentGuard dipasang pada GRUP, sama persis seperti jurnal, sehingga
+// route baru yang ditambahkan ke grup ini ikut terjaga tanpa ada yang perlu
+// mengingat untuk memasangnya satu per satu (M-AI-05 / I-1).
+//
+// Catatan urutan: route consent didaftarkan lebih dulu dan tidak memakai
+// parameter path, jadi tidak ada bentrokan dengan route percakapan.
+func RegisterChatRoutes(rg *gin.RouterGroup, h *handler.ChatHandler) {
+	g := rg.Group("/chats", middleware.PrivateContentGuard())
+	g.GET("/consent", h.ConsentStatus)
+	g.POST("/consent", h.SubmitConsent)
+	g.GET("", h.History)
+	g.POST("", h.Send)
 }
 
 // RegisterDailyMetricRoutes — check-in mood harian dan riwayatnya

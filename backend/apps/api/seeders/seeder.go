@@ -28,6 +28,7 @@ import (
 
 	authmodels "github.com/gilabs/sanctuary/internal/auth/data/models"
 	"github.com/gilabs/sanctuary/internal/core/infrastructure/config"
+	studentmodels "github.com/gilabs/sanctuary/internal/student/data/models"
 )
 
 type Seeder struct {
@@ -109,8 +110,14 @@ func (s *Seeder) seedStudentData(ctx context.Context, users SeededUsers) error {
 		if err := s.seedDassResults(ctx, student.ID, profile); err != nil {
 			return fmt.Errorf("dass %s: %w", student.Email, err)
 		}
-		if profile.ChatSample {
-			if err := s.seedChatSample(ctx, student.ID); err != nil {
+
+		if consentStatus := consentStatusForProfile(profile); consentStatus != "" {
+			if err := s.seedAIConsent(ctx, student.ID, consentStatus); err != nil {
+				return fmt.Errorf("ai consent %s: %w", student.Email, err)
+			}
+		}
+		if profile.ChatSample && consentStatusForProfile(profile) == studentmodels.ConsentStatusGranted {
+			if err := s.seedChatSample(ctx, student.ID, profile); err != nil {
 				return fmt.Errorf("chat %s: %w", student.Email, err)
 			}
 		}

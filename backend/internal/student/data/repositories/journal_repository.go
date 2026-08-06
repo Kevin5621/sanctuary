@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -25,6 +26,20 @@ type JournalRepository interface {
 	// akun. Sama seperti method lain di sini, userID wajib — tidak ada jalur
 	// yang dapat membaca hasil analisis milik orang lain.
 	ListAnalyzedByUser(ctx context.Context, userID string, limit int) ([]models.StudentJournal, error)
+	// EmotionDistributionForUser menghitung sebaran label emosi (M-MOOD-04)
+	// langsung di basis data.
+	//
+	// Dua hal yang disengaja:
+	//   - Yang kembali HANYA pasangan label + jumlah. Tidak ada satu pun kolom
+	//     teks jurnal yang ikut ter-select, sehingga layar yang cuma butuh
+	//     angka tidak pernah menarik tulisan pribadi ke memori proses.
+	//   - Rentang disaring pada journal_date, bukan analyzed_at: yang ingin
+	//     dilihat mahasiswa adalah "perasaanku 30 hari terakhir", bukan "kapan
+	//     aku menekan tombol analisis".
+	EmotionDistributionForUser(ctx context.Context, userID string, from, to time.Time) ([]EmotionCount, error)
+	// CountAnalyzedForUserRange melengkapi sebaran di atas dengan jumlah jurnal
+	// yang berpenanda krisis pada rentang yang sama.
+	CountCrisisFlaggedForUserRange(ctx context.Context, userID string, from, to time.Time) (int64, error)
 }
 
 type journalRepository struct{ db *gorm.DB }
@@ -124,6 +139,36 @@ func (r *journalRepository) ListAnalyzedByUser(ctx context.Context, userID strin
 		Limit(limit).
 		Find(&journals).Error
 	return journals, utils.TranslateDBError(err, "")
+}
+
+func (r *journalRepository) EmotionDistributionForUser(ctx context.Context, userID string, from, to time.Time) ([]EmotionCount, error) {
+	ctx, cancel := utils.DBContext(ctx)
+	defer cancel()
+
+	var counts []EmotionCount
+	// D-3: sumbernya HANYA student_journals. Tabel check-in mood manual
+	// (student_daily_metrics) sengaja tidak disentuh di sini — mencampurnya
+	// akan membuat satu hari buruk terhitung dua kali pada EWS #2.
+	err := r.db.WithContext(ctx).
+		Model(&models.StudentJournal{}).
+		Select("emotion_label, COUNT(*) AS total").
+		Where("user_id = ? AND analyzed_at IS NOT NULL AND emotion_label <> ''", userID).
+		Where("journal_date BETWEEN ? AND ?", from, to).
+		Group("emotion_label").
+		Scan(&counts).Error
+	return counts, utils.TranslateDBError(err, "")
+}
+
+func (r *journalRepository) CountCrisisFlaggedForUserRange(ctx context.Context, userID string, from, to time.Time) (int64, error) {
+	ctx, cancel := utils.DBContext(ctx)
+	defer cancel()
+
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.StudentJournal{}).
+		Where("user_id = ? AND is_crisis_flagged = true", userID).
+		Where("journal_date BETWEEN ? AND ?", from, to).
+		Count(&count).Error
+	return count, utils.TranslateDBError(err, "")
 }
 
 func (r *journalRepository) CountCrisisFlaggedForUser(ctx context.Context, userID string) (int64, error) {

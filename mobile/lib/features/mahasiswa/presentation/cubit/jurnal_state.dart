@@ -14,6 +14,7 @@ class JurnalState extends Equatable {
     this.analyzingId,
     this.errorMessage,
     this.successMessage,
+    this.isDateError = false,
   });
 
   final JurnalStatus status;
@@ -35,6 +36,9 @@ class JurnalState extends Equatable {
   final String? errorMessage;
   final String? successMessage;
 
+  /// Error berkaitan dengan tanggal (D-8), ditempelkan pada pemilih tanggal.
+  final bool isDateError;
+
   bool get isLoading => status == JurnalStatus.loading || status == JurnalStatus.initial;
   bool get isEmpty => status == JurnalStatus.ready && entries.isEmpty;
 
@@ -52,6 +56,7 @@ class JurnalState extends Equatable {
     String? analyzingId,
     String? errorMessage,
     String? successMessage,
+    bool? isDateError,
     bool clearAnalysis = false,
     bool clearAnalyzingId = false,
     bool clearError = false,
@@ -68,6 +73,7 @@ class JurnalState extends Equatable {
       analyzingId: clearAnalyzingId ? null : (analyzingId ?? this.analyzingId),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      isDateError: clearError ? false : (isDateError ?? this.isDateError),
     );
   }
 
@@ -83,5 +89,6 @@ class JurnalState extends Equatable {
         analyzingId,
         errorMessage,
         successMessage,
+        isDateError,
       ];
 }

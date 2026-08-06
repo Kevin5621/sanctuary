@@ -24,6 +24,7 @@ func AllModels() []any {
 		&studentmodels.StudentDailyMetric{},
 		&studentmodels.StudentJournal{},
 		&studentmodels.StudentChatMessage{},
+		&studentmodels.AIChatConsent{},
 		&studentmodels.Dass21Result{},
 		&studentmodels.StudentContactRequest{},
 		&mentormodels.EarlyWarningLog{},

@@ -2,8 +2,11 @@ package usecase
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/gilabs/sanctuary/internal/core/apptime"
+	"github.com/gilabs/sanctuary/internal/core/infrastructure/config"
 	"github.com/gilabs/sanctuary/internal/core/utils"
 	"github.com/gilabs/sanctuary/internal/student/data/models"
 	"github.com/gilabs/sanctuary/internal/student/data/repositories"
@@ -23,6 +26,10 @@ type JournalUsecase interface {
 	Delete(ctx context.Context, userID, journalID string) error
 	// EmotionHistory melayani menu "Riwayat Analisis Emosi" di tab Profil.
 	EmotionHistory(ctx context.Context, userID string) (dto.EmotionHistoryResponse, error)
+	// EmotionDistribution melayani "Sebaran Emosi" di tab Mood (M-MOOD-04).
+	// Perhitungannya berbagi kode dengan EmotionHistory lewat
+	// mapper.BuildEmotionDistribution — tidak ada logika label emosi kedua.
+	EmotionDistribution(ctx context.Context, userID string, periodDays int) (dto.EmotionDistributionResponse, error)
 }
 
 // EmotionHistoryLimit membatasi jumlah hasil analisis yang dikirim sekaligus.
@@ -32,23 +39,17 @@ const EmotionHistoryLimit = 50
 type journalUsecase struct {
 	repo     repositories.JournalRepository
 	analyzer service.EmotionAnalyzer
+	cfg      config.StudentConfig
 }
 
-func NewJournalUsecase(repo repositories.JournalRepository, analyzer service.EmotionAnalyzer) JournalUsecase {
-	return &journalUsecase{repo: repo, analyzer: analyzer}
+func NewJournalUsecase(repo repositories.JournalRepository, analyzer service.EmotionAnalyzer, cfg config.StudentConfig) JournalUsecase {
+	return &journalUsecase{repo: repo, analyzer: analyzer, cfg: cfg}
 }
 
 func (u *journalUsecase) Create(ctx context.Context, userID string, req dto.CreateJournalRequest) (dto.JournalResponse, *dto.AnalysisResponse, error) {
-	journalDate := apptime.Today()
-	if req.JournalDate != "" {
-		parsed, err := apptime.ParseDate(req.JournalDate)
-		if err != nil {
-			return dto.JournalResponse{}, nil, utils.NewError(utils.CodeInvalidDate)
-		}
-		if parsed.After(apptime.Today()) {
-			return dto.JournalResponse{}, nil, utils.NewError(utils.CodeFutureDateNotAllowed)
-		}
-		journalDate = parsed
+	journalDate, err := u.resolveJournalDate(req.JournalDate)
+	if err != nil {
+		return dto.JournalResponse{}, nil, err
 	}
 
 	journal := &models.StudentJournal{
@@ -107,6 +108,62 @@ func (u *journalUsecase) EmotionHistory(ctx context.Context, userID string) (dto
 		return dto.EmotionHistoryResponse{}, err
 	}
 	return mapper.ToEmotionHistory(journals), nil
+}
+
+func (u *journalUsecase) EmotionDistribution(ctx context.Context, userID string, periodDays int) (dto.EmotionDistributionResponse, error) {
+	if periodDays <= 0 {
+		periodDays = u.cfg.MoodStatsDefaultPeriod
+	}
+	if periodDays > u.cfg.MoodStatsMaxPeriod {
+		periodDays = u.cfg.MoodStatsMaxPeriod
+	}
+
+	to := apptime.Today()
+	from := apptime.DaysAgo(periodDays - 1)
+
+	counts, err := u.repo.EmotionDistributionForUser(ctx, userID, from, to)
+	if err != nil {
+		return dto.EmotionDistributionResponse{}, err
+	}
+
+	crisisCount, err := u.repo.CountCrisisFlaggedForUserRange(ctx, userID, from, to)
+	if err != nil {
+		return dto.EmotionDistributionResponse{}, err
+	}
+
+	return mapper.ToEmotionDistribution(periodDays, from, to, counts, crisisCount), nil
+}
+
+// resolveJournalDate memvalidasi tanggal jurnal terhadap dua batas: tidak boleh
+// ke masa depan, dan tidak lebih lama dari MaxBackdateDays (D-8).
+//
+// Sebelumnya hanya batas "masa depan" yang ditegakkan di sini, sementara D-8
+// sudah berlaku untuk check-in mood. Akibatnya jurnal dapat diberi tanggal
+// mundur sejauh apa pun — dan karena EWS #2 membaca jurnal, entri lama yang
+// dikarang belakangan ikut menggeser indikator. Aturan ini disamakan dengan
+// dailyMetricUsecase.resolveMetricDate agar keduanya memakai batas yang sama.
+func (u *journalUsecase) resolveJournalDate(raw string) (time.Time, error) {
+	today := apptime.Today()
+	if raw == "" {
+		return today, nil
+	}
+
+	parsed, err := apptime.ParseDate(raw)
+	if err != nil {
+		return time.Time{}, utils.NewError(utils.CodeInvalidDate)
+	}
+	if parsed.After(today) {
+		return time.Time{}, utils.NewError(utils.CodeFutureDateNotAllowed)
+	}
+
+	earliest := today.AddDate(0, 0, -u.cfg.MaxBackdateDays)
+	if parsed.Before(earliest) {
+		return time.Time{}, utils.NewErrorWithMessage(
+			utils.CodeBackdateLimitExceeded,
+			fmt.Sprintf("Jurnal hanya dapat diberi tanggal mundur maksimal %d hari", u.cfg.MaxBackdateDays),
+		)
+	}
+	return parsed, nil
 }
 
 // applyAnalysis menjalankan analisis emosi lalu menyimpan hasilnya.

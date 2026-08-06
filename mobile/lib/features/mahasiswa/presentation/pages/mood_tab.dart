@@ -9,12 +9,16 @@ import '../../data/repositories/daily_metric_repository.dart';
 import '../../domain/entities/daily_metric.dart';
 import '../cubit/mood_history_cubit.dart';
 import '../widgets/mood_visuals.dart';
+import '../widgets/sebaran_emosi_card.dart';
 import 'mahasiswa_shell_page.dart';
 
 /// Tab Mood — RIWAYAT SAJA.
 ///
 /// Form check-in sudah pindah ke Beranda. Layar ini hanya untuk melihat pola:
 /// kalender bulanan, ritme mood, sebaran emosi, dan pemicu tersering.
+///
+/// Sebaran Emosi (M-MOOD-04) di bagian bawah tab membaca hasil analisis JURNAL (D-3),
+/// bukan daily-metrics, dan menggunakan SebaranEmosiCubit yang hidup di level shell.
 class MoodTab extends StatelessWidget {
   const MoodTab({super.key});
 
@@ -54,16 +58,20 @@ class _MoodHistoryView extends StatelessWidget {
                 children: [
                   const _Header(),
                   const SizedBox(height: AppSpacing.lg),
-                  if (state.isEmpty)
-                    const _EmptyHistory()
-                  else ...[
+                  if (state.isEmpty) ...[
+                    const _EmptyHistory(),
+                    const SizedBox(height: AppSpacing.lg),
+                    const SebaranEmosiCard(),
+                  ] else ...[
                     _MonthlyCalendarCard(state: state),
                     const SizedBox(height: AppSpacing.lg),
                     _PeriodSelector(state: state),
                     const SizedBox(height: AppSpacing.md),
-                    if (!state.stats.isSufficient)
-                      _InsufficientCard(message: state.stats.message)
-                    else ...[
+                    if (!state.stats.isSufficient) ...[
+                      _InsufficientCard(message: state.stats.message),
+                      const SizedBox(height: AppSpacing.md),
+                      const SebaranEmosiCard(),
+                    ] else ...[
                       _SummaryRow(stats: state.stats),
                       const SizedBox(height: AppSpacing.md),
                       _MoodRhythmCard(stats: state.stats),
@@ -73,6 +81,8 @@ class _MoodHistoryView extends StatelessWidget {
                         const SizedBox(height: AppSpacing.md),
                         _TriggerCard(stats: state.stats),
                       ],
+                      const SizedBox(height: AppSpacing.md),
+                      const SebaranEmosiCard(),
                     ],
                   ],
                   const SizedBox(height: 100),
@@ -462,9 +472,6 @@ class _PeriodSelector extends StatelessWidget {
 }
 
 /// Server menilai data belum cukup untuk membentuk pola.
-///
-/// Angka rata-rata sengaja tidak dikirim pada state ini, jadi tidak ada yang
-/// bisa ditampilkan — dan memang begitu seharusnya.
 class _InsufficientCard extends StatelessWidget {
   const _InsufficientCard({required this.message});
 
@@ -645,8 +652,6 @@ class _MoodRhythmCard extends StatelessWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      // Hanya beberapa tanggal yang diberi label; menandai
-                      // semuanya membuat sumbu tidak terbaca pada 90/120 hari.
                       interval: (points.length / 4).clamp(1, 60).toDouble(),
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
@@ -734,7 +739,7 @@ class _EmotionDistributionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Sebaran Emosi',
+            'Sebaran Emosi (Check-in)',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 16,
