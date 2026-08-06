@@ -31,7 +31,8 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> logout() async {
     try {
-      await _remote.logout();
+      final refreshToken = await _tokenStorage.readRefreshToken();
+      await _remote.logout(refreshToken: refreshToken);
     } finally {
       // Token lokal selalu dibersihkan, walau panggilan server gagal.
       await _tokenStorage.clear();

@@ -46,6 +46,7 @@ type DatabaseConfig struct {
 	ConnMaxLifetime time.Duration
 	QueryTimeout    time.Duration
 	AutoMigrate     bool
+	AutoSeed        bool
 }
 
 type RedisConfig struct {
@@ -130,6 +131,7 @@ func Load() (*Config, error) {
 			ConnMaxLifetime: time.Duration(getInt("DB_CONN_MAX_LIFETIME_MINUTES", 30)) * time.Minute,
 			QueryTimeout:    time.Duration(getInt("DB_QUERY_TIMEOUT_SECONDS", 5)) * time.Second,
 			AutoMigrate:     getBool("DB_AUTO_MIGRATE", false),
+			AutoSeed:        getBool("DB_AUTO_SEED", false),
 		},
 		Redis: RedisConfig{
 			Addr:     getString("REDIS_ADDR", ""),
@@ -203,6 +205,9 @@ func (c *Config) validate() error {
 		}
 		if c.Database.AutoMigrate {
 			return fmt.Errorf("DB_AUTO_MIGRATE must be false in production (use Atlas migrations)")
+		}
+		if c.Database.AutoSeed {
+			return fmt.Errorf("DB_AUTO_SEED must be false in production")
 		}
 	}
 	if c.Privacy.KAnonymityMinGroup < 5 {

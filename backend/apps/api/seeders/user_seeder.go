@@ -134,7 +134,7 @@ func (s *Seeder) upsertUser(ctx context.Context, user authmodels.User, passwordH
 	err := s.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "id"}},
 		DoUpdates: clause.AssignmentColumns([]string{
-			"role_id", "full_name", "phone", "student_number", "cohort_year",
+			"role_id", "full_name", "password_hash", "phone", "student_number", "cohort_year",
 			"advisor_id", "lecturer_number", "study_program_id", "is_active", "updated_at",
 		}),
 	}).Create(&user).Error
