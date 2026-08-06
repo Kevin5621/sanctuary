@@ -15,10 +15,12 @@ import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/dosen/data/repositories/mentor_repository.dart';
 import 'features/kaprodi/data/repositories/program_repository.dart';
+import 'features/mahasiswa/data/repositories/ai_chat_repository.dart';
 import 'features/mahasiswa/data/repositories/contact_request_repository.dart';
 import 'features/mahasiswa/data/repositories/daily_metric_repository.dart';
-import 'features/mahasiswa/data/repositories/dass_repository.dart';
 import 'features/mahasiswa/data/repositories/journal_repository.dart';
+import 'features/mahasiswa/data/repositories/dass_repository.dart';
+// import 'features/mahasiswa/data/repositories/journal_repository.dart';
 import 'features/privacy/data/repositories/privacy_repository.dart';
 import 'features/support/data/repositories/emergency_contact_repository.dart';
 
@@ -47,6 +49,8 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
   late final PrivacyRepository _privacyRepository;
   late final DailyMetricRepository _dailyMetricRepository;
   late final JournalRepository _journalRepository;
+  late final AiChatRepository _aiChatRepository;
+  // late final JournalRepository _journalRepository;
   late final DassRepository _dassRepository;
   late final ContactRequestRepository _contactRequestRepository;
   late final MentorRepository _mentorRepository;
@@ -78,6 +82,8 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
     _privacyRepository = PrivacyRepository(_dioClient);
     _dailyMetricRepository = DailyMetricRepository(_dioClient);
     _journalRepository = JournalRepository(_dioClient);
+    _aiChatRepository = AiChatRepository(_dioClient);
+    // _journalRepository = JournalRepository(_dioClient);
     _dassRepository = DassRepository(_dioClient);
     _contactRequestRepository = ContactRequestRepository(_dioClient);
     _mentorRepository = MentorRepository(_dioClient);
@@ -109,6 +115,8 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
         RepositoryProvider<PrivacyRepository>.value(value: _privacyRepository),
         RepositoryProvider<DailyMetricRepository>.value(value: _dailyMetricRepository),
+        // RepositoryProvider<JournalRepository>.value(value: _journalRepository),
+        RepositoryProvider<AiChatRepository>.value(value: _aiChatRepository),
         RepositoryProvider<JournalRepository>.value(value: _journalRepository),
         RepositoryProvider<DassRepository>.value(value: _dassRepository),
         RepositoryProvider<ContactRequestRepository>.value(

@@ -1,11 +1,9 @@
 package mapper
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/gilabs/sanctuary/internal/core/apptime"
-	"github.com/gilabs/sanctuary/internal/core/constants"
 	"github.com/gilabs/sanctuary/internal/student/data/models"
 	"github.com/gilabs/sanctuary/internal/student/domain/dto"
 	"github.com/gilabs/sanctuary/internal/student/domain/service"
@@ -72,7 +70,6 @@ func ToEmotionHistory(journals []models.StudentJournal) dto.EmotionHistoryRespon
 	}
 
 	counts := map[string]int{}
-	negative := 0
 
 	for i := range journals {
 		j := journals[i]
@@ -101,9 +98,6 @@ func ToEmotionHistory(journals []models.StudentJournal) dto.EmotionHistoryRespon
 
 		if j.EmotionLabel != "" {
 			counts[j.EmotionLabel]++
-			if constants.IsNegativeEmotion(j.EmotionLabel) {
-				negative++
-			}
 		}
 		if j.IsCrisisFlagged {
 			response.CrisisFlaggedCount++
@@ -120,36 +114,16 @@ func ToEmotionHistory(journals []models.StudentJournal) dto.EmotionHistoryRespon
 		})
 	}
 
-	labeled := 0
-	for _, count := range counts {
-		labeled += count
-	}
-	if labeled == 0 {
+	summary := BuildEmotionDistribution(counts)
+	if summary.Labeled == 0 {
 		response.Message = "Hasil analisis belum memiliki label emosi."
 		return response
 	}
 
-	distribution := make([]dto.EmotionShareResponse, 0, len(counts))
-	for emotion, count := range counts {
-		distribution = append(distribution, dto.EmotionShareResponse{
-			Emotion:    emotion,
-			Label:      service.EmotionLabelText(emotion),
-			Count:      count,
-			Percentage: percentage(count, labeled),
-			IsNegative: constants.IsNegativeEmotion(emotion),
-		})
-	}
-	sort.Slice(distribution, func(i, j int) bool {
-		if distribution[i].Count != distribution[j].Count {
-			return distribution[i].Count > distribution[j].Count
-		}
-		return distribution[i].Emotion < distribution[j].Emotion
-	})
-
-	response.Distribution = distribution
-	response.DominantEmotion = distribution[0].Emotion
-	response.DominantEmotionText = distribution[0].Label
-	response.NegativeRatio = percentage(negative, labeled) / 100
+	response.Distribution = summary.Distribution
+	response.DominantEmotion = summary.DominantEmotion
+	response.DominantEmotionText = summary.DominantEmotionText
+	response.NegativeRatio = summary.NegativeRatio
 
 	// Ambang yang sama dipakai statistik mood: satu-dua hasil belum membentuk
 	// pola, dan menyebutnya "tren" akan melebih-lebihkan apa yang diketahui.

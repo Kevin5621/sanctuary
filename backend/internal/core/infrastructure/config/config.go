@@ -26,6 +26,7 @@ type Config struct {
 	Privacy    PrivacyConfig
 	EWS        EWSConfig
 	Student    StudentConfig
+	AI         AIConfig
 	Seeder     SeederConfig
 }
 
@@ -107,6 +108,31 @@ type StudentConfig struct {
 	MoodStatsMaxPeriod     int
 }
 
+// AIConfig mengatur integrasi Terapis AI (Gemini 2.5 Flash).
+//
+// APIKey TIDAK memiliki nilai default. Bila kosong, Enabled() bernilai false
+// dan wiring memilih penyedia fallback offline — aplikasi tetap jalan, tab
+// Terapis AI tetap ada, tetapi tidak ada satu byte pun teks mahasiswa yang
+// dikirim keluar. Ini pilihan fail-safe yang disengaja: konfigurasi yang lupa
+// diisi harus berujung pada "tidak mengirim", bukan pada crash saat runtime
+// atau pada key placeholder yang tanpa sadar ikut ter-commit.
+type AIConfig struct {
+	APIKey  string
+	Model   string
+	BaseURL string
+	// RequestTimeout memutus panggilan yang menggantung. Mahasiswa yang sedang
+	// menunggu balasan tidak boleh dibiarkan melihat spinner tanpa akhir.
+	RequestTimeout  time.Duration
+	MaxOutputTokens int
+	// MaxTurns membatasi giliran percakapan yang dikirim ke penyedia sekaligus
+	// yang ditampilkan (M-AI-03). Batas ini juga membatasi jumlah teks pribadi
+	// yang keluar dari sistem pada setiap panggilan.
+	MaxTurns int
+}
+
+// Enabled menentukan apakah panggilan ke penyedia pihak ketiga boleh dilakukan.
+func (a AIConfig) Enabled() bool { return a.APIKey != "" }
+
 type SeederConfig struct {
 	DefaultPassword string
 }
@@ -173,6 +199,14 @@ func Load() (*Config, error) {
 			MoodStatsDefaultPeriod: getInt("STUDENT_MOOD_STATS_DEFAULT_DAYS", 30),
 			MoodStatsMaxPeriod:     getInt("STUDENT_MOOD_STATS_MAX_DAYS", 365),
 		},
+		AI: AIConfig{
+			APIKey:          getString("GEMINI_API_KEY", ""),
+			Model:           getString("GEMINI_MODEL", "gemini-2.5-flash"),
+			BaseURL:         getString("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"),
+			RequestTimeout:  time.Duration(getInt("GEMINI_TIMEOUT_SECONDS", 20)) * time.Second,
+			MaxOutputTokens: getInt("GEMINI_MAX_OUTPUT_TOKENS", 512),
+			MaxTurns:        getInt("AI_CHAT_MAX_TURNS", 100),
+		},
 		Seeder: SeederConfig{
 			DefaultPassword: getString("SEED_DEFAULT_PASSWORD", "Sanctuary123!"),
 		},
@@ -219,6 +253,12 @@ func (c *Config) validate() error {
 	}
 	if c.Student.MoodStatsMaxPeriod < c.Student.MoodStatsDefaultPeriod {
 		return fmt.Errorf("STUDENT_MOOD_STATS_MAX_DAYS must be >= STUDENT_MOOD_STATS_DEFAULT_DAYS")
+	}
+	if c.AI.MaxTurns < 1 {
+		return fmt.Errorf("AI_CHAT_MAX_TURNS must be >= 1")
+	}
+	if c.AI.Enabled() && c.AI.RequestTimeout <= 0 {
+		return fmt.Errorf("GEMINI_TIMEOUT_SECONDS must be > 0 when GEMINI_API_KEY is set")
 	}
 	return nil
 }

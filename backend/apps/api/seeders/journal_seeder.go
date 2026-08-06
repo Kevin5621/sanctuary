@@ -20,13 +20,14 @@ import (
 // sesungguhnya — dan bila analyzer diganti (mock → IndoBERT), data demo ikut
 // mengikuti tanpa perlu disunting.
 func (s *Seeder) seedJournals(ctx context.Context, studentID string, profile conditionProfile) error {
-	if len(profile.Journals) == 0 {
+	seeds := append(profile.Journals, backgroundJournals(studentID, profile)...)
+	if len(seeds) == 0 {
 		return nil
 	}
 
 	analyzer := service.NewEmotionAnalyzer()
 
-	for i, seed := range profile.Journals {
+	for i, seed := range seeds {
 		journalDate := apptime.DaysAgo(seed.DaysAgo)
 
 		journal := studentmodels.StudentJournal{

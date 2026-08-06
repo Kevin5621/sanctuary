@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gilabs/sanctuary/internal/core/constants"
+	"github.com/gilabs/sanctuary/internal/core/crisis"
 )
 
 // ------------------------------------------------------------------
@@ -48,13 +49,9 @@ var emotionLexicon = map[string][]string{
 	constants.EmotionJoy:     {"senang", "bahagia", "semangat", "excited", "puas", "bangga"},
 }
 
-// crisisLexicon memicu penanganan krisis. Daftar ini sengaja konservatif
-// (lebih baik false positive daripada terlewat).
-var crisisLexicon = []string{
-	"bunuh diri", "mengakhiri hidup", "tidak ingin hidup", "ingin mati",
-	"menyakiti diri", "melukai diri", "self harm", "tidak ada gunanya hidup",
-	"lebih baik aku hilang", "menyerah pada hidup",
-}
+// Leksikon krisis TIDAK lagi berada di berkas ini — ia dipindahkan ke
+// internal/core/crisis agar jurnal (M-JUR-05) dan Terapis AI (M-AI-04) memakai
+// daftar yang sama persis. Lihat package tersebut untuk alasan lengkapnya.
 
 var copingByEmotion = map[string][]string{
 	constants.EmotionAnxious: {
@@ -91,21 +88,13 @@ var copingByEmotion = map[string][]string{
 	},
 }
 
-const crisisMessage = "Sepertinya kamu sedang melewati masa yang sangat berat. " +
-	"Kamu tidak harus menghadapinya sendirian — buka menu Layanan Bantuan Darurat " +
-	"untuk terhubung dengan pendamping profesional sekarang."
-
 func (a *lexiconAnalyzer) Analyze(text string) AnalysisResult {
 	lower := strings.ToLower(text)
 
 	// 1. Deteksi krisis lebih dulu — selalu diprioritaskan di atas label emosi.
-	isCrisis := false
-	for _, phrase := range crisisLexicon {
-		if strings.Contains(lower, phrase) {
-			isCrisis = true
-			break
-		}
-	}
+	// Leksikon yang sama dipakai Terapis AI, lewat package core/crisis.
+	crisisResult := crisis.Detect(text)
+	isCrisis := crisisResult.IsFlagged
 
 	// 2. Skor per emosi dari kemunculan kata kunci.
 	bestLabel, bestHits := constants.EmotionNeutral, 0
@@ -148,7 +137,7 @@ func (a *lexiconAnalyzer) Analyze(text string) AnalysisResult {
 		CopingSuggestions: copingByEmotion[bestLabel],
 	}
 	if isCrisis {
-		result.CrisisMessage = crisisMessage
+		result.CrisisMessage = crisisResult.Message
 	}
 	return result
 }

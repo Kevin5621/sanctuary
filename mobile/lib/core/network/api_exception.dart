@@ -16,6 +16,17 @@ class ApiErrorCode {
   static const insufficientGroupSize = 'INSUFFICIENT_GROUP_SIZE';
   static const insufficientData = 'INSUFFICIENT_DATA';
   static const rateLimitExceeded = 'RATE_LIMIT_EXCEEDED';
+
+  // --- Terapis AI (D-5) ---
+  /// Backend menolak request chat karena consent belum tercatat, ditolak, atau
+  /// merujuk versi pemberitahuan lama. UI menanggapinya dengan menampilkan
+  /// ulang layar consent — bukan dengan pesan error merah.
+  static const aiConsentRequired = 'AI_CONSENT_REQUIRED';
+  static const aiConsentVersionMismatch = 'AI_CONSENT_VERSION_MISMATCH';
+  static const aiServiceUnavailable = 'AI_SERVICE_UNAVAILABLE';
+
+  static const backdateLimitExceeded = 'BACKDATE_LIMIT_EXCEEDED';
+  static const futureDateNotAllowed = 'FUTURE_DATE_NOT_ALLOWED';
   static const networkError = 'NETWORK_ERROR';
   static const unknown = 'UNKNOWN_ERROR';
 }

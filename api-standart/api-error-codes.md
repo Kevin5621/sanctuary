@@ -181,6 +181,50 @@ All error responses use consistent error codes to ensure:
 
 ---
 
+### Sanctuary Domain Codes (Privacy & Clinical)
+
+Registered in `internal/core/utils/errors.go` (`ErrorCodeMap`). Codes here encode
+privacy and clinical rules, so **changing a status code changes a policy** — do not
+adjust one without revisiting the decision it enforces.
+
+**Private content & sharing (403)**:
+- `PRIVATE_CONTENT_FORBIDDEN`: Journal / AI chat content requested by a role other
+  than the owning student. Returned as **403, deliberately not 404**, so audit logs
+  show cross-role access attempts instead of hiding them as missing resources (I-1).
+- `ADVISOR_ASSIGNMENT_REQUIRED`: Lecturer is not this student's advisor.
+- `SHARING_DISABLED_BY_STUDENT`: Student set `share_level = CLOSED`.
+
+**Aggregate & data sufficiency (422)**:
+- `INSUFFICIENT_GROUP_SIZE`: Aggregate group below the k-anonymity threshold.
+- `INSUFFICIENT_DATA`: Not enough daily data points to compute an indicator.
+
+**Student self-service (409/422)**:
+- `METRIC_ALREADY_EXISTS`: Daily check-in for that date already exists.
+- `FUTURE_DATE_NOT_ALLOWED`: Backdated entry cannot be in the future.
+- `BACKDATE_LIMIT_EXCEEDED`: Backdate beyond the allowed window (D-8, 7 days).
+- `CONTACT_REQUEST_ALREADY_OPEN`: An open "request contact" already exists.
+- `ADVISOR_NOT_ASSIGNED`: Student has no assigned advisor.
+
+**AI Therapist — third-party processing consent (D-5, `M-AI`)**:
+
+| Code | HTTP | When |
+|---|---|---|
+| `AI_CONSENT_REQUIRED` | 403 | Student has not granted consent for third-party (Gemini) processing, has explicitly declined, or their consent refers to a superseded `notice_version`. Returned by **every** `/students/me/chats/*` content endpoint. |
+| `AI_CONSENT_VERSION_MISMATCH` | 400 | Client submitted a decision for a `notice_version` that is no longer current — an outdated app must not be able to record consent to a notice whose wording has since changed. |
+| `AI_SERVICE_UNAVAILABLE` | 503 | AI provider is not configured server-side (`GEMINI_API_KEY` empty). |
+
+**Why `AI_CONSENT_REQUIRED` is a single code for three different states**: the error
+response deliberately does not distinguish "never decided" from "declined" from
+"stale notice". Clients obtain that detail from `GET /students/me/chats/consent`,
+which is the endpoint designed to carry it. Keeping the rejection uniform means the
+gate has exactly one failure path to reason about and to test.
+
+**Consent is enforced in the usecase, not the UI**: hiding the send button does not
+stop a request issued directly with a valid token, so the gate returns these codes
+at the API layer. See `ChatUsecase.requireConsent`.
+
+---
+
 ## Error Code Naming Conventions
 
 ### Format

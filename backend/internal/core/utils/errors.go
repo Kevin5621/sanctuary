@@ -87,6 +87,19 @@ const (
 	// 422 - mahasiswa belum memiliki dosen pembimbing.
 	CodeAdvisorNotAssigned = "ADVISOR_NOT_ASSIGNED"
 
+	// ------------------------------------------------------------------
+	// Terapis AI (M-AI) — gate D-5.
+	// ------------------------------------------------------------------
+
+	// 403 - mahasiswa belum menyetujui pemrosesan oleh layanan pihak ketiga,
+	// atau persetujuannya merujuk versi pemberitahuan yang sudah tidak berlaku.
+	// Dikembalikan oleh SELURUH endpoint chat, bukan hanya disembunyikan di UI.
+	CodeAIConsentRequired = "AI_CONSENT_REQUIRED"
+	// 400 - versi pemberitahuan yang dikirim klien bukan versi yang berlaku.
+	CodeAIConsentVersionMismatch = "AI_CONSENT_VERSION_MISMATCH"
+	// 503 - penyedia AI tidak dikonfigurasi di server (GEMINI_API_KEY kosong).
+	CodeAIServiceUnavailable = "AI_SERVICE_UNAVAILABLE"
+
 	// 409 - identitas pendaftaran sudah dipakai akun lain. Sengaja dipisah dari
 	// RESOURCE_ALREADY_EXISTS supaya klien dapat menyorot field yang benar.
 	CodeEmailAlreadyRegistered   = "EMAIL_ALREADY_REGISTERED"
@@ -149,6 +162,10 @@ var ErrorCodeMap = map[string]ErrorInfo{
 	CodeBackdateLimitExceeded:     {http.StatusUnprocessableEntity, "Tanggal terlalu jauh ke belakang"},
 	CodeContactRequestExists:      {http.StatusConflict, "Permintaan dihubungi sebelumnya masih terbuka"},
 	CodeAdvisorNotAssigned:        {http.StatusUnprocessableEntity, "Kamu belum memiliki dosen pembimbing"},
+
+	CodeAIConsentRequired:        {http.StatusForbidden, "Kamu perlu menyetujui pemrosesan percakapan oleh layanan pihak ketiga sebelum memakai Terapis AI"},
+	CodeAIConsentVersionMismatch: {http.StatusBadRequest, "Pemberitahuan privasi telah diperbarui, silakan baca dan putuskan kembali"},
+	CodeAIServiceUnavailable:     {http.StatusServiceUnavailable, "Terapis AI sedang tidak tersedia"},
 
 	CodeEmailAlreadyRegistered:   {http.StatusConflict, "Email ini sudah terdaftar"},
 	CodeStudentNumberRegistered:  {http.StatusConflict, "NIM ini sudah terdaftar"},

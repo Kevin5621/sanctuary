@@ -7,7 +7,7 @@ import '../../domain/entities/journal.dart';
 
 part 'jurnal_state.dart';
 
-/// Cubit tab Jurnal.
+/// Cubit tab Jurnal (M-JUR-02, M-JUR-04, M-JUR-05).
 ///
 /// Jurnal adalah konten privat: tidak ada satu pun jalur di sini yang mengirim
 /// atau menerima tulisan milik orang lain. Analisis emosi dijalankan server
@@ -90,7 +90,12 @@ class JurnalCubit extends Cubit<JurnalState> {
       ));
       return true;
     } on ApiException catch (error) {
-      emit(state.copyWith(isSubmitting: false, errorMessage: error.message));
+      emit(state.copyWith(
+        isSubmitting: false,
+        errorMessage: error.message,
+        isDateError: error.code == ApiErrorCode.backdateLimitExceeded ||
+            error.code == ApiErrorCode.futureDateNotAllowed,
+      ));
       return false;
     }
   }
