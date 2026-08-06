@@ -11,6 +11,7 @@ import (
 	"github.com/gilabs/sanctuary/internal/core/apptime"
 	"github.com/gilabs/sanctuary/internal/core/constants"
 	"github.com/gilabs/sanctuary/internal/core/utils"
+	mentormodels "github.com/gilabs/sanctuary/internal/mentor/data/models"
 	mentorrepo "github.com/gilabs/sanctuary/internal/mentor/data/repositories"
 	mentordto "github.com/gilabs/sanctuary/internal/mentor/domain/dto"
 	studentmodels "github.com/gilabs/sanctuary/internal/student/data/models"
@@ -38,14 +39,20 @@ type MentorUsecase interface {
 	ListContactRequests(ctx context.Context, access AccessContext) ([]mentordto.ContactRequestItemResponse, error)
 	// Profile mengisi tab Profil dosen (L-PRO-02..03).
 	Profile(ctx context.Context, access AccessContext) (mentordto.MentorProfileResponse, error)
+
+	// Advisor Follow-up Notes (Catatan Pendampingan Dosen Internal)
+	CreateAdvisorFollowUp(ctx context.Context, access AccessContext, studentID string, req mentordto.CreateAdvisorFollowUpRequest) (mentordto.AdvisorFollowUpResponse, error)
+	ListAdvisorFollowUps(ctx context.Context, access AccessContext, studentID string) ([]mentordto.AdvisorFollowUpResponse, error)
+	DeleteAdvisorFollowUp(ctx context.Context, access AccessContext, studentID, noteID string) error
 }
 
 type mentorUsecase struct {
-	advisees mentorrepo.AdviseeRepository
-	privacy  studentrepo.PrivacyRepository
-	metrics  studentrepo.DailyMetricRepository
-	ews      EWSUsecase
-	audits   authrepo.AuditRepository
+	advisees     mentorrepo.AdviseeRepository
+	privacy      studentrepo.PrivacyRepository
+	metrics      studentrepo.DailyMetricRepository
+	ews          EWSUsecase
+	audits       authrepo.AuditRepository
+	advisorNotes mentorrepo.AdvisorNoteRepository
 }
 
 func NewMentorUsecase(
@@ -54,8 +61,16 @@ func NewMentorUsecase(
 	metrics studentrepo.DailyMetricRepository,
 	ews EWSUsecase,
 	audits authrepo.AuditRepository,
+	advisorNotes mentorrepo.AdvisorNoteRepository,
 ) MentorUsecase {
-	return &mentorUsecase{advisees: advisees, privacy: privacy, metrics: metrics, ews: ews, audits: audits}
+	return &mentorUsecase{
+		advisees:     advisees,
+		privacy:      privacy,
+		metrics:      metrics,
+		ews:          ews,
+		audits:       audits,
+		advisorNotes: advisorNotes,
+	}
 }
 
 var shareLevelLabel = map[constants.ShareLevel]string{
@@ -512,3 +527,86 @@ func toEmotionShares(rows []studentrepo.EmotionCount) []mentordto.EmotionShareRe
 }
 
 func ptrFloat(v float64) *float64 { return &v }
+
+func (u *mentorUsecase) CreateAdvisorFollowUp(
+	ctx context.Context,
+	access AccessContext,
+	studentID string,
+	req mentordto.CreateAdvisorFollowUpRequest,
+) (mentordto.AdvisorFollowUpResponse, error) {
+	// Verifikasi bahwa mahasiswa adalah bimbingan dosen ini
+	_, err := u.advisees.FindAdvisee(ctx, access.AdvisorID, studentID)
+	if err != nil {
+		return mentordto.AdvisorFollowUpResponse{}, err
+	}
+
+	note := &mentormodels.AdvisorNote{
+		MentorID:        access.AdvisorID,
+		StudentID:       studentID,
+		InteractionDate: apptime.Now(),
+		Channel:         req.Channel,
+		Status:          req.Status,
+		Note:            req.Remark,
+	}
+
+	if err := u.advisorNotes.Create(ctx, note); err != nil {
+		return mentordto.AdvisorFollowUpResponse{}, err
+	}
+
+	return mentordto.AdvisorFollowUpResponse{
+		ID:              note.ID,
+		MentorID:        note.MentorID,
+		StudentID:       note.StudentID,
+		InteractionDate: apptime.FormatDateTime(note.InteractionDate),
+		Channel:         note.Channel,
+		Status:          note.Status,
+		Remark:          note.Note,
+		CreatedAt:       apptime.FormatDateTime(note.CreatedAt),
+	}, nil
+}
+
+func (u *mentorUsecase) ListAdvisorFollowUps(
+	ctx context.Context,
+	access AccessContext,
+	studentID string,
+) ([]mentordto.AdvisorFollowUpResponse, error) {
+	// Verifikasi bahwa mahasiswa adalah bimbingan dosen ini
+	_, err := u.advisees.FindAdvisee(ctx, access.AdvisorID, studentID)
+	if err != nil {
+		return nil, err
+	}
+
+	notes, err := u.advisorNotes.ListByMentorAndStudent(ctx, access.AdvisorID, studentID)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]mentordto.AdvisorFollowUpResponse, 0, len(notes))
+	for _, n := range notes {
+		items = append(items, mentordto.AdvisorFollowUpResponse{
+			ID:              n.ID,
+			MentorID:        n.MentorID,
+			StudentID:       n.StudentID,
+			InteractionDate: apptime.FormatDateTime(n.InteractionDate),
+			Channel:         n.Channel,
+			Status:          n.Status,
+			Remark:          n.Note,
+			CreatedAt:       apptime.FormatDateTime(n.CreatedAt),
+		})
+	}
+	return items, nil
+}
+
+func (u *mentorUsecase) DeleteAdvisorFollowUp(
+	ctx context.Context,
+	access AccessContext,
+	studentID, noteID string,
+) error {
+	_, err := u.advisees.FindAdvisee(ctx, access.AdvisorID, studentID)
+	if err != nil {
+		return err
+	}
+
+	return u.advisorNotes.Delete(ctx, access.AdvisorID, noteID)
+}
+

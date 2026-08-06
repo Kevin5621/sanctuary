@@ -12,9 +12,7 @@ import 'student_detail_page.dart';
 
 /// Tab Bimbingan (L-BIM-01..03, L-BIM-05).
 ///
-/// Peran dosen di sini adalah PEMANTAU, bukan pembaca: layar ini hanya
-/// menampilkan hasil hitungan dan permintaan eksplisit mahasiswa. Tidak ada
-/// tombol mengirim pesan — kontak dilakukan di luar aplikasi (PRD §3.3).
+/// Tampilan modern, minimalis, dan berfokus aksi harian dosen.
 class DosenBimbinganTab extends StatelessWidget {
   const DosenBimbinganTab({super.key});
 
@@ -28,8 +26,16 @@ class DosenBimbinganTab extends StatelessWidget {
   }
 }
 
-class _BimbinganView extends StatelessWidget {
+class _BimbinganView extends StatefulWidget {
   const _BimbinganView();
+
+  @override
+  State<_BimbinganView> createState() => _BimbinganViewState();
+}
+
+class _BimbinganViewState extends State<_BimbinganView> {
+  // Default filter: Perlu Intervensi
+  String _selectedFilter = 'INTERVENTION';
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +45,30 @@ class _BimbinganView extends StatelessWidget {
         bottom: false,
         child: BlocBuilder<BimbinganCubit, BimbinganState>(
           builder: (context, state) {
+            final advisees = state.advisees;
+
+            final contactCount = state.contactRequests.length;
+            final interventionCount = advisees.where((a) {
+              final level = a.ews?.level;
+              return level == 'INTERVENTION' || level == 'RISK';
+            }).length;
+
+            // Saring daftar berdasarkan filter chip aktif
+            final filteredAdvisees = advisees.where((a) {
+              if (_selectedFilter == 'CONTACT') return a.hasOpenContactRequest;
+              if (_selectedFilter == 'INTERVENTION') {
+                final level = a.ews?.level;
+                return level == 'INTERVENTION' || level == 'RISK';
+              }
+              if (_selectedFilter == 'LOW_SLEEP') {
+                return a.ews?.triggeredIndicators.any((i) => i.code == 'LOW_SLEEP_NIGHTS') ?? false;
+              }
+              if (_selectedFilter == 'CLOSED') {
+                return a.shareLevel.isClosed;
+              }
+              return true;
+            }).toList();
+
             return RefreshIndicator(
               color: AppColors.midnight,
               backgroundColor: Colors.white,
@@ -49,7 +79,7 @@ class _BimbinganView extends StatelessWidget {
                 children: [
                   SectionHeader(
                     title: 'Daftar Bimbingan',
-                    subtitle: 'Diurutkan dari yang paling perlu disapa',
+                    subtitle: 'Pemantauan kondisi & tindakan pendampingan',
                     trailing: state.status == BimbinganStatus.ready
                         ? WavyBadge(
                             text: '${state.totalAdvisees} Mahasiswa',
@@ -57,7 +87,7 @@ class _BimbinganView extends StatelessWidget {
                           )
                         : null,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.md),
 
                   if (state.isLoading)
                     const LoadingState(label: 'Memuat daftar bimbingan…')
@@ -68,30 +98,39 @@ class _BimbinganView extends StatelessWidget {
                       onRetry: () => context.read<BimbinganCubit>().load(),
                     )
                   else ...[
-                    // Permintaan dihubungi tampil paling atas: ini satu-satunya
-                    // kanal di mana mahasiswa yang memulai (D-7).
-                    if (state.hasContactRequests) ...[
+                    // ---- Smart Filter Chips (Tanpa Checkmark, Default INTERVENTION) ----
+                    _FilterChips(
+                      selected: _selectedFilter,
+                      onSelect: (filter) => setState(() => _selectedFilter = filter),
+                      totalCount: advisees.length,
+                      contactCount: contactCount,
+                      interventionCount: interventionCount,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // ---- Section Minta Dihubungi (Hanya bila filter ALL atau CONTACT) ----
+                    if (state.hasContactRequests &&
+                        (_selectedFilter == 'ALL' || _selectedFilter == 'CONTACT')) ...[
                       _ContactRequestSection(requests: state.contactRequests),
-                      const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.md),
                     ],
 
-                    if (state.isEmpty)
-                      const EmptyStateCard(
-                        icon: Icons.groups_outlined,
-                        title: 'Belum ada mahasiswa bimbingan',
-                        description:
-                            'Belum ada mahasiswa yang ditetapkan sebagai bimbingan '
-                            'Anda. Hubungi bagian akademik bila ini tidak sesuai.',
+                    // ---- Empty State jika filter kosong ----
+                    if (filteredAdvisees.isEmpty)
+                      EmptyStateCard(
+                        icon: Icons.check_circle_outline_rounded,
+                        title: _selectedFilter == 'INTERVENTION'
+                            ? 'Tidak ada mahasiswa perlu intervensi'
+                            : 'Tidak ada mahasiswa ditemukan',
+                        description: _selectedFilter == 'INTERVENTION'
+                            ? 'Seluruh mahasiswa bimbingan Anda saat ini dalam kondisi relatif aman dan stabil.'
+                            : 'Tidak ada mahasiswa yang sesuai dengan kriteria filter yang dipilih.',
                       )
-                    else ...[
-                      const _ListLegend(),
-                      const SizedBox(height: AppSpacing.md),
-                      for (final advisee in state.advisees)
+                    else
+                      for (final advisee in filteredAdvisees)
                         _AdviseeCard(advisee: advisee),
-                    ],
                   ],
 
-                  // Ruang untuk floating bottom navbar.
                   const SizedBox(height: 100),
                 ],
               ),
@@ -104,7 +143,70 @@ class _BimbinganView extends StatelessWidget {
 }
 
 // ------------------------------------------------------------------
-// L-BIM-03 — daftar "minta dihubungi": NAMA & WAKTU SAJA
+// Smart Filter Chips (Clean layout without checkmark)
+// ------------------------------------------------------------------
+
+class _FilterChips extends StatelessWidget {
+  const _FilterChips({
+    required this.selected,
+    required this.onSelect,
+    required this.totalCount,
+    required this.contactCount,
+    required this.interventionCount,
+  });
+
+  final String selected;
+  final ValueChanged<String> onSelect;
+  final int totalCount;
+  final int contactCount;
+  final int interventionCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = [
+      ('INTERVENTION', '🔴 Perlu Intervensi ${interventionCount > 0 ? "($interventionCount)" : ""}'),
+      ('CONTACT', '✋ Minta Dihubungi ${contactCount > 0 ? "($contactCount)" : ""}'),
+      ('LOW_SLEEP', '🌙 Kurang Tidur'),
+      ('CLOSED', '🔒 Privasi Tertutup'),
+      ('ALL', 'Semua ($totalCount)'),
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: chips.map((c) {
+          final isSelected = selected == c.$1;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: ChoiceChip(
+              showCheckmark: false, // Hapus centang saat state aktif sesuai instruksi
+              label: Text(c.$2.trim()),
+              selected: isSelected,
+              onSelected: (_) => onSelect(c.$1),
+              selectedColor: AppColors.midnight,
+              backgroundColor: AppColors.creamAlt,
+              labelStyle: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : AppColors.midnight,
+              ),
+              side: BorderSide(
+                color: isSelected ? AppColors.midnight : AppColors.cartoonBorder,
+                width: 1,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------------
+// Contact Request Section
 // ------------------------------------------------------------------
 
 class _ContactRequestSection extends StatelessWidget {
@@ -114,9 +216,13 @@ class _ContactRequestSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StateCard(
-      color: AppColors.moodAngerBg,
-      borderColor: AppColors.ewsIntervention,
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.moodAngerBg,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.ewsIntervention, width: 1.5),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -130,41 +236,30 @@ class _ContactRequestSection extends StatelessWidget {
                   'Minta dihubungi (${requests.length})',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontSize: 15,
                     color: AppColors.midnight,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Mahasiswa berikut secara aktif meminta dihubungi. '
-            'Anda menerima nama dan waktunya saja — alasannya mereka sampaikan '
-            'sendiri saat Anda menyapa.',
-            style: TextStyle(
-              fontSize: 12,
-              height: 1.4,
-              color: AppColors.warmTextSecondary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           for (final request in requests)
             Container(
-              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              margin: const EdgeInsets.only(bottom: 6),
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,
-                vertical: 10,
+                vertical: 8,
               ),
               decoration: BoxDecoration(
                 color: AppColors.cardBg,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
+                border: Border.all(color: AppColors.cartoonBorder, width: 1),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.person_outline_rounded,
-                      size: 18, color: AppColors.midnight),
+                      size: 16, color: AppColors.midnight),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Column(
@@ -174,7 +269,7 @@ class _ContactRequestSection extends StatelessWidget {
                           request.fullName,
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
-                            fontSize: 14,
+                            fontSize: 13.5,
                             color: AppColors.midnight,
                           ),
                         ),
@@ -185,7 +280,7 @@ class _ContactRequestSection extends StatelessWidget {
                             _formatDateTime(request.requestedAt),
                           ].join(' · '),
                           style: const TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 11,
                             color: AppColors.warmTextSecondary,
                           ),
                         ),
@@ -202,7 +297,7 @@ class _ContactRequestSection extends StatelessWidget {
 }
 
 // ------------------------------------------------------------------
-// Kartu satu mahasiswa bimbingan
+// Advisee Card Component
 // ------------------------------------------------------------------
 
 class _AdviseeCard extends StatelessWidget {
@@ -223,13 +318,13 @@ class _AdviseeCard extends StatelessWidget {
           color: advisee.hasOpenContactRequest
               ? AppColors.ewsIntervention
               : AppColors.cartoonBorder,
-          width: advisee.hasOpenContactRequest ? 2 : 1.5,
+          width: advisee.hasOpenContactRequest ? 2 : 1.2,
         ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.cartoonShadow,
-            offset: Offset(0, 4),
-            blurRadius: 8,
+            offset: Offset(0, 3),
+            blurRadius: 6,
           ),
         ],
       ),
@@ -263,7 +358,7 @@ class _AdviseeCard extends StatelessWidget {
                             advisee.fullName,
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 16,
+                              fontSize: 15.5,
                               color: AppColors.midnight,
                             ),
                           ),
@@ -271,7 +366,7 @@ class _AdviseeCard extends StatelessWidget {
                           Text(
                             _subtitleFor(advisee),
                             style: const TextStyle(
-                              fontSize: 11.5,
+                              fontSize: 11,
                               color: AppColors.warmTextSecondary,
                             ),
                           ),
@@ -286,11 +381,9 @@ class _AdviseeCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
 
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    // L-BIM-05: mahasiswa tanpa EWS TIDAK ditandai "Normal".
-                    // Badge-nya menyebut apa adanya bahwa datanya tidak dibagikan.
                     if (advisee.hasEws)
                       EwsLevelBadge(
                         level: advisee.ews!.level,
@@ -328,16 +421,6 @@ class _AdviseeCard extends StatelessWidget {
                   ],
                 ),
 
-                // Alasan data tidak tampil dinyatakan terus terang, memakai
-                // kalimat dari server supaya sama persis dengan aturan yang
-                // ditegakkan backend.
-                if (advisee.privacyNotice?.isNotEmpty == true) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  ClosedShareCard(notice: advisee.privacyNotice, compact: true),
-                ],
-
-                // Indikator yang menyala — membantu dosen tahu APA yang perlu
-                // disapa, tanpa membuka satu kalimat pun tulisan mahasiswa.
                 if (advisee.ews?.triggeredIndicators.isNotEmpty == true) ...[
                   const SizedBox(height: AppSpacing.sm),
                   Wrap(
@@ -356,7 +439,7 @@ class _AdviseeCard extends StatelessWidget {
                           child: Text(
                             indicator.label,
                             style: const TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 10,
                               fontWeight: FontWeight.w600,
                               color: AppColors.warmTextSecondary,
                             ),
@@ -379,9 +462,6 @@ class _AdviseeCard extends StatelessWidget {
       if (advisee.cohortYear != null) 'Angkatan ${advisee.cohortYear}',
     ];
 
-    // Tanggal check-in terakhir hanya ada bila mahasiswa berbagi indikator.
-    // Saat tidak ada, jangan menulis "belum pernah check-in" — kita tidak tahu
-    // itu, yang kita tahu hanya bahwa datanya tidak dibagikan.
     if (advisee.lastCheckinDate != null) {
       parts.add('Check-in ${_formatDate(advisee.lastCheckinDate!)}');
     }
@@ -403,8 +483,8 @@ class _Avatar extends StatelessWidget {
         : AppColors.ewsLevel(level);
 
     return Container(
-      width: 46,
-      height: 46,
+      width: 42,
+      height: 42,
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.18),
         shape: BoxShape.circle,
@@ -415,7 +495,7 @@ class _Avatar extends StatelessWidget {
           initial,
           style: const TextStyle(
             fontWeight: FontWeight.w800,
-            fontSize: 18,
+            fontSize: 16,
             color: AppColors.midnight,
           ),
         ),
@@ -424,47 +504,8 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-class _ListLegend extends StatelessWidget {
-  const _ListLegend();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: 10,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.lavenderBg,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.lavenderDark, width: 1.2),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.info_outline_rounded,
-              size: 16, color: AppColors.lavenderDark),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              'Anda melihat hasil hitungan, bukan tulisan mahasiswa. '
-              'Jurnal dan percakapan Terapis AI tidak dapat dibuka siapa pun '
-              'selain pemiliknya.',
-              style: TextStyle(
-                fontSize: 11.5,
-                height: 1.35,
-                color: AppColors.midnight,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ------------------------------------------------------------------
-// Format tanggal — dibiarkan sederhana & tanpa locale eksternal supaya
-// tidak memerlukan inisialisasi intl di seluruh aplikasi.
+// Date Formatter Helpers
 // ------------------------------------------------------------------
 
 const _monthNames = [

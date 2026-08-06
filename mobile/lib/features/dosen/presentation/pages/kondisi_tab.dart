@@ -9,10 +9,6 @@ import '../../domain/entities/group_condition.dart';
 import '../cubit/kondisi_cubit.dart';
 
 /// Tab Kondisi — agregat kelompok bimbingan (L-KON-01..04).
-///
-/// Seluruh angka di layar ini tunduk k-anonymity. Bila kelompok di bawah
-/// ambang, server tidak mengirim satu angka pun dan layar menampilkan
-/// "Data belum cukup" — termasuk tidak menyebut berapa orang anggotanya.
 class DosenKondisiTab extends StatelessWidget {
   const DosenKondisiTab({super.key});
 
@@ -50,7 +46,6 @@ class _KondisiView extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.md),
 
-                  // L-KON-04 — pemilih periode 30 / 90 / 120 hari.
                   _PeriodSelector(
                     selected: state.periodDays,
                     enabled: !state.isLoading,
@@ -60,7 +55,7 @@ class _KondisiView extends StatelessWidget {
                   const SizedBox(height: AppSpacing.lg),
 
                   if (state.isLoading)
-                    const LoadingState(label: 'Menghitung agregat…')
+                    const LoadingState(label: 'Memuat agregat kelompok…')
                   else if (state.status == KondisiStatus.failure)
                     ErrorStateCard(
                       message: state.errorMessage ??
@@ -68,7 +63,6 @@ class _KondisiView extends StatelessWidget {
                       onRetry: () => context.read<KondisiCubit>().load(),
                     )
                   else if (state.isInsufficient)
-                    // I-4 — TANPA angka apa pun, termasuk ukuran kelompok.
                     InsufficientDataCard(
                       minimumGroupSize: state.condition.minimumGroupSize,
                       context: 'kelompok bimbingan Anda',
@@ -86,10 +80,6 @@ class _KondisiView extends StatelessWidget {
     );
   }
 }
-
-// ------------------------------------------------------------------
-// L-KON-04 — pemilih periode
-// ------------------------------------------------------------------
 
 class _PeriodSelector extends StatelessWidget {
   const _PeriodSelector({
@@ -119,10 +109,9 @@ class _PeriodSelector extends StatelessWidget {
                 onTap: enabled ? () => onSelect(days) : null,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color:
-                        days == selected ? AppColors.midnight : Colors.transparent,
+                    color: days == selected ? AppColors.midnight : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                   ),
                   child: Text(
@@ -130,7 +119,7 @@ class _PeriodSelector extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 13,
+                      fontSize: 12.5,
                       color: days == selected
                           ? Colors.white
                           : AppColors.warmTextSecondary,
@@ -145,10 +134,6 @@ class _PeriodSelector extends StatelessWidget {
   }
 }
 
-// ------------------------------------------------------------------
-// Isi saat k-anonymity terpenuhi
-// ------------------------------------------------------------------
-
 class _SufficientContent extends StatelessWidget {
   const _SufficientContent({required this.condition});
 
@@ -159,25 +144,24 @@ class _SufficientContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        StateCard(
-          color: AppColors.lavenderBg,
-          borderColor: AppColors.lavenderDark,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: 12,
+        // Privacy Note Banner
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.lavenderBg,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            border: Border.all(color: AppColors.lavenderDark, width: 1),
           ),
           child: Row(
             children: [
               const Icon(Icons.shield_outlined,
-                  color: AppColors.lavenderDark, size: 18),
-              const SizedBox(width: AppSpacing.sm),
+                  color: AppColors.lavenderDark, size: 16),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Agregat ${condition.groupSize} mahasiswa yang membagikan '
-                  'indikator. Tidak ada nama maupun tulisan yang ditampilkan.',
+                  'Agregat ${condition.groupSize} mahasiswa yang membagikan indikator (K-anonymity aktif).',
                   style: const TextStyle(
-                    fontSize: 11.5,
-                    height: 1.35,
+                    fontSize: 11,
                     color: AppColors.midnight,
                   ),
                 ),
@@ -187,48 +171,69 @@ class _SufficientContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // ---- Rata-rata kelompok ----
-        Row(
-          children: [
-            Expanded(
-              child: _AggregateTile(
-                label: 'Rata-rata mood',
-                value: condition.avgMood,
-                unit: '/ 5',
-                color: AppColors.moodHappinessBg,
-                icon: Icons.sentiment_satisfied_alt_rounded,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: _AggregateTile(
-                label: 'Rata-rata stres',
-                value: condition.avgStress,
-                unit: '/ 5',
-                color: AppColors.moodAngerBg,
-                icon: Icons.bolt_rounded,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: _AggregateTile(
-                label: 'Rata-rata tidur',
-                value: condition.avgSleepHours,
-                unit: 'jam',
-                color: AppColors.moodSadnessBg,
-                icon: Icons.bedtime_outlined,
-              ),
-            ),
-          ],
+        // Responsive Metrics Grid using LayoutBuilder
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobileNarrow = constraints.maxWidth < 360;
+
+            final tileMood = _AggregateTile(
+              label: 'Rata-rata Mood',
+              value: condition.avgMood,
+              unit: '/ 5',
+              color: AppColors.moodHappinessBg,
+              icon: Icons.sentiment_satisfied_alt_rounded,
+            );
+
+            final tileStress = _AggregateTile(
+              label: 'Rata-rata Stres',
+              value: condition.avgStress,
+              unit: '/ 5',
+              color: AppColors.moodAngerBg,
+              icon: Icons.bolt_rounded,
+            );
+
+            final tileSleep = _AggregateTile(
+              label: 'Rata-rata Tidur',
+              value: condition.avgSleepHours,
+              unit: 'jam',
+              color: AppColors.moodSadnessBg,
+              icon: Icons.bedtime_outlined,
+            );
+
+            if (isMobileNarrow) {
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: tileMood),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: tileStress),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  tileSleep,
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: tileMood),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: tileStress),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: tileSleep),
+              ],
+            );
+          },
         ),
         const SizedBox(height: AppSpacing.lg),
 
-        // ---- L-KON-02 — sebaran tingkat perhatian ----
         const Text(
           'Sebaran Tingkat Perhatian',
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 16,
+            fontSize: 15,
             color: AppColors.midnight,
           ),
         ),
@@ -236,9 +241,6 @@ class _SufficientContent extends StatelessWidget {
         if (condition.hasEwsDistribution)
           _EwsDistributionCard(condition: condition)
         else
-          // Sebaran ini hanya dihitung dari mahasiswa yang MENGIZINKAN
-          // peringatan dini — kelompok yang bisa lebih kecil dari kelompok
-          // berbagi indikator, sehingga bisa gagal ambang sendiri.
           InsufficientDataCard(
             minimumGroupSize: condition.minimumGroupSize,
             context: 'mahasiswa yang mengizinkan peringatan dini',
@@ -246,19 +248,13 @@ class _SufficientContent extends StatelessWidget {
 
         const SizedBox(height: AppSpacing.lg),
 
-        // ---- L-KON-03 — sebaran emosi (LABEL saja) ----
         const Text(
-          'Sebaran Emosi',
+          'Sebaran Emosi Kelompok',
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 16,
+            fontSize: 15,
             color: AppColors.midnight,
           ),
-        ),
-        const SizedBox(height: 2),
-        const Text(
-          'Hanya label hasil analisis — teks jurnalnya tidak pernah dikirim',
-          style: TextStyle(fontSize: 12, color: AppColors.warmTextSecondary),
         ),
         const SizedBox(height: AppSpacing.sm),
         if (condition.hasEmotionDistribution)
@@ -285,11 +281,7 @@ class _AggregateTile extends StatelessWidget {
   });
 
   final String label;
-
-  /// Null berarti server tidak mengeluarkan angkanya. Ditampilkan sebagai "—",
-  /// TIDAK PERNAH sebagai 0 — nol adalah pernyataan, kosong bukan.
   final double? value;
-
   final String unit;
   final Color color;
   final IconData icon;
@@ -297,7 +289,7 @@ class _AggregateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -312,20 +304,20 @@ class _AggregateTile extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, size: 20, color: AppColors.midnight),
-          const SizedBox(height: 6),
+          Icon(icon, size: 18, color: AppColors.midnight),
+          const SizedBox(height: 4),
           Text(
             value == null ? '—' : value!.toStringAsFixed(1),
             style: const TextStyle(
               fontWeight: FontWeight.w800,
-              fontSize: 21,
+              fontSize: 20,
               color: AppColors.midnight,
             ),
           ),
           Text(
             value == null ? 'tidak tersedia' : unit,
             style: const TextStyle(
-              fontSize: 10,
+              fontSize: 9.5,
               color: AppColors.warmTextSecondary,
             ),
           ),
@@ -334,9 +326,8 @@ class _AggregateTile extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 10.5,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
-              height: 1.25,
               color: AppColors.warmTextSecondary,
             ),
           ),
@@ -360,11 +351,11 @@ class _EwsDistributionCard extends StatelessWidget {
         children: [
           for (final entry in condition.orderedEwsDistribution)
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 10),
               child: Row(
                 children: [
                   SizedBox(
-                    width: 122,
+                    width: 110,
                     child: EwsLevelBadge(level: entry.key, dense: true),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -373,7 +364,7 @@ class _EwsDistributionCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                       child: LinearProgressIndicator(
                         value: total == 0 ? 0 : entry.value / total,
-                        minHeight: 10,
+                        minHeight: 8,
                         backgroundColor: AppColors.creamAlt,
                         valueColor: AlwaysStoppedAnimation(
                           AppColors.ewsLevel(entry.key),
@@ -383,13 +374,13 @@ class _EwsDistributionCard extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   SizedBox(
-                    width: 26,
+                    width: 24,
                     child: Text(
                       '${entry.value}',
                       textAlign: TextAlign.right,
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                        fontSize: 12.5,
                         color: AppColors.midnight,
                       ),
                     ),
@@ -403,11 +394,6 @@ class _EwsDistributionCard extends StatelessWidget {
   }
 }
 
-/// Sebaran emosi kelompok.
-///
-/// Menampilkan LABEL emosi dan proporsinya. Tidak ada jalur di sini yang
-/// menyentuh teks jurnal — API-nya memang hanya mengirim label + jumlah
-/// (L-KON-03).
 class _EmotionDistributionCard extends StatelessWidget {
   const _EmotionDistributionCard({required this.shares});
 
@@ -425,20 +411,14 @@ class _EmotionDistributionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final negativeShare = shares
-        .where((s) => s.isNegative)
-        .fold<double>(0, (sum, s) => sum + s.percentage);
-
     return StateCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Batang proporsi tunggal — lebih mudah dibaca sekilas daripada
-          // pie chart, dan tidak menyiratkan presisi yang tidak dimiliki data.
           ClipRRect(
             borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
             child: SizedBox(
-              height: 16,
+              height: 14,
               child: Row(
                 children: [
                   for (final share in shares)
@@ -456,26 +436,26 @@ class _EmotionDistributionCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           Wrap(
             spacing: AppSpacing.md,
-            runSpacing: 10,
+            runSpacing: 8,
             children: [
               for (final share in shares)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 11,
-                      height: 11,
+                      width: 10,
+                      height: 10,
                       decoration: BoxDecoration(
                         color: _emotionColor[share.emotionLabel] ??
                             AppColors.lavender,
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 5),
                     Text(
                       '${share.displayLabel} ${share.percentage.toStringAsFixed(0)}%',
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                         color: AppColors.midnight,
                       ),
@@ -484,26 +464,6 @@ class _EmotionDistributionCard extends StatelessWidget {
                 ),
             ],
           ),
-          if (negativeShare > 0) ...[
-            const SizedBox(height: AppSpacing.md),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.creamAlt,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              ),
-              child: Text(
-                '${negativeShare.toStringAsFixed(0)}% catatan bernada negatif '
-                '(sedih, cemas, marah, lelah). Angka ini gambaran kelompok — '
-                'bukan penilaian atas siapa pun.',
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  height: 1.35,
-                  color: AppColors.warmTextSecondary,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
