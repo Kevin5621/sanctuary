@@ -14,13 +14,12 @@ import (
 	studentmodels "github.com/gilabs/sanctuary/internal/student/data/models"
 )
 
-// baselineTriggers dipakai data latar. Daftarnya sengaja lebih sempit daripada
-// constants.AcademicTriggerOptions agar sebaran pemicu punya pemenang yang
-// jelas — kartu "pemicu tersering" jadi ada isinya.
+// baselineTriggers dipakai data latar. Daftarnya berupa string bebas agar
+// sebaran pemicu punya pemenang yang jelas — kartu "pemicu tersering" jadi ada isinya.
 var baselineTriggers = []string{
-	constants.TriggerAssignment,
-	constants.TriggerExam,
-	constants.TriggerThesis,
+	"Tugas kuliah",
+	"Ujian (UTS/UAS)",
+	"Skripsi / tugas akhir",
 	"", // sebagian hari memang tanpa pemicu tertentu
 }
 
@@ -54,10 +53,10 @@ func buildRecentMetrics(studentID string, profile conditionProfile) []studentmod
 	metrics := make([]studentmodels.StudentDailyMetric, 0, days+1)
 
 	triggers := []string{
-		constants.TriggerAssignment,
-		constants.TriggerExam,
-		constants.TriggerThesis,
-		constants.TriggerPresentation,
+		"Tugas kuliah",
+		"Ujian (UTS/UAS)",
+		"Skripsi / tugas akhir",
+		"Presentasi",
 		"",
 	}
 
@@ -73,7 +72,7 @@ func buildRecentMetrics(studentID string, profile conditionProfile) []studentmod
 		last := days - 1
 		metrics = append(metrics, newMetric(studentID, apptime.Today(),
 			profile.Moods[last], profile.Stress[last], profile.Sleep[last],
-			profile.Emotions[last], constants.TriggerAssignment,
+			profile.Emotions[last], "Tugas kuliah",
 		))
 	}
 	return metrics

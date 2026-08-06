@@ -73,7 +73,7 @@ class FakeDailyMetricRepository extends DailyMetricRepository {
           ScaleOption(value: 5, label: 'Sangat tertekan'),
         ],
         emotions: [CodedOption(value: 'CALM', label: 'Tenang')],
-        academicTriggers: [CodedOption(value: 'TUGAS', label: 'Tugas kuliah')],
+        academicTriggers: [],
         maxBackdateDays: 7,
       );
 

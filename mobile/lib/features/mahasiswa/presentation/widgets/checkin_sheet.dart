@@ -68,6 +68,7 @@ class _CheckinSheetState extends State<CheckinSheet> {
   late String _emotion;
   late String _trigger;
   late DateTime _date;
+  late final TextEditingController _triggerController;
 
   @override
   void initState() {
@@ -79,7 +80,14 @@ class _CheckinSheetState extends State<CheckinSheet> {
     _sleepHours = existing?.sleepHours ?? 7.0;
     _emotion = existing?.emotionLabel ?? '';
     _trigger = existing?.academicTrigger ?? '';
+    _triggerController = TextEditingController(text: _trigger);
     _date = existing?.date ?? DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _triggerController.dispose();
+    super.dispose();
   }
 
   bool get _isEditing => widget.existing != null;
@@ -311,19 +319,29 @@ class _CheckinSheetState extends State<CheckinSheet> {
         children: [
           const _SectionTitle('Apa pemicunya?', trailing: 'opsional'),
           const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final option in widget.options.academicTriggers)
-                _ChoiceChip(
-                  label: option.label,
-                  isSelected: _trigger == option.value,
-                  onTap: () => setState(
-                    () => _trigger = _trigger == option.value ? '' : option.value,
-                  ),
-                ),
-            ],
+          TextField(
+            controller: _triggerController,
+            onChanged: (val) => _trigger = val.trim(),
+            decoration: InputDecoration(
+              hintText: 'Misal: Bimbingan skripsi, deadline tugas...',
+              hintStyle: const TextStyle(fontSize: 13, color: AppColors.warmTextMuted),
+              filled: true,
+              fillColor: AppColors.creamBg,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                borderSide: const BorderSide(color: AppColors.cartoonBorder, width: 1.2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                borderSide: const BorderSide(color: AppColors.cartoonBorder, width: 1.2),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                borderSide: const BorderSide(color: AppColors.midnight, width: 1.5),
+              ),
+            ),
+            style: const TextStyle(fontSize: 13, color: AppColors.midnight),
           ),
         ],
       ),
@@ -379,7 +397,7 @@ class _CheckinSheetState extends State<CheckinSheet> {
           stressLevel: _stressLevel,
           sleepHours: _sleepHours,
           emotionLabel: _emotion,
-          academicTrigger: _trigger,
+          academicTrigger: _triggerController.text.trim(),
           date: _date,
         );
 

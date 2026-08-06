@@ -31,7 +31,8 @@ class MoodVisuals {
   }
 
   static MoodType forScore(int moodScore) {
-    if (moodScore >= 4) return MoodType.happiness;
+    if (moodScore >= 5) return MoodType.great;
+    if (moodScore == 4) return MoodType.happiness;
     if (moodScore == 3) return MoodType.disgust;
     if (moodScore == 2) return MoodType.fear;
     return MoodType.sadness;
@@ -41,21 +42,36 @@ class MoodVisuals {
   static Color colorForScore(int moodScore) {
     switch (moodScore) {
       case 5:
-        return AppColors.moodHappiness;
+        return AppColors.moodGreat;
       case 4:
-        return AppColors.moodDisgust;
+        return AppColors.moodHappiness;
       case 3:
-        return AppColors.moodFear;
+        return AppColors.moodDisgust;
       case 2:
-        return AppColors.moodAnger;
+        return AppColors.moodFear;
       case 1:
-        return AppColors.ewsIntervention;
+        return AppColors.moodSadness;
       default:
         return AppColors.creamAlt;
     }
   }
 
-  static Color backgroundForScore(int moodScore) => colorForScore(moodScore).withValues(alpha: 0.22);
+  static Color backgroundForScore(int moodScore) {
+    switch (moodScore) {
+      case 5:
+        return AppColors.moodGreatBg;
+      case 4:
+        return AppColors.moodHappinessBg;
+      case 3:
+        return AppColors.moodDisgustBg;
+      case 2:
+        return AppColors.moodFearBg;
+      case 1:
+        return AppColors.moodSadnessBg;
+      default:
+        return AppColors.creamAlt;
+    }
+  }
 }
 
 /// Sel kosong pada kalender — hari yang memang tidak diisi.

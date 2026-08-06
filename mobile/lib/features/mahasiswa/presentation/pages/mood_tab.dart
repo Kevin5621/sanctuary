@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/cartoon_mood_blob.dart';
 import '../../data/repositories/daily_metric_repository.dart';
 import '../../domain/entities/daily_metric.dart';
 import '../cubit/mood_history_cubit.dart';
@@ -289,8 +290,6 @@ class _DayCell extends StatelessWidget {
           : '$day: belum check-in',
       child: Container(
         decoration: BoxDecoration(
-          // Hari kosong dibedakan jelas dari hari bermood rendah: tidak
-          // mengisi bukan berarti sedang buruk.
           color: filled ? MoodVisuals.backgroundForScore(metric!.moodScore) : AppColors.creamAlt,
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm / 2),
           border: Border.all(
@@ -298,16 +297,56 @@ class _DayCell extends StatelessWidget {
             width: filled ? 1.5 : 1,
           ),
         ),
-        child: Center(
-          child: Text(
-            '$day',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: filled ? FontWeight.w700 : FontWeight.w400,
-              color: filled ? AppColors.midnight : AppColors.warmTextMuted,
-            ),
-          ),
-        ),
+        child: filled
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm / 2),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(2.0),
+                        child: CartoonMoodBlob(
+                          mood: MoodVisuals.forEmotion(
+                            metric!.emotionLabel,
+                            moodScore: metric!.moodScore,
+                          ),
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 1,
+                      right: 2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.88),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Text(
+                          '$day',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.midnight,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Center(
+                child: Text(
+                  '$day',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.warmTextMuted,
+                  ),
+                ),
+              ),
       ),
     );
   }

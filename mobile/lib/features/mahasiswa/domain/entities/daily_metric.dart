@@ -20,18 +20,21 @@ class DailyMetric extends Equatable {
     this.academicTriggerText = '',
   });
 
-  factory DailyMetric.fromJson(Map<String, dynamic> json) => DailyMetric(
-        date: DateTime.parse(json['date'] as String),
-        moodScore: json['mood_score'] as int? ?? 0,
-        moodLabel: json['mood_label'] as String? ?? '',
-        stressLevel: json['stress_level'] as int? ?? 0,
-        stressLabel: json['stress_label'] as String? ?? '',
-        sleepHours: (json['sleep_hours'] as num?)?.toDouble() ?? 0,
-        emotionLabel: json['emotion_label'] as String? ?? '',
-        emotionLabelText: json['emotion_label_text'] as String? ?? '',
-        academicTrigger: json['academic_trigger'] as String? ?? '',
-        academicTriggerText: json['academic_trigger_text'] as String? ?? '',
-      );
+  factory DailyMetric.fromJson(Map<String, dynamic> json) {
+    final trigger = json['academic_trigger'] as String? ?? '';
+    return DailyMetric(
+      date: DateTime.parse(json['date'] as String),
+      moodScore: json['mood_score'] as int? ?? 0,
+      moodLabel: json['mood_label'] as String? ?? '',
+      stressLevel: json['stress_level'] as int? ?? 0,
+      stressLabel: json['stress_label'] as String? ?? '',
+      sleepHours: (json['sleep_hours'] as num?)?.toDouble() ?? 0,
+      emotionLabel: json['emotion_label'] as String? ?? '',
+      emotionLabelText: json['emotion_label_text'] as String? ?? '',
+      academicTrigger: trigger,
+      academicTriggerText: json['academic_trigger_text'] as String? ?? trigger,
+    );
+  }
 
   final DateTime date;
   final int moodScore;
@@ -233,11 +236,14 @@ class EmotionShare extends Equatable {
 class TriggerShare extends Equatable {
   const TriggerShare({required this.trigger, required this.label, required this.count});
 
-  factory TriggerShare.fromJson(Map<String, dynamic> json) => TriggerShare(
-        trigger: json['trigger'] as String? ?? '',
-        label: json['label'] as String? ?? '',
-        count: json['count'] as int? ?? 0,
-      );
+  factory TriggerShare.fromJson(Map<String, dynamic> json) {
+    final trigger = json['trigger'] as String? ?? '';
+    return TriggerShare(
+      trigger: trigger,
+      label: json['label'] as String? ?? trigger,
+      count: json['count'] as int? ?? 0,
+    );
+  }
 
   final String trigger;
   final String label;

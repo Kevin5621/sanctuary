@@ -76,50 +76,12 @@ func IsValidCheckinEmotion(label string) bool {
 	return false
 }
 
-// Kode pemicu akademik (kolom academic_trigger, varchar(32)).
-const (
-	TriggerAssignment   = "TUGAS"
-	TriggerExam         = "UJIAN"
-	TriggerThesis       = "SKRIPSI"
-	TriggerPresentation = "PRESENTASI"
-	TriggerSchedule     = "JADWAL"
-	TriggerFinance      = "KEUANGAN"
-	TriggerRelationship = "RELASI"
-	TriggerOther        = "LAINNYA"
-)
-
-// AcademicTriggerOptions sengaja memuat KEUANGAN dan RELASI meski namanya
-// "pemicu akademik": keduanya adalah penyebab tekanan yang paling sering
-// disebut mahasiswa, dan menghilangkannya membuat data kehilangan konteks.
-var AcademicTriggerOptions = []LabeledOption{
-	{TriggerAssignment, "Tugas kuliah"},
-	{TriggerExam, "Ujian (UTS/UAS)"},
-	{TriggerThesis, "Skripsi / tugas akhir"},
-	{TriggerPresentation, "Presentasi"},
-	{TriggerSchedule, "Jadwal kuliah"},
-	{TriggerFinance, "Keuangan"},
-	{TriggerRelationship, "Relasi & pertemanan"},
-	{TriggerOther, "Lainnya"},
+// Pemicu akademik kini berupa string bebas (opsional, maks 255 karakter).
+func IsValidAcademicTrigger(text string) bool {
+	return len(text) <= 255
 }
 
-func IsValidAcademicTrigger(code string) bool {
-	if code == "" {
-		return true // pemicu bersifat opsional
-	}
-	for _, option := range AcademicTriggerOptions {
-		if option.Value == code {
-			return true
-		}
-	}
-	return false
-}
-
-// AcademicTriggerLabel mengubah kode tersimpan menjadi teks tampilan.
-func AcademicTriggerLabel(code string) string {
-	for _, option := range AcademicTriggerOptions {
-		if option.Value == code {
-			return option.Label
-		}
-	}
-	return ""
+// AcademicTriggerLabel mengembalikan teks pemicu lansung karena pemicu berupa string bebas.
+func AcademicTriggerLabel(text string) string {
+	return text
 }

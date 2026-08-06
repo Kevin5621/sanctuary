@@ -11,6 +11,7 @@ import '../../data/repositories/daily_metric_repository.dart';
 import '../../domain/entities/daily_metric.dart';
 import '../cubit/beranda_cubit.dart';
 import '../widgets/checkin_sheet.dart';
+import '../widgets/dynamic_greeting_header.dart';
 import '../widgets/mood_visuals.dart';
 import 'bantuan_darurat_page.dart';
 import 'dass21_screening_page.dart';
@@ -44,8 +45,11 @@ class _BerandaView extends StatelessWidget {
         ? user!.fullName.trim().split(RegExp(r'\s+')).first
         : 'Sahabat';
 
+    final phase = DynamicGreetingHeader.currentPhase;
+    final scaffoldBgColor = DynamicGreetingHeader.getScaffoldColor(phase);
+
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: scaffoldBgColor,
       body: SafeArea(
         bottom: false,
         child: BlocConsumer<BerandaCubit, BerandaState>(
@@ -63,13 +67,12 @@ class _BerandaView extends StatelessWidget {
           },
           builder: (context, state) {
             return RefreshIndicator(
-              color: AppColors.midnight,
+              color: scaffoldBgColor,
               backgroundColor: Colors.white,
               onRefresh: () => context.read<BerandaCubit>().refresh(),
               child: Column(
                 children: [
-                  _Header(firstName: firstName, state: state),
-                  const SizedBox(height: 12),
+                  DynamicGreetingHeader(firstName: firstName, state: state),
                   Expanded(
                     child: Container(
                       width: double.infinity,
@@ -141,193 +144,7 @@ class _BerandaView extends StatelessWidget {
   }
 }
 
-// ------------------------------------------------------------------
-// Header
-// ------------------------------------------------------------------
 
-class _Header extends StatelessWidget {
-  const _Header({required this.firstName, required this.state});
-
-  final String firstName;
-  final BerandaState state;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white30),
-                    ),
-                    child: Center(
-                      child: Text(
-                        firstName.isNotEmpty ? firstName[0].toUpperCase() : 'S',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    firstName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 17,
-                    ),
-                  ),
-                ],
-              ),
-              if (state.summary.currentStreak > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.local_fire_department_rounded,
-                          color: AppColors.sunnyYellow, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${state.summary.currentStreak} hari',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.wb_twilight_rounded, color: Colors.white, size: 32),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${_greeting()}!',
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 26,
-              color: Colors.white,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            state.hasCheckedInToday
-                ? 'Terima kasih sudah check-in hari ini.'
-                : 'Bagaimana harimu sejauh ini?',
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          _MoodShortcutRow(state: state),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  static String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour >= 5 && hour < 11) return 'Selamat Pagi';
-    if (hour >= 11 && hour < 15) return 'Selamat Siang';
-    if (hour >= 15 && hour < 19) return 'Selamat Sore';
-    return 'Selamat Malam';
-  }
-}
-
-/// Pintasan mood di header.
-///
-/// Menekan salah satu wajah TIDAK langsung menyimpan: ia membuka form dengan
-/// mood terpilih. Menyimpan seketika berarti mengarang tingkat stres dan jam
-/// tidur yang tidak pernah diisi siapa pun — dan dua angka itulah yang dibaca
-/// indikator peringatan dini.
-class _MoodShortcutRow extends StatelessWidget {
-  const _MoodShortcutRow({required this.state});
-
-  final BerandaState state;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!state.canCheckIn) return const SizedBox.shrink();
-
-    final selected = state.summary.today?.moodScore;
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final option in state.options.moodScale)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () => CheckinSheet.show(
-                  context,
-                  options: state.options,
-                  existing: state.summary.today,
-                  initialMood: option.value,
-                ),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: selected == option.value
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                    border: Border.all(
-                      color: selected == option.value ? Colors.white : Colors.white24,
-                      width: selected == option.value ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      CartoonMoodBlob(mood: MoodVisuals.forScore(option.value), size: 22),
-                      const SizedBox(width: 6),
-                      Text(
-                        option.label,
-                        style: TextStyle(
-                          color: selected == option.value ? AppColors.midnight : Colors.white,
-                          fontWeight:
-                              selected == option.value ? FontWeight.w700 : FontWeight.w500,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 // ------------------------------------------------------------------
 // Kartu ringkasan hari ini + tombol check-in
