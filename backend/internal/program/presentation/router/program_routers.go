@@ -14,6 +14,8 @@ func RegisterProgramRoutes(rg *gin.RouterGroup, h *handler.ProgramHandler) {
 
 	g.GET("/dashboard", h.Dashboard)
 	g.GET("/advisors", h.Advisors)
+	g.GET("/students", h.Students)
+	g.PUT("/advisors/assign", h.AssignAdvisor)
 	g.GET("/reports/cohorts", h.CohortReport)
 	g.GET("/profile", h.Profile)
 }

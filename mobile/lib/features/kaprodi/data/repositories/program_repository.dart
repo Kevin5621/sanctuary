@@ -58,4 +58,31 @@ class ProgramRepository {
     );
     return result.data;
   }
+
+  /// Daftar seluruh mahasiswa prodi untuk alokasi bimbingan.
+  Future<List<ProgramStudent>> fetchStudents() async {
+    final result = await _client.get<List<ProgramStudent>>(
+      '$_basePath/students',
+      parser: (data) => (data as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(ProgramStudent.fromJson)
+          .toList(),
+    );
+    return result.data;
+  }
+
+  /// Alokasikan dosen pembimbing ke beberapa mahasiswa.
+  Future<void> assignAdvisor({
+    required String? advisorId,
+    required List<String> studentIds,
+  }) async {
+    await _client.put<dynamic>(
+      '$_basePath/advisors/assign',
+      body: {
+        'advisor_id': advisorId,
+        'student_ids': studentIds,
+      },
+      parser: (data) => data,
+    );
+  }
 }

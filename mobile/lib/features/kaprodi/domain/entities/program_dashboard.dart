@@ -144,6 +144,65 @@ class ProgramDashboard extends Equatable {
       ];
 }
 
+/// Ringkasan mahasiswa bimbingan seorang dosen.
+class AdviseeSummary extends Equatable {
+  const AdviseeSummary({
+    required this.id,
+    required this.fullName,
+    required this.studentNumber,
+    required this.email,
+  });
+
+  factory AdviseeSummary.fromJson(Map<String, dynamic> json) => AdviseeSummary(
+        id: json['id'] as String? ?? '',
+        fullName: json['full_name'] as String? ?? '',
+        studentNumber: json['student_number'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+      );
+
+  final String id;
+  final String fullName;
+  final String studentNumber;
+  final String email;
+
+  @override
+  List<Object?> get props => [id, fullName, studentNumber, email];
+}
+
+/// Mahasiswa prodi beserta info dosen pembimbingnya saat ini.
+class ProgramStudent extends Equatable {
+  const ProgramStudent({
+    required this.id,
+    required this.fullName,
+    required this.studentNumber,
+    required this.email,
+    this.advisorId,
+    this.advisorName = '',
+  });
+
+  factory ProgramStudent.fromJson(Map<String, dynamic> json) => ProgramStudent(
+        id: json['id'] as String? ?? '',
+        fullName: json['full_name'] as String? ?? '',
+        studentNumber: json['student_number'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+        advisorId: json['advisor_id'] as String?,
+        advisorName: json['advisor_name'] as String? ?? '',
+      );
+
+  final String id;
+  final String fullName;
+  final String studentNumber;
+  final String email;
+  final String? advisorId;
+  final String advisorName;
+
+  bool get hasAdvisor => advisorId != null && advisorId!.isNotEmpty;
+
+  @override
+  List<Object?> get props =>
+      [id, fullName, studentNumber, email, advisorId, advisorName];
+}
+
 /// Beban bimbingan seorang dosen (K-PEM-01).
 ///
 /// Jumlah bimbingan adalah data ADMINISTRATIF, bukan data kondisi, sehingga
@@ -155,6 +214,7 @@ class AdvisorLoad extends Equatable {
     required this.email,
     required this.adviseeCount,
     this.lecturerNumber = '',
+    this.advisees = const [],
   });
 
   factory AdvisorLoad.fromJson(Map<String, dynamic> json) => AdvisorLoad(
@@ -163,6 +223,10 @@ class AdvisorLoad extends Equatable {
         email: json['email'] as String? ?? '',
         adviseeCount: json['advisee_count'] as int? ?? 0,
         lecturerNumber: json['lecturer_number'] as String? ?? '',
+        advisees: (json['advisees'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(AdviseeSummary.fromJson)
+            .toList(),
       );
 
   final String advisorId;
@@ -170,10 +234,11 @@ class AdvisorLoad extends Equatable {
   final String email;
   final int adviseeCount;
   final String lecturerNumber;
+  final List<AdviseeSummary> advisees;
 
   @override
   List<Object?> get props =>
-      [advisorId, fullName, email, adviseeCount, lecturerNumber];
+      [advisorId, fullName, email, adviseeCount, lecturerNumber, advisees];
 }
 
 /// Ringkasan satu angkatan (K-LAP-01).

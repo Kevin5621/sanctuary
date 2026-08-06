@@ -48,33 +48,58 @@ class PembimbingState extends Equatable {
   const PembimbingState({
     this.status = LoadStatus.initial,
     this.advisors = const [],
+    this.students = const [],
+    this.isSaving = false,
+    this.successMessage,
     this.errorMessage,
   });
 
   final LoadStatus status;
   final List<AdvisorLoad> advisors;
+  final List<ProgramStudent> students;
+  final bool isSaving;
+  final String? successMessage;
   final String? errorMessage;
 
   int get totalAdvisees =>
       advisors.fold(0, (sum, advisor) => sum + advisor.adviseeCount);
+
+  int get totalStudents => students.length;
+  int get unassignedCount => students.where((s) => !s.hasAdvisor).length;
+  int get assignedCount => students.where((s) => s.hasAdvisor).length;
 
   bool get isEmpty => status.isReady && advisors.isEmpty;
 
   PembimbingState copyWith({
     LoadStatus? status,
     List<AdvisorLoad>? advisors,
+    List<ProgramStudent>? students,
+    bool? isSaving,
+    String? successMessage,
     String? errorMessage,
     bool clearError = false,
+    bool clearSuccess = false,
   }) {
     return PembimbingState(
       status: status ?? this.status,
       advisors: advisors ?? this.advisors,
+      students: students ?? this.students,
+      isSaving: isSaving ?? this.isSaving,
+      successMessage:
+          clearSuccess ? null : (successMessage ?? this.successMessage),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 
   @override
-  List<Object?> get props => [status, advisors, errorMessage];
+  List<Object?> get props => [
+        status,
+        advisors,
+        students,
+        isSaving,
+        successMessage,
+        errorMessage,
+      ];
 }
 
 class LaporanState extends Equatable {

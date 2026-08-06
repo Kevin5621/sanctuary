@@ -8,6 +8,7 @@ import (
 
 	"github.com/gilabs/sanctuary/internal/core/middleware"
 	"github.com/gilabs/sanctuary/internal/core/utils"
+	"github.com/gilabs/sanctuary/internal/program/domain/dto"
 	"github.com/gilabs/sanctuary/internal/program/domain/usecase"
 )
 
@@ -42,6 +43,32 @@ func (h *ProgramHandler) Advisors(c *gin.Context) {
 		return
 	}
 	utils.OK(c, res)
+}
+
+// Students godoc: GET /api/v1/programs/me/students
+func (h *ProgramHandler) Students(c *gin.Context) {
+	res, err := h.uc.Students(c.Request.Context(), h.accessFrom(c))
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, res)
+}
+
+// AssignAdvisor godoc: PUT /api/v1/programs/me/advisors/assign
+func (h *ProgramHandler) AssignAdvisor(c *gin.Context) {
+	var req dto.AssignAdvisorRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.FailBinding(c, err)
+		return
+	}
+
+	err := h.uc.AssignAdvisor(c.Request.Context(), h.accessFrom(c), req)
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, gin.H{"message": "Mahasiswa bimbingan berhasil diperbarui"})
 }
 
 // CohortReport godoc: GET /api/v1/programs/me/reports/cohorts?period_days=90

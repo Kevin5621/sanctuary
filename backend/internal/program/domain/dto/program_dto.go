@@ -38,12 +38,34 @@ type ProgramDashboardResponse struct {
 	EWSDistribution []EWSShareResponse   `json:"ews_distribution,omitempty"`
 }
 
+type AdviseeSummaryResponse struct {
+	ID            string `json:"id"`
+	FullName      string `json:"full_name"`
+	StudentNumber string `json:"student_number"`
+	Email         string `json:"email"`
+}
+
 type AdvisorLoadResponse struct {
-	AdvisorID      string `json:"advisor_id"`
-	FullName       string `json:"full_name"`
-	LecturerNumber string `json:"lecturer_number,omitempty"`
-	Email          string `json:"email"`
-	AdviseeCount   int    `json:"advisee_count"`
+	AdvisorID      string                   `json:"advisor_id"`
+	FullName       string                   `json:"full_name"`
+	LecturerNumber string                   `json:"lecturer_number,omitempty"`
+	Email          string                   `json:"email"`
+	AdviseeCount   int                      `json:"advisee_count"`
+	Advisees       []AdviseeSummaryResponse `json:"advisees"`
+}
+
+type ProgramStudentResponse struct {
+	ID            string  `json:"id"`
+	FullName      string  `json:"full_name"`
+	StudentNumber string  `json:"student_number"`
+	Email         string  `json:"email"`
+	AdvisorID     *string `json:"advisor_id,omitempty"`
+	AdvisorName   string  `json:"advisor_name,omitempty"`
+}
+
+type AssignAdvisorRequest struct {
+	AdvisorID  *string  `json:"advisor_id"`
+	StudentIDs []string `json:"student_ids" binding:"required"`
 }
 
 // CohortReportResponse — evaluasi per angkatan.
