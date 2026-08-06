@@ -8,6 +8,7 @@ import '../../../../core/widgets/vector_illustrations.dart';
 import '../../data/repositories/journal_repository.dart';
 import '../../domain/entities/journal.dart';
 import '../cubit/jurnal_cubit.dart';
+import '../widgets/jurnal_composer_sheet.dart';
 import '../widgets/mood_visuals.dart';
 import 'bantuan_darurat_page.dart';
 import 'latihan_napas_page.dart';
@@ -24,29 +25,24 @@ class JurnalTab extends StatelessWidget {
   }
 }
 
-class _JurnalView extends StatefulWidget {
+class _JurnalView extends StatelessWidget {
   const _JurnalView();
-
-  @override
-  State<_JurnalView> createState() => _JurnalViewState();
-}
-
-class _JurnalViewState extends State<_JurnalView> {
-  final _contentController = TextEditingController();
-  final _titleController = TextEditingController();
-  DateTime _journalDate = DateTime.now();
-
-  @override
-  void dispose() {
-    _contentController.dispose();
-    _titleController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.creamBg,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => JurnalComposerSheet.show(context),
+        backgroundColor: AppColors.midnight,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(Icons.add_rounded, size: 22),
+        label: const Text(
+          'Tulis Catatan',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        ),
+      ),
       body: SafeArea(
         child: BlocConsumer<JurnalCubit, JurnalState>(
           listenWhen: (previous, current) =>
@@ -83,9 +79,6 @@ class _JurnalViewState extends State<_JurnalView> {
                       ),
                       onDismiss: () => context.read<JurnalCubit>().dismissAnalysis(),
                     ),
-
-                  _buildComposer(context, state),
-                  const SizedBox(height: AppSpacing.lg),
 
                   if (state.analysis != null && !state.showCrisisCard) ...[
                     _AnalysisCard(analysis: state.analysis!),
@@ -171,22 +164,15 @@ class _JurnalViewState extends State<_JurnalView> {
             ],
           ),
         ),
-        OutlinedButton.icon(
-          onPressed: () async {
-            final now = DateTime.now();
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: _journalDate,
-              firstDate: now.subtract(const Duration(days: 7)),
-              lastDate: now,
-            );
-            if (picked != null) setState(() => _journalDate = picked);
-          },
-          icon: const Icon(Icons.calendar_today_rounded, size: 15),
-          label: Text(_isToday(_journalDate) ? 'Hari ini' : _formatShortDate(_journalDate)),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.midnight,
-            side: const BorderSide(color: AppColors.midnight, width: 1.5),
+        ElevatedButton.icon(
+          onPressed: () => JurnalComposerSheet.show(context),
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('Tulis', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.midnight,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
             ),
@@ -195,127 +181,6 @@ class _JurnalViewState extends State<_JurnalView> {
       ],
     );
   }
-
-  Widget _buildComposer(BuildContext context, JurnalState state) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: AppColors.midnight, width: 1.5),
-        boxShadow: const [
-          BoxShadow(color: AppColors.cartoonShadow, offset: Offset(0, 4), blurRadius: 8),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Tulis Catatan',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: AppColors.midnight,
-            ),
-          ),
-          const SizedBox(height: 2),
-          const Text(
-            'Tuliskan pikiran atau perasaanmu secara bebas.',
-            style: TextStyle(fontSize: 12, color: AppColors.warmTextSecondary),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _titleController,
-            decoration: _inputDecoration('Judul (opsional)'),
-            style: const TextStyle(fontSize: 14, color: AppColors.midnight),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          TextField(
-            controller: _contentController,
-            maxLines: 6,
-            minLines: 4,
-            style: const TextStyle(fontSize: 14, color: AppColors.midnight, height: 1.45),
-            decoration: _inputDecoration('Apa yang kamu rasakan atau alami hari ini?'),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ElevatedButton.icon(
-            onPressed: state.isSubmitting ? null : () => _submit(context, analyze: true),
-            icon: state.isSubmitting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
-            label: Text(
-              state.isSubmitting ? 'Menyimpan…' : 'Simpan & Analisis Emosi',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.midnight,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(48),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          // Menulis tanpa dianalisis harus tetap mungkin: analisis adalah
-          // pilihan pemiliknya, bukan syarat untuk boleh bercerita.
-          TextButton(
-            onPressed: state.isSubmitting ? null : () => _submit(context, analyze: false),
-            child: const Text(
-              'Simpan saja, tanpa analisis',
-              style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.warmTextSecondary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint) => InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.warmTextMuted, fontSize: 13),
-        filled: true,
-        fillColor: AppColors.creamBg,
-        contentPadding: const EdgeInsets.all(14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.cartoonBorder, width: 1.2),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.cartoonBorder, width: 1.2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.midnight, width: 1.8),
-        ),
-      );
-
-  Future<void> _submit(BuildContext context, {required bool analyze}) async {
-    final saved = await context.read<JurnalCubit>().submit(
-          content: _contentController.text,
-          title: _titleController.text,
-          date: _journalDate,
-          analyzeNow: analyze,
-        );
-
-    if (saved) {
-      _contentController.clear();
-      _titleController.clear();
-      setState(() => _journalDate = DateTime.now());
-    }
-  }
-
-  static bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
-  }
-
-  static String _formatShortDate(DateTime date) => '${date.day}/${date.month}';
 }
 
 // ------------------------------------------------------------------
@@ -595,11 +460,11 @@ class _EmptyJournalCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.menu_book_rounded, size: 36, color: AppColors.warmTextMuted),
-          SizedBox(height: AppSpacing.sm),
-          Text(
+          const Icon(Icons.menu_book_rounded, size: 36, color: AppColors.warmTextMuted),
+          const SizedBox(height: AppSpacing.sm),
+          const Text(
             'Belum ada catatan',
             style: TextStyle(
               fontWeight: FontWeight.w700,
@@ -607,11 +472,27 @@ class _EmptyJournalCard extends StatelessWidget {
               color: AppColors.midnight,
             ),
           ),
-          SizedBox(height: 4),
-          Text(
+          const SizedBox(height: 4),
+          const Text(
             'Tidak perlu rapi atau panjang. Satu kalimat pun sudah cukup.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: AppColors.warmTextSecondary, height: 1.4),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ElevatedButton.icon(
+            onPressed: () => JurnalComposerSheet.show(context),
+            icon: const Icon(Icons.edit_note_rounded, size: 18),
+            label: const Text(
+              'Tulis Catatan Pertama',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.midnight,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+              ),
+            ),
           ),
         ],
       ),
