@@ -355,7 +355,7 @@ class _EwsDistributionCard extends StatelessWidget {
               child: Row(
                 children: [
                   SizedBox(
-                    width: 110,
+                    width: 120,
                     child: EwsLevelBadge(level: entry.key, dense: true),
                   ),
                   const SizedBox(width: AppSpacing.sm),

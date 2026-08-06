@@ -505,12 +505,16 @@ class EwsLevelBadge extends StatelessWidget {
         children: [
           Icon(_iconFor(level), size: dense ? 12 : 14, color: color),
           const SizedBox(width: 5),
-          Text(
-            text,
-            style: TextStyle(
-              color: AppColors.midnight,
-              fontWeight: FontWeight.w700,
-              fontSize: dense ? 11 : 12,
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.midnight,
+                fontWeight: FontWeight.w700,
+                fontSize: dense ? 11 : 12,
+              ),
             ),
           ),
         ],
@@ -566,12 +570,16 @@ class VerificationBadge extends StatelessWidget {
           Icon(Icons.gpp_maybe_outlined,
               size: dense ? 12 : 14, color: AppColors.ewsIntervention),
           const SizedBox(width: 5),
-          Text(
-            'Belum diverifikasi',
-            style: TextStyle(
-              color: AppColors.ewsIntervention,
-              fontWeight: FontWeight.w700,
-              fontSize: dense ? 11 : 12,
+          Flexible(
+            child: Text(
+              'Belum diverifikasi',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.ewsIntervention,
+                fontWeight: FontWeight.w700,
+                fontSize: dense ? 11 : 12,
+              ),
             ),
           ),
         ],
