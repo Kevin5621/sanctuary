@@ -45,7 +45,7 @@ type ChatUsecase interface {
 // Kalimatnya sengaja tidak berpura-pura menjadi jawaban model: mahasiswa berhak
 // tahu bahwa yang ia baca adalah pesan sistem. Ia juga tidak menampilkan detail
 // teknis penyedia — itu hanya membingungkan dan membocorkan informasi internal.
-const fallbackReply = "Maaf, aku sedang tidak bisa menjawab saat ini. Pesanmu tetap tersimpan — " +
+const fallbackReply = "Maaf, aku sedang tidak bisa menjawab saat ini. Pesanmu tetap tersimpan. " +
 	"coba kirim ulang sebentar lagi. Kalau kamu butuh bicara dengan orang sungguhan sekarang, " +
 	"buka menu Layanan Bantuan Darurat."
 
@@ -310,7 +310,7 @@ func consentNotice() dto.ConsentNoticeResponse {
 			"Isi percakapanmu akan dikirim ke sana untuk diproses.",
 		Points: []string{
 			"Teks yang kamu tulis di tab ini dikirim ke Google Gemini untuk dibuatkan balasan.",
-			"Percakapanmu disimpan di akunmu dan hanya bisa dibaca olehmu — dosen, kaprodi, maupun admin tidak punya akses.",
+			"Percakapanmu disimpan di akunmu dan hanya bisa dibaca olehmu. Dosen, kaprodi, maupun admin tidak punya akses.",
 			"Terapis AI bukan psikolog dan tidak memberi diagnosis. Untuk keadaan darurat, gunakan menu Layanan Bantuan Darurat.",
 			"Kamu boleh menolak. Tab ini tetap bisa kamu pakai untuk latihan napas dan grounding, tanpa mengirim apa pun keluar.",
 			"Kamu bisa berubah pikiran kapan saja. Jika nanti kamu menolak, riwayat percakapanmu ikut dihapus.",

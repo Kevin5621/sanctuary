@@ -7,7 +7,6 @@ import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../privacy/presentation/pages/privacy_settings_page.dart';
 import 'bantuan_darurat_page.dart';
 import 'dass21_screening_page.dart';
-import 'edukasi_model_page.dart';
 import 'latihan_napas_page.dart';
 import 'pengingat_settings_page.dart';
 import 'riwayat_analisis_page.dart';
@@ -125,38 +124,29 @@ class ProfilTab extends StatelessWidget {
               destination: const RiwayatAnalisisPage(),
             ),
 
-            // 4. Edukasi Model
-            _buildMenuTile(
-              context,
-              icon: Icons.psychology_outlined,
-              title: '4. Edukasi Model IndoBERT',
-              subtitle: 'Bagaimana analisis emosi bekerja dan batasannya.',
-              destination: const EdukasiModelPage(),
-            ),
-
-            // 5. Layanan Bantuan Darurat
+            // 4. Layanan Bantuan Darurat
             _buildMenuTile(
               context,
               icon: Icons.emergency_outlined,
-              title: '5. Layanan Bantuan Darurat',
+              title: '4. Layanan Bantuan Darurat',
               subtitle: 'Nomor pendamping profesional 24/7.',
               destination: const BantuanDaruratPage(),
             ),
 
-            // 6. Latihan Napas & Grounding
+            // 5. Latihan Napas & Grounding
             _buildMenuTile(
               context,
               icon: Icons.air_rounded,
-              title: '6. Latihan Napas & Grounding',
+              title: '5. Latihan Napas & Grounding',
               subtitle: 'Panduan singkat untuk menenangkan diri (4-7-8).',
               destination: const LatihanNapasPage(),
             ),
 
-            // 7. Pengingat Notifikasi
+            // 6. Pengingat Notifikasi
             _buildMenuTile(
               context,
               icon: Icons.notifications_none_rounded,
-              title: '7. Pengingat Notifikasi',
+              title: '6. Pengingat Notifikasi',
               subtitle: 'Atur notifikasi check-in dan jadwal harian.',
               destination: const PengingatSettingsPage(),
             ),

@@ -40,7 +40,7 @@ var lexicon = []string{
 
 // message adalah teks pendamping kartu bantuan darurat.
 const message = "Sepertinya kamu sedang melewati masa yang sangat berat. " +
-	"Kamu tidak harus menghadapinya sendirian — buka menu Layanan Bantuan Darurat " +
+	"Kamu tidak harus menghadapinya sendirian. Buka menu Layanan Bantuan Darurat " +
 	"untuk terhubung dengan pendamping profesional sekarang."
 
 // Detect memeriksa teks bebas apa pun (jurnal maupun pesan chat).

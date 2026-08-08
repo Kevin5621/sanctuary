@@ -128,7 +128,7 @@ func ToEmotionHistory(journals []models.StudentJournal) dto.EmotionHistoryRespon
 	// Ambang yang sama dipakai statistik mood: satu-dua hasil belum membentuk
 	// pola, dan menyebutnya "tren" akan melebih-lebihkan apa yang diketahui.
 	if len(journals) < service.MoodStatsMinPoints {
-		response.Message = "Analisis masih sedikit — pola emosimu akan terlihat setelah beberapa catatan lagi."
+		response.Message = "Analisis masih sedikit. Pola emosimu akan terlihat setelah beberapa catatan lagi."
 		return response
 	}
 

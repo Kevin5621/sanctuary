@@ -72,7 +72,7 @@ var copingByEmotion = map[string][]string{
 	constants.EmotionTired: {
 		"Prioritaskan tidur 7 jam malam ini; catat jam tidurmu di menu Mood.",
 		"Ambil istirahat 20 menit tanpa layar setelah sesi belajar.",
-		"Tinjau ulang beban tugasmu — adakah yang bisa dinegosiasikan tenggatnya?",
+		"Tinjau ulang beban tugasmu, adakah yang bisa dinegosiasikan tenggatnya?",
 	},
 	constants.EmotionCalm: {
 		"Catat apa yang membuat harimu terasa tenang agar bisa diulang.",

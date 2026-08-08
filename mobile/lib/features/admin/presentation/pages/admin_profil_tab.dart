@@ -16,7 +16,7 @@ class AdminProfilTab extends StatelessWidget {
   const AdminProfilTab({super.key});
 
   static const _accessLimits = [
-    'Anda tidak dapat melihat data mahasiswa apa pun — indikator maupun agregat.',
+    'Anda tidak dapat melihat data mahasiswa apa pun (indikator maupun agregat).',
     'Anda tidak dapat membaca jurnal maupun percakapan Terapis AI.',
     'Anda tidak dapat melihat daftar bimbingan dosen atau dashboard prodi.',
     'Anda membuat akun dosen & kaprodi, tetapi tidak dapat melihat data yang '

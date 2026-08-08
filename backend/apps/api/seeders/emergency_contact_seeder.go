@@ -17,7 +17,7 @@ import (
 func (s *Seeder) seedEmergencyContacts(ctx context.Context) error {
 	contacts := []supportmodels.EmergencyContact{
 		{
-			Name:        "SEJIWA — Layanan Sehat Jiwa Kemenkes",
+			Name:        "SEJIWA: Layanan Sehat Jiwa Kemenkes",
 			Phone:       "119",
 			Description: "Hubungi 119 lalu tekan ekstensi 8. Layanan konseling psikologis nasional.",
 			ServiceType: constants.ServiceNationalHotline,
@@ -64,7 +64,7 @@ func (s *Seeder) seedEmergencyContacts(ctx context.Context) error {
 		{
 			Name:        "Hotline Sementara (nonaktif)",
 			Phone:       "(021) 5550-0199",
-			Description: "Contoh entri nonaktif — dipakai menguji filter is_active pada aplikasi mahasiswa.",
+			Description: "Contoh entri nonaktif, dipakai menguji filter is_active pada aplikasi mahasiswa.",
 			ServiceType: constants.ServiceOther,
 			Is24Hours:   false,
 			IsActive:    false,

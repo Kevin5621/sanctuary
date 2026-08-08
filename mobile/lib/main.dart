@@ -141,9 +141,8 @@ class _SanctuaryAppState extends State<SanctuaryApp> {
             title: AppConfig.appName,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
-            // Pilihan pengguna, bukan lagi selalu ThemeMode.system (M-PRO-08).
-            themeMode: themeMode,
+            darkTheme: AppTheme.light,
+            themeMode: ThemeMode.light,
             routerConfig: _router,
             builder: (context, child) =>
                 EnvironmentBanner(child: child ?? const SizedBox.shrink()),

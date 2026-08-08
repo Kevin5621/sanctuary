@@ -86,7 +86,7 @@ class AppConfig {
       throw StateError(
         'API_BASE_URL wajib diisi untuk lingkungan "${environment.code}". '
         'Jalankan build dengan --dart-define-from-file=config/env.${environment.code}.json '
-        'atau --dart-define=API_BASE_URL=... — aplikasi tidak boleh diam-diam '
+        'atau --dart-define=API_BASE_URL=... Aplikasi tidak boleh diam-diam '
         'memakai URL pengembangan pada build staging/production.',
       );
     }

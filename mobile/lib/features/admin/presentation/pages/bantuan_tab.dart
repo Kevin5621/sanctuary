@@ -60,7 +60,7 @@ class _BantuanView extends StatelessWidget {
         content: Text(
           '"${contact.name}" akan dihapus dan tidak lagi terlihat oleh '
           'siapa pun.\n\nBila Anda hanya ingin menyembunyikannya sementara, '
-          'nonaktifkan saja — datanya tetap tersimpan.',
+          'nonaktifkan saja, datanya tetap tersimpan.',
           style: const TextStyle(fontSize: 13, height: 1.4),
         ),
         actions: [
@@ -237,7 +237,7 @@ class _UnverifiedBanner extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Ini blocker rilis — aplikasi tidak boleh naik produksi selama '
+            'Ini blocker rilis: aplikasi tidak boleh naik produksi selama '
             'masih ada nomor yang belum dipastikan.',
             style: TextStyle(
               fontSize: 11.5,

@@ -325,9 +325,9 @@ class _AdvisorCard extends StatelessWidget {
                       [
                         if (advisor.lecturerNumber.isNotEmpty)
                           'NIP ${advisor.lecturerNumber}',
-                        advisor.email,
+                        if (advisor.email.isNotEmpty) advisor.email,
                       ].join(' · '),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 11.5,
@@ -479,19 +479,16 @@ class _AdvisorCard extends StatelessWidget {
                                 color: AppColors.midnight,
                               ),
                             ),
-                            Text(
-                              [
-                                if (advisee.studentNumber.isNotEmpty)
-                                  'NIM ${advisee.studentNumber}',
-                                advisee.email,
-                              ].join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.warmTextSecondary,
+                            if (advisee.studentNumber.isNotEmpty)
+                              Text(
+                                'NIM ${advisee.studentNumber}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.warmTextSecondary,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -650,6 +647,7 @@ class _KelolaBimbinganSheetState extends State<_KelolaBimbinganSheet> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedAdvisorId,
+                dropdownColor: Colors.white,
                 isExpanded: true,
                 icon: const Icon(Icons.arrow_drop_down_rounded,
                     color: AppColors.midnight),
@@ -783,17 +781,14 @@ class _KelolaBimbinganSheetState extends State<_KelolaBimbinganSheet> {
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                [
-                                  if (student.studentNumber.isNotEmpty)
-                                    'NIM ${student.studentNumber}',
-                                  student.email,
-                                ].join(' · '),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.warmTextSecondary,
+                              if (student.studentNumber.isNotEmpty)
+                                Text(
+                                  'NIM ${student.studentNumber}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.warmTextSecondary,
+                                  ),
                                 ),
-                              ),
                               if (hasOtherAdvisor)
                                 Text(
                                   'Saat ini dibimbing: ${student.advisorName}',

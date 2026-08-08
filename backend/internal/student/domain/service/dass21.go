@@ -279,7 +279,7 @@ func DassCopingSuggestions(depression, anxiety, stress constants.DassSeverity) [
 		return []string{
 			"Pecah tugas besarmu menjadi langkah 25 menit dengan jeda 5 menit.",
 			"Tetapkan satu jam bebas layar sebelum tidur.",
-			"Tinjau bebanmu — adakah tenggat yang masih bisa dinegosiasikan?",
+			"Tinjau bebanmu, adakah tenggat yang masih bisa dinegosiasikan?",
 		}
 	}
 }

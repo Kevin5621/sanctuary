@@ -48,22 +48,7 @@ class AppTheme {
         secondaryText: AppColors.warmTextSecondary,
       );
 
-  static ThemeData get dark => _build(
-        brightness: Brightness.dark,
-        scheme: const ColorScheme.dark(
-          primary: AppColors.lavender,
-          onPrimary: AppColors.darkBackground,
-          primaryContainer: AppColors.darkSurfaceAlt,
-          onPrimaryContainer: AppColors.darkTextPrimary,
-          secondary: AppColors.moodHappiness,
-          surface: AppColors.darkSurface,
-          onSurface: AppColors.darkTextPrimary,
-          surfaceContainerHighest: AppColors.darkSurfaceAlt,
-          error: AppColors.ewsIntervention,
-        ),
-        surface: AppColors.darkBackground,
-        secondaryText: AppColors.darkTextSecondary,
-      );
+  static ThemeData get dark => light;
 
   static ThemeData _build({
     required Brightness brightness,
@@ -129,11 +114,31 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
+      canvasColor: Colors.white,
+      dialogBackgroundColor: Colors.white,
       scaffoldBackgroundColor: surface,
       textTheme: textTheme,
     );
 
     return base.copyWith(
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: Colors.white,
+        selectedColor: AppColors.midnight,
+        disabledColor: AppColors.creamAlt,
+        secondarySelectedColor: AppColors.midnight,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        labelStyle: const TextStyle(color: AppColors.midnight),
+        secondaryLabelStyle: const TextStyle(color: Colors.white),
+        brightness: Brightness.light,
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: surface,
         surfaceTintColor: Colors.transparent,

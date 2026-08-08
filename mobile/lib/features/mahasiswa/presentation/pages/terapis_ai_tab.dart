@@ -277,7 +277,7 @@ class _SelfHelpScreen extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Kamu memilih untuk tidak mengirim percakapan ke layanan '
-                      'pihak ketiga. Pilihan itu dihormati — tidak ada teks yang '
+                      'pihak ketiga. Pilihan itu dihormati, tidak ada teks yang '
                       'dikirim keluar. Latihan di bawah ini berjalan sepenuhnya '
                       'di aplikasi.',
                       style: TextStyle(
@@ -761,7 +761,7 @@ class _MessageBubble extends StatelessWidget {
                           size: 12, color: AppColors.warmTextMuted),
                       const SizedBox(width: 4),
                       Text(
-                        'Pesan otomatis — model sedang tidak merespons',
+                        'Pesan otomatis: model sedang tidak merespons',
                         style: TextStyle(
                           fontSize: 10.5,
                           fontStyle: FontStyle.italic,

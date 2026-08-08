@@ -201,8 +201,7 @@ class _EmergencyContactFormPageState extends State<EmergencyContactFormPage> {
                     SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        'Penanda [VERIFIKASI] terdeteksi — nomor ini akan '
-                        'ditandai belum diverifikasi.',
+                        'Penanda [VERIFIKASI] terdeteksi, nomor ini akan ditandai belum diverifikasi.',
                         style: TextStyle(
                           fontSize: 11,
                           height: 1.3,
@@ -401,7 +400,7 @@ class _CriticalNoticeCard extends StatelessWidget {
           Expanded(
             child: Text(
               'Nomor ini akan dihubungi orang yang sedang tidak baik-baik saja. '
-              'Pastikan Anda benar-benar meneleponnya sebelum diaktifkan — '
+              'Pastikan Anda benar-benar meneleponnya sebelum diaktifkan, '
               'nomor krisis yang salah lebih berbahaya daripada tidak ada nomor.',
               style: TextStyle(
                 fontSize: 12,

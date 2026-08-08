@@ -585,10 +585,11 @@ class _AddNoteSheetState extends State<_AddNoteSheet> {
               final isSel = _selectedChannel == c.$1;
               return ChoiceChip(
                 showCheckmark: false,
+                backgroundColor: Colors.white,
+                selectedColor: AppColors.midnight,
                 label: Text(c.$2, style: const TextStyle(fontSize: 11)),
                 selected: isSel,
                 onSelected: (_) => setState(() => _selectedChannel = c.$1),
-                selectedColor: AppColors.midnight,
                 labelStyle: TextStyle(color: isSel ? Colors.white : AppColors.midnight),
               );
             }).toList(),
@@ -604,10 +605,11 @@ class _AddNoteSheetState extends State<_AddNoteSheet> {
               final isSel = _selectedStatus == s.$1;
               return ChoiceChip(
                 showCheckmark: false,
+                backgroundColor: Colors.white,
+                selectedColor: AppColors.midnight,
                 label: Text(s.$2, style: const TextStyle(fontSize: 11)),
                 selected: isSel,
                 onSelected: (_) => setState(() => _selectedStatus = s.$1),
-                selectedColor: AppColors.midnight,
                 labelStyle: TextStyle(color: isSel ? Colors.white : AppColors.midnight),
               );
             }).toList(),
@@ -620,6 +622,8 @@ class _AddNoteSheetState extends State<_AddNoteSheet> {
             decoration: InputDecoration(
               hintText: 'Tuliskan catatan hasil sapaan / bimbingan…',
               hintStyle: const TextStyle(fontSize: 12.5),
+              filled: true,
+              fillColor: Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               ),

@@ -135,7 +135,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_wrap(
         const AccessLimitsCard(limits: [
-          'Anda tidak dapat membaca jurnal mahasiswa — tanpa pengecualian.',
+          'Anda tidak dapat membaca jurnal mahasiswa.',
           'Anda tidak dapat membaca percakapan Terapis AI mahasiswa.',
         ]),
       ));
