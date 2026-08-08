@@ -14,10 +14,10 @@ import (
 
 func (s *Seeder) seedRoles(ctx context.Context) (map[constants.Role]authmodels.Role, error) {
 	descriptions := map[constants.Role]string{
-		constants.RoleStudent:       "Mahasiswa — pemilik data mood, jurnal, dan chat AI",
-		constants.RoleLecturer:      "Dosen Pembimbing — hanya melihat indikator sesuai izin mahasiswa",
-		constants.RoleHeadOfProgram: "Kaprodi — hanya melihat agregat prodi dengan ambang k-anonymity",
-		constants.RoleAdmin:         "Admin — mengelola layanan bantuan darurat",
+		constants.RoleStudent:       "Mahasiswa: pemilik data mood, jurnal, dan chat AI",
+		constants.RoleLecturer:      "Dosen Pembimbing: hanya melihat indikator sesuai izin mahasiswa",
+		constants.RoleHeadOfProgram: "Kaprodi: hanya melihat agregat prodi dengan ambang k-anonymity",
+		constants.RoleAdmin:         "Admin: mengelola layanan bantuan darurat",
 	}
 
 	result := make(map[constants.Role]authmodels.Role, len(constants.AllRoles))

@@ -14,7 +14,7 @@ import (
 // explanationText tampil di kartu sebelum tombol ditekan. Kalimatnya sengaja
 // menyebut batasnya secara eksplisit: mahasiswa yang tahu persis apa yang
 // dilihat dosen lebih mungkin menekan tombol ini saat benar membutuhkannya.
-const explanationText = "Pembimbingmu hanya akan melihat namamu dan waktu permintaan — " +
+const explanationText = "Pembimbingmu hanya akan melihat namamu dan waktu permintaan. " +
 	"tanpa isi jurnal, tanpa alasan, dan tanpa skor apa pun. Catatan yang kamu tulis " +
 	"di sini hanya untuk pengingat dirimu sendiri."
 

@@ -98,7 +98,7 @@ func ToDassHistory(results []models.Dass21Result) dto.DassHistoryResponse {
 	}
 
 	if len(results) < 2 {
-		response.ChangeLabel = "Belum ada pembanding — isi lagi beberapa minggu ke depan"
+		response.ChangeLabel = "Belum ada pembanding, isi lagi beberapa minggu ke depan"
 		return response
 	}
 

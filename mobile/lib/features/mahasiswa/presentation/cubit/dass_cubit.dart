@@ -55,7 +55,7 @@ class DassCubit extends Cubit<DassState> {
   Future<bool> submit() async {
     if (!state.isComplete) {
       emit(state.copyWith(
-        errorMessage: 'Lengkapi semua soal dulu — skor hanya bermakna bila terisi penuh.',
+          errorMessage: 'Lengkapi semua soal dulu. Skor hanya bermakna bila terisi penuh.',
       ));
       return false;
     }

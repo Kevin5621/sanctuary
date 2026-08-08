@@ -46,32 +46,21 @@ class ThemePreferenceStorage {
 /// `ThemeMode.system` hanya menjadi nilai awal sebelum pengguna memilih,
 /// bukan satu-satunya perilaku yang mungkin.
 class ThemeCubit extends Cubit<ThemeMode> {
-  ThemeCubit(this._storage) : super(ThemeMode.system);
+  ThemeCubit(this._storage) : super(ThemeMode.light);
 
   final ThemePreferenceStorage _storage;
 
   /// Dipanggil sekali saat startup, sebelum MaterialApp dibangun.
   Future<void> restore() async {
-    emit(await _storage.read());
+    emit(ThemeMode.light);
   }
 
   Future<void> setMode(ThemeMode mode) async {
-    if (mode == state) return;
-    emit(mode);
-    await _storage.write(mode);
+    emit(ThemeMode.light);
+    await _storage.write(ThemeMode.light);
   }
 
-  /// Toggle dua arah untuk switch sederhana pada layar Profil.
-  ///
-  /// Saat masih mengikuti sistem, nilai [isCurrentlyDark] menentukan arah
-  /// pertama supaya sakelarnya bergerak sesuai yang dilihat pengguna, bukan
-  /// melompat ke tema yang sama dengan tampilan saat itu.
   Future<void> toggleDark({required bool isCurrentlyDark}) {
-    final target = switch (state) {
-      ThemeMode.system => isCurrentlyDark ? ThemeMode.light : ThemeMode.dark,
-      ThemeMode.dark => ThemeMode.light,
-      ThemeMode.light => ThemeMode.dark,
-    };
-    return setMode(target);
+    return setMode(ThemeMode.light);
   }
 }

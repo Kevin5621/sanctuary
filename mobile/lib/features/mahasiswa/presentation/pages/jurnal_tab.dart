@@ -337,7 +337,7 @@ class _AnalysisCard extends StatelessWidget {
           // Transparansi model ditempatkan di tempat hasilnya dibaca, bukan
           // hanya di layar edukasi yang jarang dibuka.
           Text(
-            'Analisis otomatis (${analysis.modelVersion}) bisa keliru — kamu yang paling tahu perasaanmu.',
+            'Analisis otomatis (${analysis.modelVersion}) bisa keliru. Kamu yang paling tahu perasaanmu.',
             style: TextStyle(
               fontSize: 10,
               fontStyle: FontStyle.italic,

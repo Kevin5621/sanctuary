@@ -378,8 +378,7 @@ class _ModelNoteCard extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Label emosi dihasilkan analisis otomatis ($modelVersion) dan bisa keliru. '
-              'Kamu yang paling tahu perasaanmu — hasil ini hanya bahan refleksi.',
+              'Label emosi dihasilkan analisis otomatis ($modelVersion). Kamu yang paling tahu perasaanmu, hasil ini hanya bahan refleksi.',
               style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.warmTextSecondary,

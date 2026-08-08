@@ -407,13 +407,13 @@ func (u *mentorUsecase) ListContactRequests(
 // produk ini. Menyatakan batasnya terang-terangan ke dosen adalah cara termurah
 // menurunkan kecurigaan tersebut.
 var mentorAccessLimits = []string{
-	"Anda tidak dapat membaca jurnal mahasiswa — tanpa pengecualian.",
-	"Anda tidak dapat membaca percakapan Terapis AI mahasiswa.",
-	"Anda hanya melihat indikator mahasiswa bimbingan Anda sendiri, sebatas izin yang mereka pilih.",
-	"Mahasiswa yang memilih Tertutup tidak menampilkan indikator apa pun kepada Anda.",
-	"Pada daftar \"minta dihubungi\", Anda hanya menerima nama dan waktu — bukan alasannya.",
-	"Aplikasi ini bukan kanal pesan: hubungi mahasiswa melalui jalur yang biasa Anda pakai.",
-	"Setiap kali Anda membuka indikator seorang mahasiswa, akses tersebut tercatat pada log audit.",
+	"Anda tidak dapat membaca jurnal mahasiswa.",
+	"Anda tidak dapat membaca percakapan Terapis AI.",
+	"Anda hanya melihat indikator mahasiswa bimbingan Anda sendiri, sesuai izin yang dipilih.",
+	"Mahasiswa yang memilih Tertutup tidak menampilkan indikator apa pun.",
+	"Pada daftar \"minta dihubungi\", Anda hanya menerima nama dan waktu (bukan alasannya).",
+	"Aplikasi ini bukan kanal pesan: gunakan jalur komunikasi pribadi yang biasa.",
+	"Setiap kali Anda membuka indikator, akses tersebut tercatat pada log audit.",
 }
 
 func (u *mentorUsecase) Profile(

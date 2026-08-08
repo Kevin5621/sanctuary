@@ -271,7 +271,7 @@ func (u *programUsecase) CohortReport(ctx context.Context, access Access, period
 // tab Profil (K-PRO-01).
 var programAccessLimits = []string{
 	"Anda tidak dapat membuka indikator kondisi per mahasiswa.",
-	"Anda tidak melihat nama siapa pun pada data kondisi — seluruhnya agregat.",
+	"Anda tidak melihat nama siapa pun pada data kondisi (seluruhnya agregat).",
 	"Anda tidak dapat membaca jurnal maupun percakapan Terapis AI mahasiswa.",
 	"Angka agregat hanya muncul bila kelompoknya minimal " +
 		strconv.Itoa(utils.KAnonymityMinGroup()) + " mahasiswa.",

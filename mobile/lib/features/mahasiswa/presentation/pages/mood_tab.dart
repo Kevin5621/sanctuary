@@ -721,8 +721,8 @@ class _EmotionDistributionCard extends StatelessWidget {
             ),
             SizedBox(height: 6),
             Text(
-              'Belum ada check-in yang diberi label emosi. Emosi bersifat opsional — '
-              'mengisinya membuat sebaran ini punya arti.',
+              'Belum ada check-in yang diberi label emosi. Emosi bersifat opsional. '
+              'Mengisinya membuat sebaran ini punya arti.',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.warmTextSecondary,

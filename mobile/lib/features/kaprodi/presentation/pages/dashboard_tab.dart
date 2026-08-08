@@ -228,7 +228,7 @@ class _DashboardContent extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         const Text(
-          'Proporsi, bukan jumlah orang — sama alasannya dengan metrik intervensi',
+          'Proporsi, bukan jumlah orang (sama alasannya dengan metrik intervensi)',
           style: TextStyle(fontSize: 12, color: AppColors.warmTextSecondary),
         ),
         const SizedBox(height: AppSpacing.sm),
