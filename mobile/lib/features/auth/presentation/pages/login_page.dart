@@ -144,7 +144,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: AppSpacing.lg),
 
-                      const _EmergencyHelpLink(),
+                      // const _EmergencyHelpLink(),
                     ],
                   ),
                 ),
@@ -158,42 +158,42 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 /// Link halus ke bantuan darurat tanpa mengalihkan perhatian dari form utama.
-class _EmergencyHelpLink extends StatelessWidget {
-  const _EmergencyHelpLink();
+// class _EmergencyHelpLink extends StatelessWidget {
+//   const _EmergencyHelpLink();
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+//   @override
+//   Widget build(BuildContext context) {
+//     final theme = Theme.of(context);
 
-    return Column(
-      children: [
-        Text(
-          'Butuh bantuan segera tanpa masuk?',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        InkWell(
-          onTap: () {
-            // Pengguna dapat diarahkan ke kontak bantuan darurat bila diperlukan
-          },
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: AppSpacing.xs,
-            ),
-            child: Text(
-              'Akses Layanan Darurat',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w600,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
+//     return Column(
+//       children: [
+//         Text(
+//           'Butuh bantuan segera tanpa masuk?',
+//           textAlign: TextAlign.center,
+//           style: theme.textTheme.bodySmall,
+//         ),
+//         const SizedBox(height: AppSpacing.xs),
+//         InkWell(
+//           onTap: () {
+//             // Pengguna dapat diarahkan ke kontak bantuan darurat bila diperlukan
+//           },
+//           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+//           child: Padding(
+//             padding: const EdgeInsets.symmetric(
+//               horizontal: AppSpacing.sm,
+//               vertical: AppSpacing.xs,
+//             ),
+//             child: Text(
+//               'Akses Layanan Darurat',
+//               style: theme.textTheme.bodySmall?.copyWith(
+//                 color: theme.colorScheme.primary,
+//                 fontWeight: FontWeight.w600,
+//                 decoration: TextDecoration.underline,
+//               ),
+//             ),
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+// }
