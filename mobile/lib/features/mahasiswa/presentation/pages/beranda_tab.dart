@@ -76,6 +76,7 @@ class _BerandaView extends StatelessWidget {
                   Expanded(
                     child: Container(
                       width: double.infinity,
+                      clipBehavior: Clip.antiAlias,
                       decoration: const BoxDecoration(
                         color: AppColors.creamBg,
                         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),

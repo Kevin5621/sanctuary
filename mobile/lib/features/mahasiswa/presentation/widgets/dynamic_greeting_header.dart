@@ -30,7 +30,7 @@ class DynamicGreetingHeader extends StatefulWidget {
   }
 
   static Color getScaffoldColor(TimeOfDayPhase phase) {
-    return _TimePhaseConfig.forPhase(phase).frontHillsColor;
+    return _TimePhaseConfig.forPhase(phase).scaffoldColor;
   }
 
   @override
@@ -67,13 +67,13 @@ class _DynamicGreetingHeaderState extends State<DynamicGreetingHeader>
       width: double.infinity,
       child: Stack(
         children: [
-          // Latar Belakang Gradient Atmosferik & Lukisan Bukit Minimalis
+          // Latar Belakang Gradient Atmosferik Clean & Simple
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _animController,
               builder: (context, child) {
                 return CustomPaint(
-                  painter: _ModernMinimalistBackgroundPainter(
+                  painter: _CleanAtmosphericBackgroundPainter(
                     progress: _animController.value,
                     phase: phase,
                     config: config,
@@ -89,7 +89,7 @@ class _DynamicGreetingHeaderState extends State<DynamicGreetingHeader>
               AppSpacing.md,
               12,
               AppSpacing.md,
-              28,
+              24,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +180,7 @@ class _DynamicGreetingHeaderState extends State<DynamicGreetingHeader>
                       ),
                   ],
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
                 // Greeting & Subtitle Bersih & Spacious
                 Center(
@@ -193,13 +193,6 @@ class _DynamicGreetingHeaderState extends State<DynamicGreetingHeader>
                           fontSize: 26,
                           color: Colors.white,
                           letterSpacing: -0.4,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black12,
-                              offset: Offset(0, 2),
-                              blurRadius: 4,
-                            ),
-                          ],
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -218,7 +211,7 @@ class _DynamicGreetingHeaderState extends State<DynamicGreetingHeader>
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -229,7 +222,7 @@ class _DynamicGreetingHeaderState extends State<DynamicGreetingHeader>
 }
 
 // ------------------------------------------------------------------
-// Konfigurasi Atmosfer Waktu Modern Minimalism
+// Konfigurasi Atmosfer Waktu Clean & Simple
 // ------------------------------------------------------------------
 
 class _TimePhaseConfig {
@@ -239,8 +232,8 @@ class _TimePhaseConfig {
     required this.subtitleDefault,
     required this.subtitleCheckedIn,
     required this.backgroundGradient,
-    required this.backHillsColor,
-    required this.frontHillsColor,
+    required this.glowAccentColor,
+    required this.scaffoldColor,
   });
 
   final String greeting;
@@ -248,8 +241,8 @@ class _TimePhaseConfig {
   final String subtitleDefault;
   final String subtitleCheckedIn;
   final LinearGradient backgroundGradient;
-  final Color backHillsColor;
-  final Color frontHillsColor;
+  final Color glowAccentColor;
+  final Color scaffoldColor;
 
   factory _TimePhaseConfig.forPhase(TimeOfDayPhase phase) {
     switch (phase) {
@@ -261,15 +254,14 @@ class _TimePhaseConfig {
           subtitleCheckedIn: 'Terima kasih sudah check-in pagi ini.',
           backgroundGradient: LinearGradient(
             colors: [
-              Color(0xFF4A6572), // Soft Blue Steel
-              Color(0xFF8E24AA), // Elegant Soft Violet
-              Color(0xFFE57373), // Soft Rose Sunset
+              Color(0xFF1E293B), // Deep Slate
+              Color(0xFF0F172A), // Midnight Navy Slate
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          backHillsColor: Color(0x66AB47BC),
-          frontHillsColor: Color(0xFF8E24AA),
+          glowAccentColor: Color(0xFFF59E0B), // Warm Amber Glow
+          scaffoldColor: Color(0xFF1E293B),
         );
       case TimeOfDayPhase.siang:
         return const _TimePhaseConfig(
@@ -279,15 +271,14 @@ class _TimePhaseConfig {
           subtitleCheckedIn: 'Terima kasih sudah check-in siang ini.',
           backgroundGradient: LinearGradient(
             colors: [
-              Color(0xFF0288D1), // Deep Azure Sky
-              Color(0xFF29B6F6), // Bright Sky
-              Color(0xFF80DEEA), // Soft Cyan
+              Color(0xFF0288D1), // Sky Azure Blue
+              Color(0xFF0F172A), // Midnight Navy Transition
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          backHillsColor: Color(0x664DD0E1),
-          frontHillsColor: Color(0xFF0288D1),
+          glowAccentColor: Color(0xFF38BDF8), // Cyan Sky Glow
+          scaffoldColor: Color(0xFF0288D1),
         );
       case TimeOfDayPhase.sore:
         return const _TimePhaseConfig(
@@ -297,15 +288,14 @@ class _TimePhaseConfig {
           subtitleCheckedIn: 'Terima kasih sudah check-in sore ini.',
           backgroundGradient: LinearGradient(
             colors: [
-              Color(0xFF3B1F50), // Deep Purple
-              Color(0xFF6A1B9A), // Royal Violet
-              Color(0xFFFF7043), // Soft Warm Coral
+              Color(0xFF2E1065), // Deep Sunset Dusk Violet
+              Color(0xFF0F172A), // Midnight Navy Transition
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          backHillsColor: Color(0x668E24AA),
-          frontHillsColor: Color(0xFF3B1F50),
+          glowAccentColor: Color(0xFFFB7185), // Warm Rose Sunset Glow
+          scaffoldColor: Color(0xFF2E1065),
         );
       case TimeOfDayPhase.malam:
         return const _TimePhaseConfig(
@@ -315,26 +305,25 @@ class _TimePhaseConfig {
           subtitleCheckedIn: 'Terima kasih sudah check-in malam ini.',
           backgroundGradient: LinearGradient(
             colors: [
-              Color(0xFF0B0F19), // Deep Midnight
-              Color(0xFF161936), // Calm Indigo
-              Color(0xFF282C54), // Twilight Slate
+              Color(0xFF090D16), // Deep Midnight
+              Color(0xFF0F172A), // Dark Slate
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          backHillsColor: Color(0x553730A3),
-          frontHillsColor: Color(0xFF0B0F19),
+          glowAccentColor: Color(0xFF818CF8), // Soft Moonlight Indigo Glow
+          scaffoldColor: Color(0xFF090D16),
         );
     }
   }
 }
 
 // ------------------------------------------------------------------
-// Modern Minimalist Background Painter
+// Clean Atmospheric Background Painter
 // ------------------------------------------------------------------
 
-class _ModernMinimalistBackgroundPainter extends CustomPainter {
-  _ModernMinimalistBackgroundPainter({
+class _CleanAtmosphericBackgroundPainter extends CustomPainter {
+  _CleanAtmosphericBackgroundPainter({
     required this.progress,
     required this.phase,
     required this.config,
@@ -345,24 +334,23 @@ class _ModernMinimalistBackgroundPainter extends CustomPainter {
   final _TimePhaseConfig config;
 
   static const List<_StarSpec> _stars = [
-    _StarSpec(0.12, 0.15, 2.0, 0.0, 0.85),
-    _StarSpec(0.25, 0.28, 1.6, 1.2, 0.7),
-    _StarSpec(0.38, 0.12, 2.4, 2.4, 0.9),
-    _StarSpec(0.55, 0.22, 1.8, 0.6, 0.75),
-    _StarSpec(0.72, 0.18, 2.2, 3.1, 0.85),
-    _StarSpec(0.88, 0.25, 1.5, 1.8, 0.7),
+    _StarSpec(0.12, 0.20, 1.8, 0.0, 0.7),
+    _StarSpec(0.28, 0.35, 1.4, 1.2, 0.6),
+    _StarSpec(0.45, 0.18, 2.0, 2.4, 0.8),
+    _StarSpec(0.65, 0.30, 1.5, 0.6, 0.65),
+    _StarSpec(0.82, 0.22, 1.8, 3.1, 0.75),
   ];
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
 
-    // 1. Langit Gradient
+    // 1. Clean 2-Stop Linear Gradient Sky
     final skyPaint = Paint()
       ..shader = config.backgroundGradient.createShader(rect);
     canvas.drawRect(rect, skyPaint);
 
-    // 2. Bintang Berkelap-Kelip (Khusus Malam - Sangat Halus)
+    // 2. Bintang Berkelap-Kelip (Khusus Malam)
     if (phase == TimeOfDayPhase.malam) {
       final starPaint = Paint()..style = PaintingStyle.fill;
       for (final star in _stars) {
@@ -375,62 +363,26 @@ class _ModernMinimalistBackgroundPainter extends CustomPainter {
       }
     }
 
-    // 3. Ambient Glow Aura Matahari/Bulan (Di Pojok Kanan Atas, Tidak Menumpuk Teks)
+    // 3. Ultra-soft Ambient Glow Aura (Top Right)
     final pulse = math.sin(progress * math.pi * 2);
-    final glowCenter = Offset(size.width * 0.82, size.height * 0.25);
-    const glowRadius = 60.0;
+    final glowCenter = Offset(size.width * 0.85, size.height * 0.22);
+    const glowRadius = 90.0;
 
     final glowPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          Colors.white.withValues(alpha: 0.25 + (pulse * 0.05)),
-          Colors.white.withValues(alpha: 0.05),
+          config.glowAccentColor.withValues(alpha: 0.22 + (pulse * 0.04)),
+          config.glowAccentColor.withValues(alpha: 0.05),
           Colors.transparent,
         ],
       ).createShader(
         Rect.fromCircle(center: glowCenter, radius: glowRadius),
       );
     canvas.drawCircle(glowCenter, glowRadius, glowPaint);
-
-    // 4. Lapisan Bukit Belakang (Soft Minimalist Curve)
-    final backHillPath = Path()
-      ..moveTo(0, size.height * 0.72)
-      ..cubicTo(
-        size.width * 0.4,
-        size.height * 0.65,
-        size.width * 0.7,
-        size.height * 0.78,
-        size.width,
-        size.height * 0.70,
-      )
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    final backHillPaint = Paint()..color = config.backHillsColor;
-    canvas.drawPath(backHillPath, backHillPaint);
-
-    // 5. Lapisan Bukit Depan (Seamless Transition ke Content Sheet)
-    final frontHillPath = Path()
-      ..moveTo(0, size.height * 0.82)
-      ..cubicTo(
-        size.width * 0.35,
-        size.height * 0.90,
-        size.width * 0.65,
-        size.height * 0.78,
-        size.width,
-        size.height * 0.85,
-      )
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    final frontHillPaint = Paint()..color = config.frontHillsColor;
-    canvas.drawPath(frontHillPath, frontHillPaint);
   }
 
   @override
-  bool shouldRepaint(covariant _ModernMinimalistBackgroundPainter oldDelegate) {
+  bool shouldRepaint(covariant _CleanAtmosphericBackgroundPainter oldDelegate) {
     return oldDelegate.progress != progress || oldDelegate.phase != phase;
   }
 }
