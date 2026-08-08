@@ -1,7 +1,3 @@
-import 'dart:io' show Platform;
-
-import 'package:flutter/foundation.dart';
-
 /// Lingkungan build. Menentukan default API base URL dan apakah aplikasi
 /// boleh diam-diam jatuh ke URL pengembangan.
 enum AppEnvironment {
@@ -91,12 +87,12 @@ class AppConfig {
       );
     }
 
-    // Default kenyamanan HANYA untuk development: emulator Android memetakan
-    // host mesin developer ke 10.0.2.2, bukan localhost.
-    if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.0.2.2:8080/api/v1';
-    }
-    return 'http://localhost:8080/api/v1';
+    // Default kenyamanan HANYA untuk development: menunjuk langsung ke VPS
+    // staging agar `flutter run` tanpa flag apa pun tetap dapat login.
+    // Untuk backend yang jalan di mesin sendiri, override lewat
+    // --dart-define=API_BASE_URL=http://10.0.2.2:8080/api/v1 (emulator Android
+    // memetakan host developer ke 10.0.2.2, bukan localhost).
+    return 'http://202.10.38.33:8080/api/v1';
   }
 
   static const appName = 'Sanctuary';

@@ -46,6 +46,17 @@ class PaginationMeta {
 ///  - menerjemahkan seluruh kegagalan menjadi [ApiException],
 ///  - melakukan refresh token otomatis satu kali saat menerima 401.
 class DioClient {
+  /// Endpoint yang tidak boleh dibawakan Bearer token: seluruhnya berada di
+  /// luar middleware Auth backend, dan token sesi lama yang ikut terkirim
+  /// hanya membuat kunci rate limit (`KeyByUser`) menunjuk ke user yang salah.
+  /// Refresh memakai refresh_token pada body, bukan header Authorization.
+  static const _publicPaths = {
+    '/auth/login',
+    '/auth/register',
+    '/auth/refresh',
+    '/auth/study-programs',
+  };
+
   DioClient({
     required TokenStorage tokenStorage,
     required this.onSessionExpired,
@@ -71,9 +82,11 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _tokenStorage.readAccessToken();
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+          if (!_publicPaths.contains(options.path)) {
+            final token = await _tokenStorage.readAccessToken();
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
           }
           handler.next(options);
         },
