@@ -486,8 +486,8 @@ class _ContactRequestCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   contact.hasOpenRequest
-                      ? 'Permintaan terkirim ke ${contact.advisorName}'
-                      : 'Ingin disapa ${contact.advisorName}?',
+                      ? 'Permintaan terkirim ke ${contact.advisorSummary}'
+                      : 'Ingin disapa ${contact.advisorSummary}?',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
@@ -497,6 +497,22 @@ class _ContactRequestCard extends StatelessWidget {
               ),
             ],
           ),
+
+          // Saat pembimbingnya lebih dari satu, namanya tetap disebut satu per
+          // satu. "2 pembimbingmu" saja menyisakan pertanyaan siapa — dan
+          // pertanyaan itu justru yang membuat orang ragu menekan tombolnya.
+          if (contact.hasMultipleAdvisors) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final advisor in contact.advisors)
+                  _AdvisorChip(name: advisor.fullName),
+              ],
+            ),
+          ],
+
           const SizedBox(height: 6),
           Text(
             // Penjelasan datang dari server: janji privasi hanya boleh punya
@@ -540,6 +556,40 @@ class _ContactRequestCard extends StatelessWidget {
               ),
               child: const Text('Minta dihubungi', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Chip nama pembimbing — dipakai saat mahasiswa punya lebih dari satu.
+class _AdvisorChip extends StatelessWidget {
+  const _AdvisorChip({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+        border: Border.all(color: AppColors.cartoonBorder, width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.person_rounded, size: 13, color: AppColors.midnight),
+          const SizedBox(width: 5),
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.midnight,
+            ),
+          ),
         ],
       ),
     );

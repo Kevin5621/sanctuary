@@ -55,20 +55,43 @@ func (h *ProgramHandler) Students(c *gin.Context) {
 	utils.OK(c, res)
 }
 
-// AssignAdvisor godoc: PUT /api/v1/programs/me/advisors/assign
-func (h *ProgramHandler) AssignAdvisor(c *gin.Context) {
-	var req dto.AssignAdvisorRequest
+// SetAdvisees godoc: PUT /api/v1/programs/me/advisors/:advisorId/advisees
+//
+// Body memuat daftar UTUH mahasiswa bimbingan dosen tersebut. Mahasiswa yang
+// hilang dari daftar dilepas dari dosen INI saja — pembimbing lainnya tidak
+// ikut terlepas.
+func (h *ProgramHandler) SetAdvisees(c *gin.Context) {
+	var req dto.SetAdviseesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.FailBinding(c, err)
 		return
 	}
 
-	err := h.uc.AssignAdvisor(c.Request.Context(), h.accessFrom(c), req)
+	err := h.uc.SetAdvisees(c.Request.Context(), h.accessFrom(c), c.Param("advisorId"), req)
 	if err != nil {
 		utils.Fail(c, err)
 		return
 	}
 	utils.OK(c, gin.H{"message": "Mahasiswa bimbingan berhasil diperbarui"})
+}
+
+// SetStudentAdvisors godoc: PUT /api/v1/programs/me/students/:studentId/advisors
+//
+// Body memuat daftar utuh pembimbing seorang mahasiswa — inilah jalur yang
+// dipakai saat satu mahasiswa dibimbing lebih dari satu dosen.
+func (h *ProgramHandler) SetStudentAdvisors(c *gin.Context) {
+	var req dto.SetStudentAdvisorsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.FailBinding(c, err)
+		return
+	}
+
+	err := h.uc.SetStudentAdvisors(c.Request.Context(), h.accessFrom(c), c.Param("studentId"), req)
+	if err != nil {
+		utils.Fail(c, err)
+		return
+	}
+	utils.OK(c, gin.H{"message": "Pembimbing mahasiswa berhasil diperbarui"})
 }
 
 // CohortReport godoc: GET /api/v1/programs/me/reports/cohorts?period_days=90

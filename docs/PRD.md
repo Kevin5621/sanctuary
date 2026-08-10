@@ -336,13 +336,17 @@ Base `/api/v1`. `me` selalu berarti pemilik token — tidak ada endpoint yang me
 | GET | `/students/me/dass21/questions` | Mahasiswa | ✅ katalog soal dari server |
 | GET/POST | `/students/me/dass21` | Mahasiswa | ✅ M-PRO-01 (skoring server-side) |
 | GET/POST | `/students/me/chats` | Mahasiswa (`PrivateContentGuard`) | ⬜ M-AI-02 |
-| GET/POST/DELETE | `/students/me/contact-requests` | Mahasiswa | ✅ M-X-01/02 |
+| GET/POST/DELETE | `/students/me/contact-requests` | Mahasiswa | ✅ M-X-01/02 (terbaca seluruh pembimbing) |
+| GET | `/students/me/advisors` | Mahasiswa | ✅ daftar pembimbing sendiri (bisa >1) |
 | GET | `/mentors/me/students` | Dosen | ✅ |
 | GET | `/mentors/me/students/:id` | Dosen (wajib pembimbingnya) | ✅ |
 | GET | `/mentors/me/condition?period_days=30\|90\|120` | Dosen (k ≥ 5) | ✅ |
 | GET | `/mentors/me/contact-requests` | Dosen | ✅ nama + waktu saja |
 | GET | `/mentors/me/profile` | Dosen | ✅ L-PRO-02..03 |
 | GET | `/programs/me/dashboard`, `/advisors`, `/reports/cohorts` | Kaprodi (k ≥ 5) | ✅ |
+| GET | `/programs/me/students` | Kaprodi | ✅ administratif + daftar pembimbing per mahasiswa |
+| PUT | `/programs/me/advisors/:advisorId/advisees` | Kaprodi | ✅ set daftar bimbingan satu dosen |
+| PUT | `/programs/me/students/:studentId/advisors` | Kaprodi | ✅ set pembimbing satu mahasiswa (multi) |
 | GET | `/programs/me/profile` | Kaprodi | ✅ K-PRO-01 |
 | GET | `/support/emergency-contacts` | semua peran | ✅ |
 | POST/PUT/DELETE | `/support/emergency-contacts[/:id]` | Admin | ✅ |

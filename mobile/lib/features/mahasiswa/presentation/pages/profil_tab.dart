@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/cartoon_mood_blob.dart';
 import '../../../../core/widgets/privacy_states.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../privacy/presentation/pages/privacy_settings_page.dart';
+import '../../data/repositories/contact_request_repository.dart';
+import '../../domain/entities/advisor.dart';
+import '../cubit/my_advisors_cubit.dart';
 import 'bantuan_darurat_page.dart';
 import 'dass21_screening_page.dart';
 import 'latihan_napas_page.dart';
@@ -13,6 +17,19 @@ import 'riwayat_analisis_page.dart';
 
 class ProfilTab extends StatelessWidget {
   const ProfilTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) =>
+          MyAdvisorsCubit(context.read<ContactRequestRepository>())..load(),
+      child: const _ProfilView(),
+    );
+  }
+}
+
+class _ProfilView extends StatelessWidget {
+  const _ProfilView();
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +101,13 @@ class ProfilTab extends StatelessWidget {
                 ],
               ),
             ),
+
+            const SizedBox(height: AppSpacing.md),
+
+            // Kartu pembimbing berada tepat di atas menu privasi dengan sengaja:
+            // pilihan "seberapa banyak yang boleh dilihat" baru bermakna kalau
+            // mahasiswa lebih dulu tahu siapa saja yang melihatnya.
+            const _AdvisorsCard(),
 
             const SizedBox(height: AppSpacing.lg),
 
@@ -215,6 +239,176 @@ class ProfilTab extends StatelessWidget {
             MaterialPageRoute(builder: (_) => destination),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Kartu "Pembimbingmu" — daftar dosen yang membimbing mahasiswa ini.
+///
+/// Ditampilkan sebagai daftar (bukan satu baris teks) karena seorang mahasiswa
+/// dapat dibimbing lebih dari satu dosen, dan semuanya punya akses yang sama.
+class _AdvisorsCard extends StatelessWidget {
+  const _AdvisorsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<MyAdvisorsCubit, MyAdvisorsState>(
+      builder: (context, state) {
+        if (state.isLoading) {
+          return const StateCard(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.midnight,
+                  ),
+                ),
+                SizedBox(width: AppSpacing.sm),
+                Text(
+                  'Memuat data pembimbing…',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.warmTextSecondary,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (state.isFailure) {
+          return ErrorStateCard(
+            message: state.errorMessage ??
+                'Data pembimbing gagal dimuat. Coba lagi sebentar.',
+            onRetry: () => context.read<MyAdvisorsCubit>().load(),
+          );
+        }
+
+        final advisors = state.advisors;
+        return StateCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.school_outlined,
+                      size: 18, color: AppColors.midnight),
+                  const SizedBox(width: AppSpacing.sm),
+                  const Expanded(
+                    child: Text(
+                      'Pembimbingmu',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.midnight,
+                      ),
+                    ),
+                  ),
+                  if (!advisors.isEmpty)
+                    WavyBadge(
+                      text: '${advisors.total} Dosen',
+                      color: AppColors.lavenderBg,
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+
+              if (advisors.isEmpty)
+                const Text(
+                  'Belum ada dosen pembimbing yang ditetapkan.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.warmTextSecondary,
+                  ),
+                )
+              else
+                for (final advisor in advisors.advisors)
+                  _AdvisorRow(advisor: advisor),
+
+              const SizedBox(height: AppSpacing.sm),
+              // Kalimat konsekuensi ditulis server — satu rumusan yang sama
+              // dengan yang ditegakkan API.
+              Text(
+                advisors.notice,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  height: 1.4,
+                  color: AppColors.warmTextMuted,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AdvisorRow extends StatelessWidget {
+  const _AdvisorRow({required this.advisor});
+
+  final Advisor advisor;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = [
+      if (advisor.lecturerNumber.isNotEmpty) 'NIDN ${advisor.lecturerNumber}',
+      if (advisor.email.isNotEmpty) advisor.email,
+    ].join(' · ');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: AppColors.lavenderBg,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                advisor.initial,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: AppColors.midnight,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  advisor.fullName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    color: AppColors.midnight,
+                  ),
+                ),
+                if (subtitle.isNotEmpty)
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.warmTextSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

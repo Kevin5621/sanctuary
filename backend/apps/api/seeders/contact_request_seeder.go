@@ -14,10 +14,13 @@ import (
 // Note diisi untuk memastikan kolomnya benar-benar terisi di basis data —
 // justru supaya dapat dibuktikan bahwa jalur dosen tetap tidak menampilkannya
 // (dosen hanya menerima nama dan waktu).
-func (s *Seeder) seedContactRequest(ctx context.Context, student authmodels.User, advisorID string) error {
+//
+// Tanpa tujuan dosen tertentu: permintaan ini terbaca oleh SELURUH pembimbing
+// mahasiswa tersebut. Mahasiswa demo yang memakainya sengaja punya dua
+// pembimbing, sehingga satu baris ini muncul di dua daftar sekaligus.
+func (s *Seeder) seedContactRequest(ctx context.Context, student authmodels.User) error {
 	request := studentmodels.StudentContactRequest{
 		StudentID: student.ID,
-		AdvisorID: advisorID,
 		Status:    studentmodels.ContactRequestOpen,
 		Note:      "Ingin berdiskusi soal beban tugas minggu ini.",
 	}

@@ -100,6 +100,12 @@ type StudentIndicatorResponse struct {
 	ShareLevelLabel string  `json:"share_level_label"`
 	PrivacyNotice   string  `json:"privacy_notice,omitempty"`
 
+	// CoAdvisors adalah nama pembimbing LAIN dari mahasiswa ini (administratif).
+	// Ditampilkan supaya dosen tahu pendampingan ditanggung bersama dan tidak
+	// menghubungi mahasiswa yang sama secara bertubrukan. Tidak membawa satu pun
+	// angka kondisi — daftar nama, titik.
+	CoAdvisors []string `json:"co_advisors,omitempty"`
+
 	Summary *ConditionSummaryResponse  `json:"summary"`
 	Trend   []WeeklyTrendPointResponse `json:"trend"`
 	EWS     *EWSSummaryResponse        `json:"ews"`

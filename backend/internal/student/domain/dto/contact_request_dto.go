@@ -27,8 +27,11 @@ type ContactRequestStateResponse struct {
 	HasOpenRequest bool                    `json:"has_open_request"`
 	Request        *ContactRequestResponse `json:"request"`
 
-	AdvisorName string `json:"advisor_name,omitempty"`
-	CanRequest  bool   `json:"can_request"`
+	// Advisors adalah SELURUH pembimbing yang akan melihat permintaan ini.
+	// Dikirim sebagai daftar, bukan satu nama: mahasiswa berhak tahu persis
+	// siapa saja yang menerima isyaratnya sebelum menekan tombolnya.
+	Advisors   []AdvisorResponse `json:"advisors"`
+	CanRequest bool              `json:"can_request"`
 
 	// Explanation menjelaskan persis apa yang dosen lihat, supaya mahasiswa
 	// tahu batasnya sebelum menekan tombol.

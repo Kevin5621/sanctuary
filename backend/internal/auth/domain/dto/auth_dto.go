@@ -50,7 +50,6 @@ type UserResponse struct {
 	StudentNumber  *string `json:"student_number,omitempty"`
 	LecturerNumber *string `json:"lecturer_number,omitempty"`
 	CohortYear     *int    `json:"cohort_year,omitempty"`
-	AdvisorID      *string `json:"advisor_id,omitempty"`
 	StudyProgramID *string `json:"study_program_id,omitempty"`
 	StudyProgram   *string `json:"study_program,omitempty"`
 	IsActive       bool    `json:"is_active"`

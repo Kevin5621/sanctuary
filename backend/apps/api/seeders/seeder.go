@@ -46,6 +46,8 @@ type SeededUsers struct {
 	Lecturer2 authmodels.User
 	// Students[0..6] dibimbing Lecturer1 (7 orang, memenuhi k-anonymity)
 	// Students[7..9] dibimbing Lecturer2 (3 orang, DI BAWAH ambang)
+	// Students[6] dibimbing KEDUANYA — contoh multi-pembimbing (Lecturer2 jadi 4,
+	// tetap di bawah ambang).
 	Students []authmodels.User
 	// Profiles sejajar indeks dengan Students. Disimpan di sini supaya
 	// seedStudentData tidak perlu memelihara daftar profil kedua yang harus
@@ -121,8 +123,8 @@ func (s *Seeder) seedStudentData(ctx context.Context, users SeededUsers) error {
 				return fmt.Errorf("chat %s: %w", student.Email, err)
 			}
 		}
-		if profile.ContactRequest && student.AdvisorID != nil {
-			if err := s.seedContactRequest(ctx, student, *student.AdvisorID); err != nil {
+		if profile.ContactRequest {
+			if err := s.seedContactRequest(ctx, student); err != nil {
 				return fmt.Errorf("contact request %s: %w", student.Email, err)
 			}
 		}
@@ -142,7 +144,8 @@ func (s *Seeder) printSummary(users SeededUsers) {
 	log.Println("  admin@sanctuary.ac.id      → Admin (2 tab)")
 	log.Println("  kaprodi@sanctuary.ac.id    → Kaprodi (4 tab)")
 	log.Println("  dosen1@sanctuary.ac.id     → Dosen, 7 bimbingan (k-anonymity TERPENUHI, sebaran EWS tampil)")
-	log.Println("  dosen2@sanctuary.ac.id     → Dosen, 3 bimbingan (k-anonymity TIDAK terpenuhi)")
+	log.Println("  dosen2@sanctuary.ac.id     → Dosen, 4 bimbingan (k-anonymity TIDAK terpenuhi)")
+	log.Println("  mahasiswa7@sanctuary.ac.id → dibimbing 2 dosen sekaligus (contoh multi-pembimbing)")
 	log.Printf("  mahasiswa1..10@sanctuary.ac.id → %d Mahasiswa (4 tab + Terapis AI)", len(users.Students))
 	log.Println("──────────────────────────────────────────────")
 }

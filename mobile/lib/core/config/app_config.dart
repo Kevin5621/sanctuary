@@ -92,7 +92,7 @@ class AppConfig {
     // Untuk backend yang jalan di mesin sendiri, override lewat
     // --dart-define=API_BASE_URL=http://10.0.2.2:8080/api/v1 (emulator Android
     // memetakan host developer ke 10.0.2.2, bukan localhost).
-    return 'http://202.10.38.33:8080/api/v1';
+    return 'http://localhost:8080/api/v1';
   }
 
   static const appName = 'Sanctuary';

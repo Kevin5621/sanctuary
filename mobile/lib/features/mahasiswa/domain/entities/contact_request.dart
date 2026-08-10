@@ -1,15 +1,20 @@
 import 'package:equatable/equatable.dart';
 
+import 'advisor.dart';
+
 /// Status tombol "minta dihubungi".
 ///
 /// [explanation] datang dari server dan menjelaskan persis apa yang dilihat
 /// dosen. Teks itu tidak ditulis ulang di klien: janji privasi hanya boleh
 /// punya satu rumusan, dan rumusannya harus sama dengan yang ditegakkan API.
+///
+/// [advisors] berisi SELURUH pembimbing yang akan melihat permintaan — satu
+/// permintaan memang tidak ditujukan ke satu orang.
 class ContactRequestState extends Equatable {
   const ContactRequestState({
     required this.hasOpenRequest,
     required this.request,
-    required this.advisorName,
+    required this.advisors,
     required this.canRequest,
     required this.explanation,
   });
@@ -19,7 +24,7 @@ class ContactRequestState extends Equatable {
         request: json['request'] == null
             ? null
             : ContactRequest.fromJson(json['request'] as Map<String, dynamic>),
-        advisorName: json['advisor_name'] as String? ?? '',
+        advisors: Advisor.listFromJson(json['advisors']),
         canRequest: json['can_request'] as bool? ?? false,
         explanation: json['explanation'] as String? ?? '',
       );
@@ -27,20 +32,29 @@ class ContactRequestState extends Equatable {
   const ContactRequestState.empty()
       : hasOpenRequest = false,
         request = null,
-        advisorName = '',
+        advisors = const [],
         canRequest = false,
         explanation = '';
 
   final bool hasOpenRequest;
   final ContactRequest? request;
-  final String advisorName;
+  final List<Advisor> advisors;
   final bool canRequest;
   final String explanation;
 
-  bool get hasAdvisor => advisorName.isNotEmpty;
+  bool get hasAdvisor => advisors.isNotEmpty;
+  bool get hasMultipleAdvisors => advisors.length > 1;
+
+  /// Ringkasan penerima untuk judul kartu: satu nama saat tunggal, jumlahnya
+  /// saat lebih dari satu (nama lengkapnya tetap tampil sebagai chip di bawah).
+  String get advisorSummary {
+    if (advisors.isEmpty) return '';
+    if (advisors.length == 1) return advisors.first.fullName;
+    return '${advisors.length} pembimbingmu';
+  }
 
   @override
-  List<Object?> get props => [hasOpenRequest, request, advisorName, canRequest];
+  List<Object?> get props => [hasOpenRequest, request, advisors, canRequest];
 }
 
 class ContactRequest extends Equatable {

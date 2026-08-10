@@ -89,27 +89,54 @@ class PembimbingCubit extends Cubit<PembimbingState> {
     }
   }
 
-  Future<bool> assignAdvisees({
-    required String? advisorId,
+  /// Setel daftar bimbingan satu dosen (layar per-dosen).
+  Future<bool> setAdvisees({
+    required String advisorId,
     required List<String> studentIds,
-  }) async {
+  }) {
+    return _save(
+      () => _repository.setAdvisees(advisorId: advisorId, studentIds: studentIds),
+      'Alokasi mahasiswa bimbingan berhasil disimpan.',
+    );
+  }
+
+  /// Setel daftar pembimbing satu mahasiswa (layar per-mahasiswa) — inilah
+  /// jalur yang dipakai saat mahasiswa dibimbing lebih dari satu dosen.
+  Future<bool> setStudentAdvisors({
+    required String studentId,
+    required List<String> advisorIds,
+  }) {
+    return _save(
+      () => _repository.setStudentAdvisors(
+        studentId: studentId,
+        advisorIds: advisorIds,
+      ),
+      'Pembimbing mahasiswa berhasil diperbarui.',
+    );
+  }
+
+  /// Lepas satu pasangan dosen–mahasiswa tanpa menyentuh pembimbing lainnya.
+  Future<bool> removeAdvisor({
+    required ProgramStudent student,
+    required String advisorId,
+  }) {
+    final remaining =
+        student.advisorIds.where((id) => id != advisorId).toList();
+    return setStudentAdvisors(
+      studentId: student.id,
+      advisorIds: remaining,
+    );
+  }
+
+  Future<bool> _save(Future<void> Function() action, String successMessage) async {
     emit(state.copyWith(isSaving: true, clearError: true, clearSuccess: true));
     try {
-      await _repository.assignAdvisor(
-        advisorId: advisorId,
-        studentIds: studentIds,
-      );
+      await action();
       await refresh();
-      emit(state.copyWith(
-        isSaving: false,
-        successMessage: 'Alokasi mahasiswa bimbingan berhasil disimpan.',
-      ));
+      emit(state.copyWith(isSaving: false, successMessage: successMessage));
       return true;
     } on ApiException catch (error) {
-      emit(state.copyWith(
-        isSaving: false,
-        errorMessage: error.message,
-      ));
+      emit(state.copyWith(isSaving: false, errorMessage: error.message));
       return false;
     }
   }

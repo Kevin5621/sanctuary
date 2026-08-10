@@ -44,7 +44,36 @@ void main() {
     expect(cubit.state.hasCheckedInToday, isTrue);
     expect(cubit.state.summary.currentStreak, 3);
     expect(cubit.state.canCheckIn, isTrue, reason: 'pilihan check-in harus termuat');
-    expect(cubit.state.contact.advisorName, isNotEmpty);
+    expect(cubit.state.contact.advisors, isNotEmpty);
+  });
+
+  // Kartu "minta dihubungi" menyebut penerimanya. Saat pembimbingnya lebih dari
+  // satu, ringkasannya harus mengatakan jumlahnya — bukan menampilkan satu nama
+  // dan diam-diam mengirim ke semuanya.
+  test('ringkasan penerima menyebut jumlah saat pembimbingnya lebih dari satu',
+      () async {
+    final cubit = buildCubit(
+      contacts: FakeContactRequestRepository(
+        state: FakeContactRequestRepository.withAdvisor(advisorCount: 3),
+      ),
+    );
+
+    await cubit.load();
+
+    final contact = cubit.state.contact;
+    expect(contact.advisors, hasLength(3));
+    expect(contact.hasMultipleAdvisors, isTrue);
+    expect(contact.advisorSummary, contains('3'));
+  });
+
+  test('satu pembimbing tetap disebut namanya, bukan jumlahnya', () async {
+    final cubit = buildCubit();
+
+    await cubit.load();
+
+    final contact = cubit.state.contact;
+    expect(contact.hasMultipleAdvisors, isFalse);
+    expect(contact.advisorSummary, contact.advisors.first.fullName);
   });
 
   test('pengguna baru ditandai isFirstTime, bukan sekadar kalender kosong', () async {

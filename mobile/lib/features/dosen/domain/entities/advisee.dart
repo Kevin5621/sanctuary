@@ -289,6 +289,7 @@ class StudentIndicator extends Equatable {
     this.ews,
     this.hasOpenContactRequest = false,
     this.contactRequestedAt,
+    this.coAdvisors = const [],
   });
 
   factory StudentIndicator.fromJson(Map<String, dynamic> json) =>
@@ -311,6 +312,9 @@ class StudentIndicator extends Equatable {
             : null,
         hasOpenContactRequest: json['has_open_contact_request'] as bool? ?? false,
         contactRequestedAt: json['contact_requested_at'] as String?,
+        coAdvisors: (json['co_advisors'] as List<dynamic>? ?? const [])
+            .whereType<String>()
+            .toList(),
       );
 
   final String studentId;
@@ -325,7 +329,12 @@ class StudentIndicator extends Equatable {
   final bool hasOpenContactRequest;
   final String? contactRequestedAt;
 
+  /// Nama pembimbing LAIN mahasiswa ini — data administratif, tanpa satu pun
+  /// angka kondisi. Ditampilkan supaya pendampingan tidak bertubrukan.
+  final List<String> coAdvisors;
+
   bool get hasTrend => trend.isNotEmpty;
+  bool get isCoAdvised => coAdvisors.isNotEmpty;
 
   @override
   List<Object?> get props => [
@@ -340,6 +349,7 @@ class StudentIndicator extends Equatable {
         ews,
         hasOpenContactRequest,
         contactRequestedAt,
+        coAdvisors,
       ];
 }
 

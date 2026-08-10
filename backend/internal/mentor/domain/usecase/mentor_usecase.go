@@ -222,6 +222,14 @@ func (u *mentorUsecase) StudentIndicator(
 		ShareLevelLabel: shareLevelLabel[setting.ShareLevel],
 	}
 
+	// Dibaca setelah FindAdvisee lolos — daftar ini tidak boleh menjadi jalan
+	// memetakan pembimbing mahasiswa yang bukan bimbingan pemanggil.
+	coAdvisors, err := u.advisees.CoAdvisors(ctx, access.AdvisorID, studentID)
+	if err != nil {
+		return mentordto.StudentIndicatorResponse{}, err
+	}
+	res.CoAdvisors = coAdvisors
+
 	// Dibaca sebelum gerbang privasi karena permintaan dihubungi adalah
 	// persetujuan eksplisit mahasiswa yang berdiri sendiri (D-7).
 	requests, err := u.advisees.OpenContactRequests(ctx, access.AdvisorID)

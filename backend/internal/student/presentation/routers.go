@@ -34,7 +34,7 @@ func RegisterRoutes(
 	db *gorm.DB,
 	cfg *config.Config,
 	jwt *utils.JWTManager,
-	users authrepo.UserRepository,
+	studentAdvisors authrepo.StudentAdvisorRepository,
 	audits authrepo.AuditRepository,
 ) SharedRepositories {
 	privacyRepo := repositories.NewPrivacyRepository(db)
@@ -57,7 +57,8 @@ func RegisterRoutes(
 	journalUC := usecase.NewJournalUsecase(journalRepo, service.NewEmotionAnalyzer(), cfg.Student)
 	dailyMetricUC := usecase.NewDailyMetricUsecase(metricRepo, cfg.Student)
 	dassUC := usecase.NewDassUsecase(dassRepo)
-	contactUC := usecase.NewContactRequestUsecase(contactRepo, users)
+	contactUC := usecase.NewContactRequestUsecase(contactRepo, studentAdvisors)
+	advisorUC := usecase.NewAdvisorUsecase(studentAdvisors)
 	chatUC := usecase.NewChatUsecase(chatRepo, consentRepo, therapist, cfg.AI)
 
 	privacyHandler := handler.NewPrivacyHandler(privacyUC)
@@ -65,6 +66,7 @@ func RegisterRoutes(
 	dailyMetricHandler := handler.NewDailyMetricHandler(dailyMetricUC)
 	dassHandler := handler.NewDassHandler(dassUC)
 	contactHandler := handler.NewContactRequestHandler(contactUC)
+	advisorHandler := handler.NewAdvisorHandler(advisorUC)
 	chatHandler := handler.NewChatHandler(chatUC)
 
 	group := api.Group("/students/me",
@@ -76,6 +78,7 @@ func RegisterRoutes(
 	router.RegisterChatRoutes(group, chatHandler)
 	router.RegisterDailyMetricRoutes(group, dailyMetricHandler)
 	router.RegisterDassRoutes(group, dassHandler)
+	router.RegisterAdvisorRoutes(group, advisorHandler)
 	router.RegisterContactRequestRoutes(group, contactHandler)
 
 	return SharedRepositories{

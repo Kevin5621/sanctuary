@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm/clause"
 
 	authmodels "github.com/gilabs/sanctuary/internal/auth/data/models"
+	"github.com/gilabs/sanctuary/internal/core/apptime"
 	"github.com/gilabs/sanctuary/internal/core/constants"
 	"github.com/gilabs/sanctuary/internal/core/utils"
 )
@@ -110,11 +111,6 @@ func (s *Seeder) seedUsers(
 
 	students := make([]authmodels.User, 0, len(studentSpecs))
 	for i, spec := range studentSpecs {
-		advisor := lecturer1
-		if i >= adviseeSplit {
-			advisor = lecturer2
-		}
-
 		student, err := s.upsertUser(ctx, authmodels.User{
 			RoleID:         roles[constants.RoleStudent].ID,
 			FullName:       spec.FullName,
@@ -122,13 +118,16 @@ func (s *Seeder) seedUsers(
 			Phone:          fmt.Sprintf("08120000%04d", i+1),
 			StudentNumber:  strPtr(spec.StudentNumber),
 			CohortYear:     intPtr(spec.CohortYear),
-			AdvisorID:      &advisor.ID,
 			StudyProgramID: &program.ID,
 		}, passwordHash)
 		if err != nil {
 			return SeededUsers{}, err
 		}
 		students = append(students, student)
+	}
+
+	if err := s.seedAdvisorAssignments(ctx, students, lecturer1, lecturer2); err != nil {
+		return SeededUsers{}, err
 	}
 
 	return SeededUsers{
@@ -141,6 +140,53 @@ func (s *Seeder) seedUsers(
 	}, nil
 }
 
+// seedAdvisorAssignments mengisi tabel pasangan student_advisors.
+//
+// coAdvisedIndex sengaja diberi DUA pembimbing supaya kasus multi-pembimbing
+// benar-benar ada di data demo: tanpa satu pun contoh, tampilan "dibimbing
+// bersama" dan permintaan "minta dihubungi" yang muncul di dua daftar sekaligus
+// tidak pernah teruji saat pengembangan.
+//
+// Mahasiswa yang dipilih adalah pemilik permintaan dihubungi (index 6), dan
+// pembimbing keduanya Dosen 2 — beban Dosen 2 jadi 4, tetap DI BAWAH ambang
+// k-anonymity sehingga state "Data belum cukup" pada tab Kondisi-nya tidak
+// ikut berubah.
+const coAdvisedIndex = 6
+
+func (s *Seeder) seedAdvisorAssignments(
+	ctx context.Context,
+	students []authmodels.User,
+	lecturer1, lecturer2 authmodels.User,
+) error {
+	pairs := make([]authmodels.StudentAdvisor, 0, len(students)+1)
+
+	appendPair := func(student authmodels.User, advisor authmodels.User) {
+		pair := authmodels.StudentAdvisor{
+			StudentID:  student.ID,
+			AdvisorID:  advisor.ID,
+			AssignedAt: apptime.Now(),
+		}
+		pair.ID = deterministicID("student-advisor:" + student.ID + ":" + advisor.ID)
+		pairs = append(pairs, pair)
+	}
+
+	for i, student := range students {
+		if i >= adviseeSplit {
+			appendPair(student, lecturer2)
+			continue
+		}
+		appendPair(student, lecturer1)
+		if i == coAdvisedIndex {
+			appendPair(student, lecturer2)
+		}
+	}
+
+	return s.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "student_id"}, {Name: "advisor_id"}},
+		DoNothing: true,
+	}).Create(&pairs).Error
+}
+
 func (s *Seeder) upsertUser(ctx context.Context, user authmodels.User, passwordHash string) (authmodels.User, error) {
 	user.ID = deterministicID("user:" + user.Email)
 	user.PasswordHash = passwordHash
@@ -150,7 +196,7 @@ func (s *Seeder) upsertUser(ctx context.Context, user authmodels.User, passwordH
 		Columns: []clause.Column{{Name: "id"}},
 		DoUpdates: clause.AssignmentColumns([]string{
 			"role_id", "full_name", "password_hash", "phone", "student_number", "cohort_year",
-			"advisor_id", "lecturer_number", "study_program_id", "is_active", "updated_at",
+			"lecturer_number", "study_program_id", "is_active", "updated_at",
 		}),
 	}).Create(&user).Error
 	return user, err

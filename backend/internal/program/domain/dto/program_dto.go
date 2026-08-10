@@ -54,18 +54,35 @@ type AdvisorLoadResponse struct {
 	Advisees       []AdviseeSummaryResponse `json:"advisees"`
 }
 
-type ProgramStudentResponse struct {
-	ID            string  `json:"id"`
-	FullName      string  `json:"full_name"`
-	StudentNumber string  `json:"student_number"`
-	Email         string  `json:"email"`
-	AdvisorID     *string `json:"advisor_id,omitempty"`
-	AdvisorName   string  `json:"advisor_name,omitempty"`
+// AdvisorBriefResponse adalah identitas pembimbing sebatas yang perlu tampil
+// pada daftar mahasiswa: nama dan NIDN.
+type AdvisorBriefResponse struct {
+	AdvisorID      string `json:"advisor_id"`
+	FullName       string `json:"full_name"`
+	LecturerNumber string `json:"lecturer_number,omitempty"`
 }
 
-type AssignAdvisorRequest struct {
-	AdvisorID  *string  `json:"advisor_id"`
-	StudentIDs []string `json:"student_ids" binding:"required"`
+// ProgramStudentResponse — satu mahasiswa prodi beserta SELURUH pembimbingnya.
+type ProgramStudentResponse struct {
+	ID            string                 `json:"id"`
+	FullName      string                 `json:"full_name"`
+	StudentNumber string                 `json:"student_number"`
+	Email         string                 `json:"email"`
+	Advisors      []AdvisorBriefResponse `json:"advisors"`
+}
+
+// SetAdviseesRequest menyetel PERSIS daftar bimbingan satu dosen.
+//
+// Daftar utuh, bukan operasi tambah/hapus per orang: layar kaprodi memang
+// menampilkan seluruh centang sekaligus, dan mengirim keadaan akhir membuat
+// hasilnya tidak bergantung pada urutan request yang sampai lebih dulu.
+type SetAdviseesRequest struct {
+	StudentIDs []string `json:"student_ids"`
+}
+
+// SetStudentAdvisorsRequest menyetel persis daftar pembimbing satu mahasiswa.
+type SetStudentAdvisorsRequest struct {
+	AdvisorIDs []string `json:"advisor_ids"`
 }
 
 // CohortReportResponse — evaluasi per angkatan.

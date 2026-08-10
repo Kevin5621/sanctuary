@@ -61,12 +61,17 @@ class PembimbingState extends Equatable {
   final String? successMessage;
   final String? errorMessage;
 
-  int get totalAdvisees =>
+  /// Jumlah PASANGAN bimbingan, bukan jumlah orang: mahasiswa dengan dua
+  /// pembimbing terhitung dua kali di sini — itu memang beban dua dosen.
+  int get totalAssignments =>
       advisors.fold(0, (sum, advisor) => sum + advisor.adviseeCount);
 
   int get totalStudents => students.length;
   int get unassignedCount => students.where((s) => !s.hasAdvisor).length;
   int get assignedCount => students.where((s) => s.hasAdvisor).length;
+
+  /// Mahasiswa yang dibimbing lebih dari satu dosen.
+  int get coAdvisedCount => students.where((s) => s.advisorCount > 1).length;
 
   bool get isEmpty => status.isReady && advisors.isEmpty;
 

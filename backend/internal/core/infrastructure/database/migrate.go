@@ -18,6 +18,7 @@ func AllModels() []any {
 		&authmodels.Role{},
 		&authmodels.StudyProgram{},
 		&authmodels.User{},
+		&authmodels.StudentAdvisor{},
 		&authmodels.RefreshToken{},
 		&authmodels.AuditLog{},
 		&studentmodels.StudentPrivacySetting{},

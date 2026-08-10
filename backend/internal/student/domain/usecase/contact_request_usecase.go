@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"strconv"
 
 	authrepo "github.com/gilabs/sanctuary/internal/auth/data/repositories"
 	"github.com/gilabs/sanctuary/internal/core/apptime"
@@ -11,13 +12,6 @@ import (
 	"github.com/gilabs/sanctuary/internal/student/domain/dto"
 )
 
-// explanationText tampil di kartu sebelum tombol ditekan. Kalimatnya sengaja
-// menyebut batasnya secara eksplisit: mahasiswa yang tahu persis apa yang
-// dilihat dosen lebih mungkin menekan tombol ini saat benar membutuhkannya.
-const explanationText = "Pembimbingmu hanya akan melihat namamu dan waktu permintaan. " +
-	"tanpa isi jurnal, tanpa alasan, dan tanpa skor apa pun. Catatan yang kamu tulis " +
-	"di sini hanya untuk pengingat dirimu sendiri."
-
 // ContactRequestUsecase melayani tombol "minta dihubungi" milik mahasiswa.
 type ContactRequestUsecase interface {
 	State(ctx context.Context, userID string) (dto.ContactRequestStateResponse, error)
@@ -26,19 +20,36 @@ type ContactRequestUsecase interface {
 }
 
 type contactRequestUsecase struct {
-	repo  repositories.ContactRequestRepository
-	users authrepo.UserRepository
+	repo     repositories.ContactRequestRepository
+	advisors authrepo.StudentAdvisorRepository
 }
 
 func NewContactRequestUsecase(
 	repo repositories.ContactRequestRepository,
-	users authrepo.UserRepository,
+	advisors authrepo.StudentAdvisorRepository,
 ) ContactRequestUsecase {
-	return &contactRequestUsecase{repo: repo, users: users}
+	return &contactRequestUsecase{repo: repo, advisors: advisors}
+}
+
+// explanationText tampil di kartu sebelum tombol ditekan. Kalimatnya sengaja
+// menyebut batasnya secara eksplisit: mahasiswa yang tahu persis apa yang
+// dilihat dosen lebih mungkin menekan tombol ini saat benar membutuhkannya.
+//
+// Jumlah pembimbing ikut disebut. Satu permintaan terbaca oleh SEMUA pembimbing
+// mahasiswa tersebut — menyembunyikan fakta itu akan membuat mahasiswa mengira
+// ia menghubungi satu orang padahal tidak.
+func explanationText(advisorCount int) string {
+	subject := "Pembimbingmu hanya akan melihat"
+	if advisorCount > 1 {
+		subject = "Seluruh pembimbingmu (" + strconv.Itoa(advisorCount) + " dosen) hanya akan melihat"
+	}
+	return subject + " namamu dan waktu permintaan. " +
+		"tanpa isi jurnal, tanpa alasan, dan tanpa skor apa pun. Catatan yang kamu tulis " +
+		"di sini hanya untuk pengingat dirimu sendiri."
 }
 
 func (u *contactRequestUsecase) State(ctx context.Context, userID string) (dto.ContactRequestStateResponse, error) {
-	student, err := u.users.FindByID(ctx, userID)
+	advisors, err := u.advisors.ListForStudent(ctx, userID)
 	if err != nil {
 		return dto.ContactRequestStateResponse{}, err
 	}
@@ -49,12 +60,19 @@ func (u *contactRequestUsecase) State(ctx context.Context, userID string) (dto.C
 	}
 
 	state := dto.ContactRequestStateResponse{
-		Explanation: explanationText,
-		CanRequest:  student.AdvisorID != nil && open == nil,
+		Explanation: explanationText(len(advisors)),
+		CanRequest:  len(advisors) > 0 && open == nil,
+		Advisors:    make([]dto.AdvisorResponse, 0, len(advisors)),
 	}
-	if student.Advisor != nil {
-		state.AdvisorName = student.Advisor.FullName
+	for _, a := range advisors {
+		state.Advisors = append(state.Advisors, dto.AdvisorResponse{
+			AdvisorID:      a.AdvisorID,
+			FullName:       a.FullName,
+			LecturerNumber: a.LecturerNumber,
+			Email:          a.Email,
+		})
 	}
+
 	if open != nil {
 		state.HasOpenRequest = true
 		response := toContactRequestResponse(*open)
@@ -64,11 +82,11 @@ func (u *contactRequestUsecase) State(ctx context.Context, userID string) (dto.C
 }
 
 func (u *contactRequestUsecase) Create(ctx context.Context, userID string, req dto.CreateContactRequestRequest) (dto.ContactRequestResponse, error) {
-	student, err := u.users.FindByID(ctx, userID)
+	advisors, err := u.advisors.ListForStudent(ctx, userID)
 	if err != nil {
 		return dto.ContactRequestResponse{}, err
 	}
-	if student.AdvisorID == nil {
+	if len(advisors) == 0 {
 		return dto.ContactRequestResponse{}, utils.NewError(utils.CodeAdvisorNotAssigned)
 	}
 
@@ -82,9 +100,13 @@ func (u *contactRequestUsecase) Create(ctx context.Context, userID string, req d
 		return dto.ContactRequestResponse{}, utils.NewError(utils.CodeContactRequestExists)
 	}
 
+	// Tujuan permintaan TIDAK dibekukan ke satu dosen. Baris ini dibaca lewat
+	// student_advisors saat dosen membuka daftarnya, sehingga pembimbing yang
+	// baru ditambahkan tetap melihat permintaan yang masih terbuka — dan
+	// mahasiswa tidak perlu memilih siapa yang "paling mungkin membalas" pada
+	// saat ia justru sedang butuh dihubungi.
 	request := models.StudentContactRequest{
 		StudentID: userID,
-		AdvisorID: *student.AdvisorID,
 		Status:    models.ContactRequestOpen,
 		Note:      req.Note,
 	}

@@ -5,6 +5,7 @@ import 'package:sanctuary/features/mahasiswa/data/repositories/contact_request_r
 import 'package:sanctuary/features/mahasiswa/data/repositories/daily_metric_repository.dart';
 import 'package:sanctuary/features/mahasiswa/data/repositories/dass_repository.dart';
 import 'package:sanctuary/features/mahasiswa/data/repositories/journal_repository.dart';
+import 'package:sanctuary/features/mahasiswa/domain/entities/advisor.dart';
 import 'package:sanctuary/features/mahasiswa/domain/entities/contact_request.dart';
 import 'package:sanctuary/features/mahasiswa/domain/entities/daily_metric.dart';
 import 'package:sanctuary/features/mahasiswa/domain/entities/dass21.dart';
@@ -141,7 +142,11 @@ class FakeContactRequestRepository extends ContactRequestRepository {
   bool cancelled = false;
   String? lastNote;
 
-  static ContactRequestState withAdvisor({bool hasOpenRequest = false}) => ContactRequestState(
+  static ContactRequestState withAdvisor({
+    bool hasOpenRequest = false,
+    int advisorCount = 1,
+  }) =>
+      ContactRequestState(
         hasOpenRequest: hasOpenRequest,
         request: hasOpenRequest
             ? ContactRequest(
@@ -152,7 +157,10 @@ class FakeContactRequestRepository extends ContactRequestRepository {
                 isOpen: true,
               )
             : null,
-        advisorName: 'Dr. Sinta Pembimbing',
+        advisors: [
+          for (var i = 0; i < advisorCount; i++)
+            Advisor(id: 'advisor-$i', fullName: 'Pembimbing ${i + 1}'),
+        ],
         canRequest: !hasOpenRequest,
         explanation: 'Pembimbingmu hanya melihat namamu dan waktu permintaan.',
       );
