@@ -169,15 +169,39 @@ class AdviseeSummary extends Equatable {
   List<Object?> get props => [id, fullName, studentNumber, email];
 }
 
-/// Mahasiswa prodi beserta info dosen pembimbingnya saat ini.
+/// Identitas ringkas seorang dosen pembimbing pada daftar mahasiswa.
+class AdvisorBrief extends Equatable {
+  const AdvisorBrief({
+    required this.advisorId,
+    required this.fullName,
+    this.lecturerNumber = '',
+  });
+
+  factory AdvisorBrief.fromJson(Map<String, dynamic> json) => AdvisorBrief(
+        advisorId: json['advisor_id'] as String? ?? '',
+        fullName: json['full_name'] as String? ?? '',
+        lecturerNumber: json['lecturer_number'] as String? ?? '',
+      );
+
+  final String advisorId;
+  final String fullName;
+  final String lecturerNumber;
+
+  @override
+  List<Object?> get props => [advisorId, fullName, lecturerNumber];
+}
+
+/// Mahasiswa prodi beserta SELURUH dosen pembimbingnya saat ini.
+///
+/// Daftar, bukan satu nama: satu mahasiswa dapat dibimbing lebih dari satu
+/// dosen, dan kaprodi perlu melihat kombinasinya untuk menilai beban bimbingan.
 class ProgramStudent extends Equatable {
   const ProgramStudent({
     required this.id,
     required this.fullName,
     required this.studentNumber,
     required this.email,
-    this.advisorId,
-    this.advisorName = '',
+    this.advisors = const [],
   });
 
   factory ProgramStudent.fromJson(Map<String, dynamic> json) => ProgramStudent(
@@ -185,22 +209,32 @@ class ProgramStudent extends Equatable {
         fullName: json['full_name'] as String? ?? '',
         studentNumber: json['student_number'] as String? ?? '',
         email: json['email'] as String? ?? '',
-        advisorId: json['advisor_id'] as String?,
-        advisorName: json['advisor_name'] as String? ?? '',
+        advisors: (json['advisors'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(AdvisorBrief.fromJson)
+            .toList(),
       );
 
   final String id;
   final String fullName;
   final String studentNumber;
   final String email;
-  final String? advisorId;
-  final String advisorName;
+  final List<AdvisorBrief> advisors;
 
-  bool get hasAdvisor => advisorId != null && advisorId!.isNotEmpty;
+  bool get hasAdvisor => advisors.isNotEmpty;
+  int get advisorCount => advisors.length;
+
+  List<String> get advisorIds => [for (final a in advisors) a.advisorId];
+
+  bool isAdvisedBy(String? advisorId) =>
+      advisorId != null && advisorIds.contains(advisorId);
+
+  /// Nama pembimbing SELAIN [advisorId] — dipakai menandai bimbingan bersama.
+  List<String> otherAdvisorNames(String? advisorId) =>
+      [for (final a in advisors) if (a.advisorId != advisorId) a.fullName];
 
   @override
-  List<Object?> get props =>
-      [id, fullName, studentNumber, email, advisorId, advisorName];
+  List<Object?> get props => [id, fullName, studentNumber, email, advisors];
 }
 
 /// Beban bimbingan seorang dosen (K-PEM-01).

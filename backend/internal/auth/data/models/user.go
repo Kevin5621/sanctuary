@@ -9,8 +9,9 @@ import (
 // User adalah satu tabel untuk seluruh peran; atribut spesifik peran bersifat nullable.
 //
 // Relasi kunci privasi:
-//   - AdvisorID: dosen pembimbing seorang mahasiswa. Semua endpoint dosen
-//     memfilter berdasarkan kolom ini (dosen hanya melihat bimbingannya sendiri).
+//   - AdvisorLinks: pembimbing seorang mahasiswa (bisa lebih dari satu, lihat
+//     StudentAdvisor). Semua endpoint dosen memfilter lewat tabel pasangan itu,
+//     sehingga dosen hanya melihat bimbingannya sendiri.
 //   - StudyProgramID: cakupan agregasi Kaprodi.
 type User struct {
 	utils.BaseModel
@@ -28,8 +29,11 @@ type User struct {
 	// Atribut mahasiswa
 	StudentNumber *string `gorm:"size:32;uniqueIndex" json:"student_number,omitempty"` // NIM
 	CohortYear    *int    `gorm:"index" json:"cohort_year,omitempty"`                  // Angkatan
-	AdvisorID     *string `gorm:"type:uuid;index" json:"advisor_id,omitempty"`
-	Advisor       *User   `gorm:"foreignKey:AdvisorID" json:"advisor,omitempty"`
+
+	// AdvisorLinks di-preload lewat "AdvisorLinks.Advisor" bila nama pembimbing
+	// dibutuhkan. Sengaja has-many biasa, bukan many2many: tabel pasangannya
+	// punya kolom sendiri (assigned_at, assigned_by) yang harus ikut terkelola.
+	AdvisorLinks []StudentAdvisor `gorm:"foreignKey:StudentID" json:"advisor_links,omitempty"`
 
 	// Atribut dosen / kaprodi
 	LecturerNumber *string `gorm:"size:32;uniqueIndex" json:"lecturer_number,omitempty"` // NIDN

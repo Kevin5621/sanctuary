@@ -27,12 +27,19 @@ type ContactRequestSummary struct {
 }
 
 // AdviseeRepository membaca data identitas mahasiswa bimbingan.
-// Seluruh query WAJIB terikat advisor_id dari token dosen.
+//
+// Seluruh query WAJIB terikat advisor_id dari token dosen, kini lewat tabel
+// pasangan student_advisors: seorang mahasiswa boleh punya beberapa pembimbing,
+// dan masing-masing melihat mahasiswa itu di daftarnya sendiri.
 type AdviseeRepository interface {
 	ListByAdvisor(ctx context.Context, advisorID string) ([]authmodels.User, error)
 	// FindAdvisee mengembalikan ADVISOR_ASSIGNMENT_REQUIRED bila mahasiswa
 	// bukan bimbingan dosen tersebut.
 	FindAdvisee(ctx context.Context, advisorID, studentID string) (*authmodels.User, error)
+	// CoAdvisors adalah pembimbing LAIN dari seorang mahasiswa. Murni
+	// administratif (nama saja) supaya dosen tahu ia tidak sendirian menangani
+	// mahasiswa tersebut — tanpa satu pun angka kondisi.
+	CoAdvisors(ctx context.Context, advisorID, studentID string) ([]string, error)
 	// OpenContactRequests dipakai daftar bimbingan (menandai baris + waktunya),
 	// dikunci pada proyeksi tanpa `note`.
 	OpenContactRequests(ctx context.Context, advisorID string) (map[string]ContactRequestSummary, error)
@@ -51,8 +58,10 @@ func (r *adviseeRepository) ListByAdvisor(ctx context.Context, advisorID string)
 
 	var students []authmodels.User
 	err := r.db.WithContext(ctx).
-		Where("advisor_id = ? AND is_active = true", advisorID).
-		Order("full_name ASC").
+		Joins("JOIN student_advisors ON student_advisors.student_id = users.id").
+		Where("student_advisors.advisor_id = ?", advisorID).
+		Where("users.is_active = true").
+		Order("users.full_name ASC").
 		Find(&students).Error
 	return students, utils.TranslateDBError(err, "")
 }
@@ -63,7 +72,9 @@ func (r *adviseeRepository) FindAdvisee(ctx context.Context, advisorID, studentI
 
 	var student authmodels.User
 	err := r.db.WithContext(ctx).
-		Where("id = ? AND advisor_id = ? AND is_active = true", studentID, advisorID).
+		Joins("JOIN student_advisors ON student_advisors.student_id = users.id").
+		Where("users.id = ? AND student_advisors.advisor_id = ?", studentID, advisorID).
+		Where("users.is_active = true").
 		First(&student).Error
 	if err != nil {
 		// Tidak membedakan "tidak ada" vs "bukan bimbingan Anda" agar dosen
@@ -71,6 +82,24 @@ func (r *adviseeRepository) FindAdvisee(ctx context.Context, advisorID, studentI
 		return nil, utils.TranslateDBError(err, utils.CodeAdvisorAssignmentRequired)
 	}
 	return &student, nil
+}
+
+// CoAdvisors hanya boleh dipanggil SETELAH FindAdvisee lolos: query-nya sendiri
+// tidak memverifikasi bahwa pemanggil membimbing mahasiswa tersebut, dan tanpa
+// gerbang itu ia berubah menjadi cara memetakan pembimbing mahasiswa mana pun.
+func (r *adviseeRepository) CoAdvisors(ctx context.Context, advisorID, studentID string) ([]string, error) {
+	ctx, cancel := utils.DBContext(ctx)
+	defer cancel()
+
+	var names []string
+	err := r.db.WithContext(ctx).
+		Model(&authmodels.StudentAdvisor{}).
+		Joins("JOIN users AS advisors ON advisors.id = student_advisors.advisor_id").
+		Where("student_advisors.student_id = ? AND student_advisors.advisor_id <> ?", studentID, advisorID).
+		Where("advisors.is_active = true AND advisors.deleted_at IS NULL").
+		Order("advisors.full_name ASC").
+		Pluck("advisors.full_name", &names).Error
+	return names, utils.TranslateDBError(err, "")
 }
 
 func (r *adviseeRepository) OpenContactRequests(ctx context.Context, advisorID string) (map[string]ContactRequestSummary, error) {
@@ -90,6 +119,10 @@ func (r *adviseeRepository) OpenContactRequests(ctx context.Context, advisorID s
 //
 // JANGAN mengganti Select() ini dengan Find(&models.StudentContactRequest{}):
 // model tersebut memuat kolom `note` yang tidak boleh sampai ke dosen (D-6).
+//
+// Penerima permintaan ditentukan lewat student_advisors, bukan kolom pada
+// permintaan itu sendiri: satu isyarat "minta dihubungi" memang ditujukan ke
+// SELURUH pembimbing mahasiswa tersebut.
 func (r *adviseeRepository) ListOpenContactRequests(ctx context.Context, advisorID string) ([]ContactRequestSummary, error) {
 	ctx, cancel := utils.DBContext(ctx)
 	defer cancel()
@@ -103,7 +136,9 @@ func (r *adviseeRepository) ListOpenContactRequests(ctx context.Context, advisor
 		        users.full_name                      AS full_name,
 		        users.student_number                 AS student_number`).
 		Joins("JOIN users ON users.id = student_contact_requests.student_id").
-		Where("student_contact_requests.advisor_id = ?", advisorID).
+		Joins(`JOIN student_advisors
+		       ON student_advisors.student_id = student_contact_requests.student_id
+		       AND student_advisors.advisor_id = ?`, advisorID).
 		Where("student_contact_requests.status = ?", studentmodels.ContactRequestOpen).
 		Where("users.is_active = true AND users.deleted_at IS NULL").
 		Order("student_contact_requests.created_at ASC").

@@ -67,6 +67,13 @@ func RegisterDassRoutes(rg *gin.RouterGroup, h *handler.DassHandler) {
 	g.POST("", h.Submit)
 }
 
+// RegisterAdvisorRoutes — daftar pembimbing milik mahasiswa sendiri.
+// Dipakai kartu "Pembimbingmu" di tab Profil supaya mahasiswa tahu persis siapa
+// saja yang bisa melihat data yang ia izinkan.
+func RegisterAdvisorRoutes(rg *gin.RouterGroup, h *handler.AdvisorHandler) {
+	rg.GET("/advisors", h.List)
+}
+
 // RegisterContactRequestRoutes — tombol "minta dihubungi".
 func RegisterContactRequestRoutes(rg *gin.RouterGroup, h *handler.ContactRequestHandler) {
 	g := rg.Group("/contact-requests")

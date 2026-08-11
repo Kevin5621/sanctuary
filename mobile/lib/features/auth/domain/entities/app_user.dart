@@ -42,7 +42,6 @@ class AppUser extends Equatable {
     this.studentNumber,
     this.lecturerNumber,
     this.cohortYear,
-    this.advisorId,
     this.studyProgram,
     this.isActive = true,
   });
@@ -56,7 +55,6 @@ class AppUser extends Equatable {
   final String? studentNumber;
   final String? lecturerNumber;
   final int? cohortYear;
-  final String? advisorId;
   final String? studyProgram;
   final bool isActive;
 

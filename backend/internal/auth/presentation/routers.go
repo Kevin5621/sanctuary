@@ -21,14 +21,25 @@ type Deps struct {
 	Limiter *middleware.RateLimiter
 }
 
+// SharedRepositories adalah repository auth yang dipakai ulang domain lain.
+type SharedRepositories struct {
+	Users  repositories.UserRepository
+	Audits repositories.AuditRepository
+	// StudentAdvisors dipakai domain student (kartu pembimbing & "minta
+	// dihubungi"): relasi bimbingan hidup di tabel users, jadi pembacaannya
+	// tetap milik slice auth.
+	StudentAdvisors repositories.StudentAdvisorRepository
+}
+
 // RegisterRoutes melakukan wiring domain auth dan mengembalikan repository
-// yang dipakai ulang domain lain (user & audit).
-func RegisterRoutes(api *gin.RouterGroup, deps Deps) (repositories.UserRepository, repositories.AuditRepository) {
+// yang dipakai ulang domain lain.
+func RegisterRoutes(api *gin.RouterGroup, deps Deps) SharedRepositories {
 	userRepo := repositories.NewUserRepository(deps.DB)
 	tokenRepo := repositories.NewRefreshTokenRepository(deps.DB)
 	auditRepo := repositories.NewAuditRepository(deps.DB)
 	roleRepo := repositories.NewRoleRepository(deps.DB)
 	programRepo := repositories.NewStudyProgramRepository(deps.DB)
+	studentAdvisorRepo := repositories.NewStudentAdvisorRepository(deps.DB)
 
 	authUC := usecase.NewAuthUsecase(
 		deps.DB, userRepo, tokenRepo, auditRepo, roleRepo, programRepo,
@@ -42,5 +53,9 @@ func RegisterRoutes(api *gin.RouterGroup, deps Deps) (repositories.UserRepositor
 	userMgmtUC := usecase.NewUserManagementUsecase(userRepo, roleRepo, programRepo, tokenRepo, auditRepo)
 	router.RegisterUserManagementRoutes(api, handler.NewUserManagementHandler(userMgmtUC), deps.JWT)
 
-	return userRepo, auditRepo
+	return SharedRepositories{
+		Users:           userRepo,
+		Audits:          auditRepo,
+		StudentAdvisors: studentAdvisorRepo,
+	}
 }

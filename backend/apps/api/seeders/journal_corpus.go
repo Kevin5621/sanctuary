@@ -18,9 +18,14 @@ package seeders
 // diganti, label data demo ikut berubah mengikuti model yang baru, dan itu
 // memang perilaku yang diinginkan.
 //
-// Aman terhadap EWS: Early Warning System hanya membaca student_daily_metrics,
-// tidak pernah student_journals. Menambah jurnal sebanyak apa pun karena itu
-// tidak menggeser satu pun skenario EWS di README §5.
+// PERHATIAN — jurnal latar MENGGESER EWS. Sejak indikator #2 dikembalikan ke
+// sumber yang ditetapkan D-3 (analisis jurnal, bukan emosi check-in), jurnal
+// yang jatuh di dalam jendela EWS ikut dinilai. Karena daysAgo naik seiring
+// index, urutan Tones menentukan mana yang masuk jendela: kira-kira 3/7 entri
+// PERTAMA berada di 14 hari terakhir. Menyusun seluruh nada negatif di depan
+// akan menaikkan level akun demo tanpa sengaja.
+//
+// Skenario EWS di README §5 dijaga TestDemoProfilesMatchExpectedEWSLevel.
 // ------------------------------------------------------------------
 
 // journalTone mengelompokkan teks menurut nada yang dimaksudkan penulisnya.
@@ -137,14 +142,16 @@ var backgroundPlans = map[string]journalBackgroundPlan{
 			toneCalm, toneJoy,
 		},
 	},
+	// Komposisi 30 harinya tetap seperti semula; hanya urutannya diselang-seling
+	// agar 14 hari terakhir tidak seluruhnya bernada negatif — akun ini harus
+	// berhenti di "Waspada", bukan naik ke "Risiko".
 	"watch": {
 		Count: 14,
 		Tones: []journalTone{
-			toneTired, toneTired, toneTired,
-			toneAnxious, toneAnxious,
-			toneNeutral, toneNeutral, toneNeutral,
-			toneCalm, toneCalm, toneCalm,
-			toneJoy, toneJoy,
+			toneTired, toneNeutral, toneAnxious, toneCalm,
+			toneTired, toneNeutral, toneAnxious,
+			toneTired, toneCalm, toneJoy,
+			toneNeutral, toneCalm, toneJoy,
 			toneSad,
 		},
 	},
@@ -181,15 +188,26 @@ var backgroundPlans = map[string]journalBackgroundPlan{
 			toneAngry,
 		},
 	},
+	// Akun "Waspada" yang meminta dihubungi. Nada negatif sengaja TIDAK
+	// ditumpuk di depan: entri awal jatuh di dalam jendela EWS, dan mahasiswa
+	// dengan level Waspada tidak boleh memicu indikator emosi negatif.
 	"watch-contact": {
 		Count: 16,
 		Tones: []journalTone{
-			toneTired, toneTired, toneTired, toneTired,
-			toneAnxious, toneAnxious, toneAnxious,
-			toneSad, toneSad,
-			toneNeutral, toneNeutral, toneNeutral,
-			toneCalm, toneCalm,
-			toneJoy, toneAngry,
+			toneTired, toneNeutral, toneCalm, toneAnxious,
+			toneNeutral, toneJoy, toneCalm,
+			toneTired, toneTired, toneAnxious,
+			toneSad, toneSad, toneAnxious,
+			toneNeutral, toneTired, toneAngry,
+		},
+	},
+	// Akun "Risiko" yang menolak agregat prodi. Ia hanya punya satu jurnal
+	// tulisan tangan, jadi indikator emosi negatif bergantung pada latar ini.
+	"risk-no-stats": {
+		Count: 12,
+		Tones: []journalTone{
+			toneAnxious, toneSad, toneTired, toneAnxious, toneSad, toneNeutral,
+			toneTired, toneAngry, toneCalm, toneNeutral, toneJoy, toneCalm,
 		},
 	},
 	// profileInsufficient sengaja TIDAK diberi jurnal latar: akun ini ada untuk

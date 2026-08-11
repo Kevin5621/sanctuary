@@ -71,17 +71,29 @@ class ProgramRepository {
     return result.data;
   }
 
-  /// Alokasikan dosen pembimbing ke beberapa mahasiswa.
-  Future<void> assignAdvisor({
-    required String? advisorId,
+  /// Setel PERSIS daftar mahasiswa bimbingan seorang dosen.
+  ///
+  /// Mahasiswa yang hilang dari [studentIds] hanya dilepas dari dosen ini —
+  /// pembimbing lainnya tidak ikut terlepas.
+  Future<void> setAdvisees({
+    required String advisorId,
     required List<String> studentIds,
   }) async {
     await _client.put<dynamic>(
-      '$_basePath/advisors/assign',
-      body: {
-        'advisor_id': advisorId,
-        'student_ids': studentIds,
-      },
+      '$_basePath/advisors/$advisorId/advisees',
+      body: {'student_ids': studentIds},
+      parser: (data) => data,
+    );
+  }
+
+  /// Setel persis daftar pembimbing seorang mahasiswa (bisa lebih dari satu).
+  Future<void> setStudentAdvisors({
+    required String studentId,
+    required List<String> advisorIds,
+  }) async {
+    await _client.put<dynamic>(
+      '$_basePath/students/$studentId/advisors',
+      body: {'advisor_ids': advisorIds},
       parser: (data) => data,
     );
   }

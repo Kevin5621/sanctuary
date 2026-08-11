@@ -34,15 +34,6 @@ MoodStats statsWith({required bool sufficient, int checkinCount = 10}) => MoodSt
             sleepHours: 7,
           ),
       ],
-      emotionDistribution: const [
-        EmotionShare(
-          emotion: 'CALM',
-          label: 'Tenang',
-          count: 6,
-          percentage: 60,
-          isNegative: false,
-        ),
-      ],
       topTriggers: const [TriggerShare(trigger: 'TUGAS', label: 'Tugas kuliah', count: 4)],
       checkinCount: checkinCount,
       avgMood: sufficient ? 4 : 0,
@@ -151,5 +142,102 @@ void main() {
     await cubit.changePeriod(30);
 
     expect(repository.lastRequestedPeriod, isNull);
+  });
+
+  // ------------------------------------------------------------------
+  // Check-in dari kalender
+  // ------------------------------------------------------------------
+
+  test('check-in dari sel kalender dikirim untuk tanggal yang diketuk', () async {
+    final repository = FakeDailyMetricRepository(
+      monthly: monthOf('2026-08'),
+      stats: statsWith(sufficient: true),
+    );
+    final cubit = MoodHistoryCubit(repository);
+    await cubit.load();
+
+    final tapped = DateTime.now().subtract(const Duration(days: 3));
+    repository.lastRequestedMonth = null;
+    repository.lastRequestedPeriod = null;
+
+    final saved = await cubit.saveCheckin(
+      moodScore: 2,
+      stressLevel: 4,
+      sleepHours: 5.5,
+      academicTrigger: 'Deadline tugas',
+      date: tapped,
+    );
+
+    expect(saved, isTrue);
+    expect(cubit.state.isSaving, isFalse);
+    expect(cubit.state.successMessage, isNotNull);
+
+    // Nilai dikirim persis seperti yang diisi mahasiswa — tidak ada nilai
+    // bawaan yang dikarang klien, karena angkanya ikut dihitung EWS.
+    expect(repository.lastSaved, {
+      'mood_score': 2,
+      'stress_level': 4,
+      'sleep_hours': 5.5,
+      'academic_trigger': 'Deadline tugas',
+      'metric_date': '${tapped.year.toString().padLeft(4, '0')}-'
+          '${tapped.month.toString().padLeft(2, '0')}-'
+          '${tapped.day.toString().padLeft(2, '0')}',
+    });
+
+    // Satu check-in mengubah kalender sekaligus statistik; keduanya dimuat ulang.
+    expect(repository.lastRequestedMonth, '2026-08');
+    expect(repository.lastRequestedPeriod, 30);
+  });
+
+  test('tanggal di masa depan dan di luar batas mundur tidak bisa diisi', () async {
+    final cubit = MoodHistoryCubit(
+      FakeDailyMetricRepository(monthly: monthOf('2026-08')),
+    );
+    await cubit.load();
+
+    final today = DateTime.now();
+    expect(cubit.state.canCheckInOn(today), isTrue);
+    expect(cubit.state.canCheckInOn(today.subtract(const Duration(days: 30))), isTrue);
+    expect(cubit.state.canCheckInOn(today.add(const Duration(days: 1))), isFalse);
+    expect(
+      cubit.state.canCheckInOn(today.subtract(const Duration(days: 31))),
+      isFalse,
+      reason: 'batas mundur 30 hari datang dari server, bukan ditebak klien',
+    );
+  });
+
+  // Batasnya milik server. Selama pilihan belum termuat klien tidak boleh
+  // menebak skala maupun batas tanggalnya sendiri.
+  test('tanpa pilihan dari server tidak ada tanggal yang bisa diisi', () async {
+    final cubit = MoodHistoryCubit(
+      FakeDailyMetricRepository(monthly: monthOf('2026-08'), failOptions: true),
+    );
+    await cubit.load();
+
+    expect(cubit.state.status, MoodHistoryStatus.ready, reason: 'riwayat tetap tampil');
+    expect(cubit.state.canCheckInOn(DateTime.now()), isFalse);
+  });
+
+  test('check-in yang gagal tidak menghapus riwayat yang sudah tampil', () async {
+    final repository = FakeDailyMetricRepository(
+      monthly: monthOf('2026-08'),
+      stats: statsWith(sufficient: true),
+    );
+    final cubit = MoodHistoryCubit(repository);
+    await cubit.load();
+
+    repository.failSave = true;
+    final saved = await cubit.saveCheckin(
+      moodScore: 3,
+      stressLevel: 3,
+      sleepHours: 7,
+      date: DateTime.now(),
+    );
+
+    expect(saved, isFalse);
+    expect(cubit.state.isSaving, isFalse);
+    expect(cubit.state.errorMessage, isNotNull);
+    expect(cubit.state.status, MoodHistoryStatus.ready);
+    expect(cubit.state.monthly.checkinCount, 5);
   });
 }

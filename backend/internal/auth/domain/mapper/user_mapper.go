@@ -22,7 +22,6 @@ func ToUserResponse(m *models.User) dto.UserResponse {
 		StudentNumber:  m.StudentNumber,
 		LecturerNumber: m.LecturerNumber,
 		CohortYear:     m.CohortYear,
-		AdvisorID:      m.AdvisorID,
 		StudyProgramID: m.StudyProgramID,
 		IsActive:       m.IsActive,
 		LastLoginAt:    apptime.FormatDateTimePtr(m.LastLoginAt),

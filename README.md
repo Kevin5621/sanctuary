@@ -249,7 +249,10 @@ Base: `/api/v1` · Semua response memakai amplop standar.
 | GET | `/mentors/me/students` | Dosen |
 | GET | `/mentors/me/students/:id` | Dosen (wajib pembimbingnya) |
 | GET | `/mentors/me/condition?period_days=30\|90\|120` | Dosen (k-anonymity) |
+| GET | `/students/me/advisors` | Mahasiswa (daftar pembimbing sendiri) |
 | GET | `/programs/me/dashboard`, `/advisors`, `/reports/cohorts` | Kaprodi (k-anonymity) |
+| PUT | `/programs/me/advisors/:advisorId/advisees` | Kaprodi (set bimbingan satu dosen) |
+| PUT | `/programs/me/students/:studentId/advisors` | Kaprodi (set pembimbing satu mahasiswa) |
 | GET | `/support/emergency-contacts` | semua peran (nonaktif hanya terlihat Admin) |
 | POST/PUT/DELETE | `/support/emergency-contacts[/:id]` | Admin |
 

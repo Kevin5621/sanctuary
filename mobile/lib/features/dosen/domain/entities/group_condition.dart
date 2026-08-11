@@ -23,9 +23,11 @@ class EmotionShare extends Equatable {
 
   /// Label bahasa Indonesia untuk keluaran analisis.
   ///
-  /// Mengikuti D-2: `JOY`/`SAD`/`ANGRY`/`ANXIOUS` adalah keluaran model,
-  /// `NEUTRAL` dipakai saat keyakinan rendah, sedangkan `CALM` & `TIRED`
-  /// berasal dari check-in manual mahasiswa — bukan keluaran model.
+  /// Seluruh label di sini berasal dari analisis jurnal (D-3); check-in tidak
+  /// lagi punya label emosi. Analyzer leksikon yang dipakai sekarang masih
+  /// mengeluarkan ketujuhnya — `JOY`/`SAD`/`ANGRY`/`ANXIOUS` yang menjadi
+  /// keluaran kanonik IndoBERT nanti (D-2), `NEUTRAL` saat tidak ada kata
+  /// kunci yang cocok, ditambah `CALM` & `TIRED`.
   String get displayLabel => switch (emotionLabel) {
         'JOY' => 'Senang',
         'SAD' => 'Sedih',

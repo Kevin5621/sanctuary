@@ -15,7 +15,6 @@ class UserModel {
         studentNumber: json['student_number'] as String?,
         lecturerNumber: json['lecturer_number'] as String?,
         cohortYear: json['cohort_year'] as int?,
-        advisorId: json['advisor_id'] as String?,
         studyProgram: json['study_program'] as String?,
         isActive: json['is_active'] as bool? ?? true,
       );

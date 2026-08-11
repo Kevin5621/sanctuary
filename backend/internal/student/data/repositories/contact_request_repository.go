@@ -23,8 +23,6 @@ type ContactRequestRepository interface {
 	Create(ctx context.Context, request *models.StudentContactRequest) error
 	// CancelOpenByStudent membatalkan permintaan yang masih terbuka.
 	CancelOpenByStudent(ctx context.Context, studentID string) error
-	// ListOpenByAdvisor dipakai daftar bimbingan dosen.
-	ListOpenByAdvisor(ctx context.Context, advisorID string) ([]models.StudentContactRequest, error)
 }
 
 type contactRequestRepository struct{ db *gorm.DB }
@@ -78,16 +76,4 @@ func (r *contactRequestRepository) CancelOpenByStudent(ctx context.Context, stud
 		return utils.NewError(utils.CodeNotFound)
 	}
 	return nil
-}
-
-func (r *contactRequestRepository) ListOpenByAdvisor(ctx context.Context, advisorID string) ([]models.StudentContactRequest, error) {
-	ctx, cancel := utils.DBContext(ctx)
-	defer cancel()
-
-	var requests []models.StudentContactRequest
-	err := r.db.WithContext(ctx).
-		Where("advisor_id = ? AND status = ?", advisorID, models.ContactRequestOpen).
-		Order("created_at ASC").
-		Find(&requests).Error
-	return requests, utils.TranslateDBError(err, "")
 }

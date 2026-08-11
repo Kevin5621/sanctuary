@@ -97,11 +97,15 @@ type EWSConfig struct {
 
 // StudentConfig adalah aturan pengisian data milik mahasiswa sendiri.
 type StudentConfig struct {
-	// MaxBackdateDays membatasi seberapa jauh ke belakang check-in mood dan
-	// jurnal boleh diisi. Batas ini bukan teknis melainkan kualitas data:
-	// ingatan atas mood dan jam tidur memburuk cepat, dan entri lama yang
-	// dikarang belakangan ikut menggeser indikator EWS.
-	MaxBackdateDays int
+	// CheckinMaxBackdateDays & JournalMaxBackdateDays membatasi seberapa jauh ke
+	// belakang check-in mood dan jurnal boleh diisi.
+	//
+	// Keduanya terpisah karena tujuannya berbeda. Check-in diisi dari kalender
+	// tab Mood: menutup celah sebulan ke belakang adalah alasan kalender itu
+	// bisa diketuk. Jurnal tetap 7 hari (D-8) — ia berisi cerita, dan cerita
+	// yang ditulis sebulan kemudian sudah bukan catatan hari itu.
+	CheckinMaxBackdateDays int
+	JournalMaxBackdateDays int
 	// MoodStatsDefaultPeriod & MoodStatsMaxPeriod membatasi rentang statistik
 	// yang boleh diminta klien (mencegah query tanpa batas).
 	MoodStatsDefaultPeriod int
@@ -195,7 +199,8 @@ func Load() (*Config, error) {
 			LowSleepMinNights:      getInt("EWS_LOW_SLEEP_MIN_NIGHTS", 2),
 		},
 		Student: StudentConfig{
-			MaxBackdateDays:        getInt("STUDENT_MAX_BACKDATE_DAYS", 7),
+			CheckinMaxBackdateDays: getInt("STUDENT_CHECKIN_MAX_BACKDATE_DAYS", 30),
+			JournalMaxBackdateDays: getInt("STUDENT_JOURNAL_MAX_BACKDATE_DAYS", 7),
 			MoodStatsDefaultPeriod: getInt("STUDENT_MOOD_STATS_DEFAULT_DAYS", 30),
 			MoodStatsMaxPeriod:     getInt("STUDENT_MOOD_STATS_MAX_DAYS", 365),
 		},
@@ -248,8 +253,11 @@ func (c *Config) validate() error {
 		// Ambang privasi tidak boleh diturunkan di bawah standar dokumen Sanctuary.
 		return fmt.Errorf("K_ANONYMITY_MIN_GROUP must be >= 5")
 	}
-	if c.Student.MaxBackdateDays < 0 {
-		return fmt.Errorf("STUDENT_MAX_BACKDATE_DAYS must be >= 0")
+	if c.Student.CheckinMaxBackdateDays < 0 {
+		return fmt.Errorf("STUDENT_CHECKIN_MAX_BACKDATE_DAYS must be >= 0")
+	}
+	if c.Student.JournalMaxBackdateDays < 0 {
+		return fmt.Errorf("STUDENT_JOURNAL_MAX_BACKDATE_DAYS must be >= 0")
 	}
 	if c.Student.MoodStatsMaxPeriod < c.Student.MoodStatsDefaultPeriod {
 		return fmt.Errorf("STUDENT_MOOD_STATS_MAX_DAYS must be >= STUDENT_MOOD_STATS_DEFAULT_DAYS")

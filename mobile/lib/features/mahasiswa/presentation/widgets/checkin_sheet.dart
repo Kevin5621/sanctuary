@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cartoon_mood_blob.dart';
 import '../../domain/entities/daily_metric.dart';
-import '../cubit/beranda_cubit.dart';
 import 'mood_visuals.dart';
+
+/// Penyimpan check-in. Sheet ini tidak tahu cubit mana yang memegang datanya —
+/// Beranda menyimpan lewat BerandaCubit, tab Mood lewat MoodHistoryCubit, dan
+/// keduanya memakai form yang sama persis. Mengembalikan true bila tersimpan.
+typedef CheckinSubmit = Future<bool> Function({
+  required int moodScore,
+  required int stressLevel,
+  required double sleepHours,
+  required String academicTrigger,
+  required DateTime date,
+});
 
 /// Form check-in harian.
 ///
-/// Dulu form ini menempati seluruh tab Mood. Ia dipindah ke Beranda sebagai
+/// Dulu form ini menempati seluruh tab Mood, lalu dipindah ke Beranda sebagai
 /// bottom sheet karena check-in adalah tindakan harian yang harus berada di
-/// layar pertama — sementara tab Mood kini murni tempat melihat riwayat.
+/// layar pertama. Kini tab Mood memanggilnya kembali dari kalender: mengetuk
+/// tanggal yang belum terisi membuka form yang sama untuk tanggal itu.
 ///
 /// Seluruh pilihan (skala, emosi, pemicu, batas mundur tanggal) berasal dari
 /// [CheckinOptions] yang dikirim server. Tidak ada daftar yang ditulis di sini.
@@ -20,38 +30,45 @@ class CheckinSheet extends StatefulWidget {
   const CheckinSheet({
     super.key,
     required this.options,
+    required this.onSubmit,
     this.existing,
     this.initialMood,
+    this.initialDate,
   });
 
   final CheckinOptions options;
 
-  /// Check-in hari ini yang sudah ada — form terbuka dalam mode ubah.
+  final CheckinSubmit onSubmit;
+
+  /// Check-in yang sudah ada pada tanggal itu — form terbuka dalam mode ubah.
   final DailyMetric? existing;
 
   /// Mood yang sudah dipilih dari pintasan di header.
   final int? initialMood;
 
+  /// Tanggal awal form. Dipakai saat sheet dibuka dari sel kalender; tanpa ini
+  /// form terbuka untuk hari ini.
+  final DateTime? initialDate;
+
   /// Membuka sheet dan mengembalikan true bila tersimpan.
   static Future<bool> show(
     BuildContext context, {
     required CheckinOptions options,
+    required CheckinSubmit onSubmit,
     DailyMetric? existing,
     int? initialMood,
+    DateTime? initialDate,
   }) async {
-    final cubit = context.read<BerandaCubit>();
-
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => BlocProvider.value(
-        value: cubit,
-        child: CheckinSheet(
-          options: options,
-          existing: existing,
-          initialMood: initialMood,
-        ),
+      builder: (_) => CheckinSheet(
+        options: options,
+        onSubmit: onSubmit,
+        existing: existing,
+        initialMood: initialMood,
+        initialDate: initialDate,
       ),
     );
     return saved ?? false;
@@ -65,10 +82,10 @@ class _CheckinSheetState extends State<CheckinSheet> {
   late int _moodScore;
   late int _stressLevel;
   late double _sleepHours;
-  late String _emotion;
   late String _trigger;
   late DateTime _date;
   late final TextEditingController _triggerController;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -78,10 +95,9 @@ class _CheckinSheetState extends State<CheckinSheet> {
     _moodScore = widget.initialMood ?? existing?.moodScore ?? 3;
     _stressLevel = existing?.stressLevel ?? 3;
     _sleepHours = existing?.sleepHours ?? 7.0;
-    _emotion = existing?.emotionLabel ?? '';
     _trigger = existing?.academicTrigger ?? '';
     _triggerController = TextEditingController(text: _trigger);
-    _date = existing?.date ?? DateTime.now();
+    _date = widget.initialDate ?? existing?.date ?? DateTime.now();
   }
 
   @override
@@ -91,6 +107,11 @@ class _CheckinSheetState extends State<CheckinSheet> {
   }
 
   bool get _isEditing => widget.existing != null;
+
+  bool get _isToday {
+    final now = DateTime.now();
+    return _date.year == now.year && _date.month == now.month && _date.day == now.day;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,8 +148,6 @@ class _CheckinSheetState extends State<CheckinSheet> {
                       const SizedBox(height: AppSpacing.md),
                       _buildSleepSection(),
                       const SizedBox(height: AppSpacing.md),
-                      _buildEmotionSection(),
-                      const SizedBox(height: AppSpacing.md),
                       _buildTriggerSection(),
                       const SizedBox(height: AppSpacing.lg),
                     ],
@@ -154,11 +173,27 @@ class _CheckinSheetState extends State<CheckinSheet> {
       );
 
   Widget _buildHeader() {
+    final String title;
+    final String subtitle;
+
+    if (_isEditing) {
+      title = 'Ubah check-in';
+      subtitle = _isToday
+          ? 'Kamu sudah mengisi hari ini. Perubahan akan menimpa isian sebelumnya.'
+          : 'Tanggal ini sudah terisi. Perubahan akan menimpa isian sebelumnya.';
+    } else if (_isToday) {
+      title = 'Check-in hari ini';
+      subtitle = 'Isi apa adanya. Tidak ada jawaban yang salah.';
+    } else {
+      title = 'Check-in ${_formatDate(_date)}';
+      subtitle = 'Isi sesuai yang kamu ingat tentang hari itu, apa adanya.';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _isEditing ? 'Ubah check-in' : 'Check-in hari ini',
+          title,
           style: const TextStyle(
             fontWeight: FontWeight.w800,
             fontSize: 20,
@@ -167,9 +202,7 @@ class _CheckinSheetState extends State<CheckinSheet> {
         ),
         const SizedBox(height: 2),
         Text(
-          _isEditing
-              ? 'Kamu sudah mengisi hari ini. Perubahan akan menimpa isian sebelumnya.'
-              : 'Isi apa adanya. Tidak ada jawaban yang salah.',
+          subtitle,
           style: const TextStyle(fontSize: 13, color: AppColors.warmTextSecondary, height: 1.35),
         ),
       ],
@@ -179,7 +212,6 @@ class _CheckinSheetState extends State<CheckinSheet> {
   Widget _buildDatePicker(BuildContext context) {
     final now = DateTime.now();
     final earliest = widget.options.earliestDate(now);
-    final isToday = _date.year == now.year && _date.month == now.month && _date.day == now.day;
 
     return _Card(
       child: Row(
@@ -191,7 +223,7 @@ class _CheckinSheetState extends State<CheckinSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isToday ? 'Hari ini' : '${_date.day}/${_date.month}/${_date.year}',
+                  _isToday ? 'Hari ini' : _formatDate(_date),
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
@@ -286,32 +318,6 @@ class _CheckinSheetState extends State<CheckinSheet> {
     );
   }
 
-  Widget _buildEmotionSection() {
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _SectionTitle('Emosi yang paling terasa', trailing: 'opsional'),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final option in widget.options.emotions)
-                _ChoiceChip(
-                  label: option.label,
-                  isSelected: _emotion == option.value,
-                  onTap: () => setState(
-                    () => _emotion = _emotion == option.value ? '' : option.value,
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTriggerSection() {
     return _Card(
       child: Column(
@@ -349,60 +355,66 @@ class _CheckinSheetState extends State<CheckinSheet> {
   }
 
   Widget _buildSubmitBar(BuildContext context) {
-    return BlocBuilder<BerandaCubit, BerandaState>(
-      buildWhen: (previous, current) => previous.isSaving != current.isSaving,
-      builder: (context, state) {
-        return Container(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.sm,
-            AppSpacing.md,
-            AppSpacing.md + MediaQuery.of(context).padding.bottom,
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.md + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(color: AppColors.cartoonShadow, blurRadius: 10, offset: Offset(0, -4)),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _isSaving ? null : _submit,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.midnight,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(color: AppColors.cartoonShadow, blurRadius: 10, offset: Offset(0, -4)),
-            ],
-          ),
-          child: ElevatedButton(
-            onPressed: state.isSaving ? null : () => _submit(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.midnight,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        ),
+        child: _isSaving
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              )
+            : Text(
+                _isEditing ? 'Perbarui check-in' : 'Simpan check-in',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
               ),
-            ),
-            child: state.isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : Text(
-                    _isEditing ? 'Perbarui check-in' : 'Simpan check-in',
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                  ),
-          ),
-        );
-      },
+      ),
     );
   }
 
-  Future<void> _submit(BuildContext context) async {
-    final saved = await context.read<BerandaCubit>().saveCheckin(
-          moodScore: _moodScore,
-          stressLevel: _stressLevel,
-          sleepHours: _sleepHours,
-          emotionLabel: _emotion,
-          academicTrigger: _triggerController.text.trim(),
-          date: _date,
-        );
+  Future<void> _submit() async {
+    setState(() => _isSaving = true);
 
-    if (saved && context.mounted) Navigator.of(context).pop(true);
+    final saved = await widget.onSubmit(
+      moodScore: _moodScore,
+      stressLevel: _stressLevel,
+      sleepHours: _sleepHours,
+      academicTrigger: _triggerController.text.trim(),
+      date: _date,
+    );
+
+    if (!mounted) return;
+    // Sheet tetap terbuka bila gagal: isian mahasiswa tidak boleh hilang hanya
+    // karena jaringan putus. Pesan galatnya ditampilkan layar pemanggil.
+    if (saved) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() => _isSaving = false);
+    }
   }
+
+  static String _formatDate(DateTime date) =>
+      '${date.day}/${date.month}/${date.year}';
 }
 
 class _Card extends StatelessWidget {
@@ -455,41 +467,6 @@ class _SectionTitle extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _ChoiceChip extends StatelessWidget {
-  const _ChoiceChip({required this.label, required this.isSelected, required this.onTap});
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.midnight : AppColors.creamBg,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-          border: Border.all(
-            color: isSelected ? AppColors.midnight : AppColors.cartoonBorder,
-            width: 1.2,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.midnight,
-          ),
-        ),
-      ),
     );
   }
 }

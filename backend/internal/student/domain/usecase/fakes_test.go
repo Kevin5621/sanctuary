@@ -143,10 +143,6 @@ func (f *fakeContactRepo) CancelOpenByStudent(context.Context, string) error {
 	return nil
 }
 
-func (f *fakeContactRepo) ListOpenByAdvisor(context.Context, string) ([]models.StudentContactRequest, error) {
-	return nil, nil
-}
-
 // ------------------------------------------------------------------
 
 type fakeJournalRepo struct {
@@ -218,6 +214,15 @@ func (f *fakeJournalRepo) EmotionDistributionForUser(_ context.Context, _ string
 		out = append(out, repositories.EmotionCount{EmotionLabel: label, Total: total})
 	}
 	return out, nil
+}
+
+// EmotionDistributionForUsers memakai jalur hitung yang sama; fake ini hanya
+// menyimpan jurnal satu mahasiswa, jadi daftar id tidak mengubah hasilnya.
+func (f *fakeJournalRepo) EmotionDistributionForUsers(ctx context.Context, userIDs []string, from, to time.Time) ([]repositories.EmotionCount, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	return f.EmotionDistributionForUser(ctx, userIDs[0], from, to)
 }
 
 func (f *fakeJournalRepo) CountCrisisFlaggedForUserRange(_ context.Context, _ string, from, to time.Time) (int64, error) {
@@ -375,8 +380,6 @@ func (f *fakeUserRepo) FindByID(context.Context, string) (*authmodels.User, erro
 
 func (f *fakeUserRepo) TouchLastLogin(context.Context, *gorm.DB, string) error { return nil }
 
-func (f *fakeUserRepo) CountAdvisees(context.Context, string) (int64, error) { return 0, nil }
-
 // Bagian tulis & kelola akun tidak dipakai usecase mahasiswa; hanya ada agar
 // fake ini tetap memenuhi kontrak repository.
 
@@ -400,4 +403,39 @@ func (f *fakeUserRepo) StudentNumberTaken(context.Context, string, string) (bool
 
 func (f *fakeUserRepo) LecturerNumberTaken(context.Context, string, string) (bool, error) {
 	return false, f.err
+}
+
+// ------------------------------------------------------------------
+
+// fakeStudentAdvisorRepo mengembalikan daftar pembimbing yang sama untuk
+// mahasiswa mana pun — cukup untuk menguji perilaku "satu vs banyak pembimbing".
+type fakeStudentAdvisorRepo struct {
+	advisors []authrepo.AdvisorBrief
+	err      error
+}
+
+var _ authrepo.StudentAdvisorRepository = (*fakeStudentAdvisorRepo)(nil)
+
+func (f *fakeStudentAdvisorRepo) ListForStudent(context.Context, string) ([]authrepo.AdvisorBrief, error) {
+	return f.advisors, f.err
+}
+
+func (f *fakeStudentAdvisorRepo) ListForStudents(_ context.Context, studentIDs []string) (map[string][]authrepo.AdvisorBrief, error) {
+	out := map[string][]authrepo.AdvisorBrief{}
+	for _, id := range studentIDs {
+		out[id] = f.advisors
+	}
+	return out, f.err
+}
+
+func (f *fakeStudentAdvisorRepo) AdviseeIDs(context.Context, string) ([]string, error) {
+	return nil, f.err
+}
+
+func (f *fakeStudentAdvisorRepo) CountAdvisees(context.Context, string) (int64, error) {
+	return int64(len(f.advisors)), f.err
+}
+
+func (f *fakeStudentAdvisorRepo) IsAdvisorOf(context.Context, string, string) (bool, error) {
+	return len(f.advisors) > 0, f.err
 }

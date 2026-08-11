@@ -40,13 +40,29 @@ type lexiconAnalyzer struct{}
 
 func NewEmotionAnalyzer() EmotionAnalyzer { return &lexiconAnalyzer{} }
 
-var emotionLexicon = map[string][]string{
-	constants.EmotionAnxious: {"cemas", "khawatir", "takut", "panik", "gelisah", "deg-degan", "overthinking"},
-	constants.EmotionSad:     {"sedih", "kecewa", "hampa", "menangis", "sendiri", "kesepian", "putus asa"},
-	constants.EmotionAngry:   {"marah", "kesal", "benci", "muak", "jengkel", "emosi"},
-	constants.EmotionTired:   {"lelah", "capek", "burnout", "ngantuk", "kewalahan", "drained"},
-	constants.EmotionCalm:    {"tenang", "lega", "damai", "santai", "bersyukur"},
-	constants.EmotionJoy:     {"senang", "bahagia", "semangat", "excited", "puas", "bangga"},
+// emotionLexicon berupa SLICE, bukan map, karena urutannya bermakna.
+//
+// Satu tulisan sering menyentuh dua emosi sekaligus ("badan capek tapi masih
+// semangat"): keduanya mendapat jumlah kecocokan yang sama, dan pemenangnya
+// ditentukan urutan penelusuran. Dulu bagian ini beriterasi di atas map,
+// sehingga urutannya diacak Go setiap proses — teks yang sama bisa berlabel
+// TIRED sekarang dan JOY pada evaluasi berikutnya. Sejak EWS #2 membaca label
+// jurnal (D-3), keacakan itu dapat menggeser level peringatan dini seorang
+// mahasiswa tanpa ada yang berubah pada tulisannya.
+//
+// Saat seri, yang menang adalah emosi yang lebih perlu diperhatikan. Arah itu
+// dipilih sadar: pada sistem peringatan dini, kekeliruan yang menampilkan
+// keluhan lebih mudah diperbaiki dosen daripada kekeliruan yang menyembunyikannya.
+var emotionLexicon = []struct {
+	Label    string
+	Keywords []string
+}{
+	{constants.EmotionAnxious, []string{"cemas", "khawatir", "takut", "panik", "gelisah", "deg-degan", "overthinking"}},
+	{constants.EmotionSad, []string{"sedih", "kecewa", "hampa", "menangis", "sendiri", "kesepian", "putus asa"}},
+	{constants.EmotionAngry, []string{"marah", "kesal", "benci", "muak", "jengkel", "emosi"}},
+	{constants.EmotionTired, []string{"lelah", "capek", "burnout", "ngantuk", "kewalahan", "drained"}},
+	{constants.EmotionCalm, []string{"tenang", "lega", "damai", "santai", "bersyukur"}},
+	{constants.EmotionJoy, []string{"senang", "bahagia", "semangat", "excited", "puas", "bangga"}},
 }
 
 // Leksikon krisis TIDAK lagi berada di berkas ini — ia dipindahkan ke
@@ -99,14 +115,14 @@ func (a *lexiconAnalyzer) Analyze(text string) AnalysisResult {
 	// 2. Skor per emosi dari kemunculan kata kunci.
 	bestLabel, bestHits := constants.EmotionNeutral, 0
 	totalHits := 0
-	for label, keywords := range emotionLexicon {
+	for _, entry := range emotionLexicon {
 		hits := 0
-		for _, kw := range keywords {
+		for _, kw := range entry.Keywords {
 			hits += strings.Count(lower, kw)
 		}
 		totalHits += hits
 		if hits > bestHits {
-			bestLabel, bestHits = label, hits
+			bestLabel, bestHits = entry.Label, hits
 		}
 	}
 

@@ -3,9 +3,13 @@ import 'package:equatable/equatable.dart';
 /// Satu titik check-in harian (kuantitatif) — selaras dengan
 /// dto.DailyMetricResponse di backend.
 ///
-/// Label teks (moodLabel, stressLabel, emotionLabelText, academicTriggerText)
-/// datang dari server, bukan dipetakan ulang di klien: arti angka 3 pada skala
-/// mood hanya boleh punya satu definisi, dan definisinya ada di backend.
+/// Label teks (moodLabel, stressLabel, academicTriggerText) datang dari server,
+/// bukan dipetakan ulang di klien: arti angka 3 pada skala mood hanya boleh
+/// punya satu definisi, dan definisinya ada di backend.
+///
+/// Tidak ada label emosi di sini. Check-in menanyakan satu hal tentang
+/// perasaan — skala mood 1..5 — dan itulah yang digambar kalender. Emosi
+/// bernama (Cemas, Sedih, …) datang dari analisis jurnal, entitas terpisah.
 class DailyMetric extends Equatable {
   const DailyMetric({
     required this.date,
@@ -14,8 +18,6 @@ class DailyMetric extends Equatable {
     required this.sleepHours,
     this.moodLabel = '',
     this.stressLabel = '',
-    this.emotionLabel = '',
-    this.emotionLabelText = '',
     this.academicTrigger = '',
     this.academicTriggerText = '',
   });
@@ -29,8 +31,6 @@ class DailyMetric extends Equatable {
       stressLevel: json['stress_level'] as int? ?? 0,
       stressLabel: json['stress_label'] as String? ?? '',
       sleepHours: (json['sleep_hours'] as num?)?.toDouble() ?? 0,
-      emotionLabel: json['emotion_label'] as String? ?? '',
-      emotionLabelText: json['emotion_label_text'] as String? ?? '',
       academicTrigger: trigger,
       academicTriggerText: json['academic_trigger_text'] as String? ?? trigger,
     );
@@ -42,8 +42,6 @@ class DailyMetric extends Equatable {
   final int stressLevel;
   final String stressLabel;
   final double sleepHours;
-  final String emotionLabel;
-  final String emotionLabelText;
   final String academicTrigger;
   final String academicTriggerText;
 
@@ -56,7 +54,6 @@ class DailyMetric extends Equatable {
         moodScore,
         stressLevel,
         sleepHours,
-        emotionLabel,
         academicTrigger,
       ];
 }
@@ -202,37 +199,6 @@ class MoodTrendPoint extends Equatable {
   List<Object?> get props => [date, moodScore, stressLevel, sleepHours];
 }
 
-/// Satu irisan sebaran emosi.
-class EmotionShare extends Equatable {
-  const EmotionShare({
-    required this.emotion,
-    required this.label,
-    required this.count,
-    required this.percentage,
-    required this.isNegative,
-  });
-
-  factory EmotionShare.fromJson(Map<String, dynamic> json) => EmotionShare(
-        emotion: json['emotion'] as String? ?? '',
-        label: json['label'] as String? ?? '',
-        count: json['count'] as int? ?? 0,
-        percentage: (json['percentage'] as num?)?.toDouble() ?? 0,
-        isNegative: json['is_negative'] as bool? ?? false,
-      );
-
-  final String emotion;
-  final String label;
-  final int count;
-  final double percentage;
-  final bool isNegative;
-
-  /// Nilai 0..1 untuk progress bar.
-  double get fraction => percentage / 100;
-
-  @override
-  List<Object?> get props => [emotion, count, percentage, isNegative];
-}
-
 class TriggerShare extends Equatable {
   const TriggerShare({required this.trigger, required this.label, required this.count});
 
@@ -255,6 +221,10 @@ class TriggerShare extends Equatable {
 
 /// Statistik periode untuk tab Mood.
 ///
+/// Tanpa sebaran emosi: statistik ini dibangun dari check-in yang kuantitatif.
+/// Sebaran emosi tab Mood punya sumber sendiri (analisis jurnal) dan dilayani
+/// SebaranEmosiCubit.
+///
 /// [isSufficient] false berarti server menilai datanya belum cukup untuk
 /// membentuk pola; klien wajib menampilkan pesan, bukan grafik yang terlihat
 /// meyakinkan padahal ditarik dari satu-dua titik.
@@ -262,7 +232,6 @@ class MoodStats extends Equatable {
   const MoodStats({
     required this.periodDays,
     required this.points,
-    required this.emotionDistribution,
     required this.topTriggers,
     required this.checkinCount,
     required this.avgMood,
@@ -279,10 +248,6 @@ class MoodStats extends Equatable {
         points: (json['points'] as List<dynamic>? ?? const [])
             .whereType<Map<String, dynamic>>()
             .map(MoodTrendPoint.fromJson)
-            .toList(),
-        emotionDistribution: (json['emotion_distribution'] as List<dynamic>? ?? const [])
-            .whereType<Map<String, dynamic>>()
-            .map(EmotionShare.fromJson)
             .toList(),
         topTriggers: (json['top_triggers'] as List<dynamic>? ?? const [])
             .whereType<Map<String, dynamic>>()
@@ -301,7 +266,6 @@ class MoodStats extends Equatable {
   const MoodStats.empty()
       : periodDays = 30,
         points = const [],
-        emotionDistribution = const [],
         topTriggers = const [],
         checkinCount = 0,
         avgMood = 0,
@@ -314,7 +278,6 @@ class MoodStats extends Equatable {
 
   final int periodDays;
   final List<MoodTrendPoint> points;
-  final List<EmotionShare> emotionDistribution;
   final List<TriggerShare> topTriggers;
   final int checkinCount;
   final double avgMood;
@@ -329,7 +292,6 @@ class MoodStats extends Equatable {
   List<Object?> get props => [
         periodDays,
         points,
-        emotionDistribution,
         checkinCount,
         isSufficient,
       ];
@@ -340,7 +302,6 @@ class CheckinOptions extends Equatable {
   const CheckinOptions({
     required this.moodScale,
     required this.stressScale,
-    required this.emotions,
     required this.academicTriggers,
     required this.maxBackdateDays,
   });
@@ -348,7 +309,6 @@ class CheckinOptions extends Equatable {
   factory CheckinOptions.fromJson(Map<String, dynamic> json) => CheckinOptions(
         moodScale: _scale(json['mood_scale']),
         stressScale: _scale(json['stress_scale']),
-        emotions: _coded(json['emotions']),
         academicTriggers: _coded(json['academic_triggers']),
         maxBackdateDays: json['max_backdate_days'] as int? ?? 0,
       );
@@ -356,7 +316,6 @@ class CheckinOptions extends Equatable {
   const CheckinOptions.empty()
       : moodScale = const [],
         stressScale = const [],
-        emotions = const [],
         academicTriggers = const [],
         maxBackdateDays = 0;
 
@@ -378,7 +337,6 @@ class CheckinOptions extends Equatable {
 
   final List<ScaleOption> moodScale;
   final List<ScaleOption> stressScale;
-  final List<CodedOption> emotions;
   final List<CodedOption> academicTriggers;
   final int maxBackdateDays;
 
@@ -398,7 +356,7 @@ class CheckinOptions extends Equatable {
   }
 
   @override
-  List<Object?> get props => [moodScale, stressScale, emotions, academicTriggers, maxBackdateDays];
+  List<Object?> get props => [moodScale, stressScale, academicTriggers, maxBackdateDays];
 }
 
 class ScaleOption extends Equatable {

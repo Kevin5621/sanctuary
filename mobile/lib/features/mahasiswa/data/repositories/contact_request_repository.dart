@@ -1,13 +1,25 @@
 import '../../../../core/network/dio_client.dart';
+import '../../domain/entities/advisor.dart';
 import '../../domain/entities/contact_request.dart';
 
-/// Repository tombol "minta dihubungi".
+/// Repository tombol "minta dihubungi" dan daftar pembimbing sendiri.
 class ContactRequestRepository {
   const ContactRequestRepository(this._client);
 
   final DioClient _client;
 
   static const _basePath = '/students/me/contact-requests';
+  static const _advisorsPath = '/students/me/advisors';
+
+  /// Daftar pembimbing mahasiswa yang sedang login (bisa lebih dari satu).
+  Future<MyAdvisors> fetchAdvisors() async {
+    final result = await _client.get<MyAdvisors>(
+      _advisorsPath,
+      parser: (data) =>
+          MyAdvisors.fromJson(data as Map<String, dynamic>? ?? const {}),
+    );
+    return result.data;
+  }
 
   Future<ContactRequestState> fetchState() async {
     final result = await _client.get<ContactRequestState>(

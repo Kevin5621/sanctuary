@@ -47,9 +47,12 @@ type MentorUsecase interface {
 }
 
 type mentorUsecase struct {
-	advisees     mentorrepo.AdviseeRepository
-	privacy      studentrepo.PrivacyRepository
-	metrics      studentrepo.DailyMetricRepository
+	advisees mentorrepo.AdviseeRepository
+	privacy  studentrepo.PrivacyRepository
+	metrics  studentrepo.DailyMetricRepository
+	// journals dipakai HANYA untuk hitungan label emosi kelompok (L-KON-03);
+	// tidak ada method di sini yang bisa membaca isi jurnal.
+	journals     studentrepo.JournalRepository
 	ews          EWSUsecase
 	audits       authrepo.AuditRepository
 	advisorNotes mentorrepo.AdvisorNoteRepository
@@ -59,6 +62,7 @@ func NewMentorUsecase(
 	advisees mentorrepo.AdviseeRepository,
 	privacy studentrepo.PrivacyRepository,
 	metrics studentrepo.DailyMetricRepository,
+	journals studentrepo.JournalRepository,
 	ews EWSUsecase,
 	audits authrepo.AuditRepository,
 	advisorNotes mentorrepo.AdvisorNoteRepository,
@@ -67,6 +71,7 @@ func NewMentorUsecase(
 		advisees:     advisees,
 		privacy:      privacy,
 		metrics:      metrics,
+		journals:     journals,
 		ews:          ews,
 		audits:       audits,
 		advisorNotes: advisorNotes,
@@ -222,6 +227,14 @@ func (u *mentorUsecase) StudentIndicator(
 		ShareLevelLabel: shareLevelLabel[setting.ShareLevel],
 	}
 
+	// Dibaca setelah FindAdvisee lolos — daftar ini tidak boleh menjadi jalan
+	// memetakan pembimbing mahasiswa yang bukan bimbingan pemanggil.
+	coAdvisors, err := u.advisees.CoAdvisors(ctx, access.AdvisorID, studentID)
+	if err != nil {
+		return mentordto.StudentIndicatorResponse{}, err
+	}
+	res.CoAdvisors = coAdvisors
+
 	// Dibaca sebelum gerbang privasi karena permintaan dihubungi adalah
 	// persetujuan eksplisit mahasiswa yang berdiri sendiri (D-7).
 	requests, err := u.advisees.OpenContactRequests(ctx, access.AdvisorID)
@@ -340,7 +353,10 @@ func (u *mentorUsecase) GroupCondition(
 	res.AvgStress = ptrFloat(round2(agg.AvgStress))
 	res.AvgSleepHours = ptrFloat(round2(agg.AvgSleepHours))
 
-	emotions, err := u.metrics.EmotionDistribution(ctx, included, from, to)
+	// L-KON-03: sebaran emosi kelompok berasal dari analisis JURNAL, bukan
+	// check-in mood — check-in tidak lagi punya label emosi, dan mood-nya sudah
+	// diwakili rata-rata di atas. Yang dibaca hanya label + jumlah.
+	emotions, err := u.journals.EmotionDistributionForUsers(ctx, included, from, to)
 	if err != nil {
 		return mentordto.GroupConditionResponse{}, err
 	}

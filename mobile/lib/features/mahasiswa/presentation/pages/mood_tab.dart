@@ -5,17 +5,23 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cartoon_mood_blob.dart';
-import '../../data/repositories/daily_metric_repository.dart';
 import '../../domain/entities/daily_metric.dart';
+import '../cubit/beranda_cubit.dart';
 import '../cubit/mood_history_cubit.dart';
+import '../widgets/checkin_sheet.dart';
 import '../widgets/mood_visuals.dart';
 import '../widgets/sebaran_emosi_card.dart';
-import 'mahasiswa_shell_page.dart';
 
-/// Tab Mood — RIWAYAT SAJA.
+/// Tab Mood — riwayat, dan tempat menutup celahnya.
 ///
-/// Form check-in sudah pindah ke Beranda. Layar ini hanya untuk melihat pola:
-/// kalender bulanan, ritme mood, sebaran emosi, dan pemicu tersering.
+/// Layar ini terutama untuk melihat pola: kalender bulanan, ritme mood, sebaran
+/// emosi, dan pemicu tersering. Tanggal yang belum terisi bisa diketuk langsung
+/// dari kalender untuk membuka form check-in tanggal itu — form yang sama
+/// dengan yang dipakai Beranda, dengan batas mundur tanggal dari server.
+///
+/// MoodHistoryCubit-nya disediakan MahasiswaShellPage, bukan dibuat di sini:
+/// Beranda ikut menyimpan check-in, dan kalender di layar ini harus melihat
+/// hasilnya.
 ///
 /// Sebaran Emosi (M-MOOD-04) di bagian bawah tab membaca hasil analisis JURNAL (D-3),
 /// bukan daily-metrics, dan menggunakan SebaranEmosiCubit yang hidup di level shell.
@@ -23,12 +29,7 @@ class MoodTab extends StatelessWidget {
   const MoodTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => MoodHistoryCubit(context.read<DailyMetricRepository>())..load(),
-      child: const _MoodHistoryView(),
-    );
-  }
+  Widget build(BuildContext context) => const _MoodHistoryView();
 }
 
 class _MoodHistoryView extends StatelessWidget {
@@ -39,7 +40,23 @@ class _MoodHistoryView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.creamBg,
       body: SafeArea(
-        child: BlocBuilder<MoodHistoryCubit, MoodHistoryState>(
+        child: BlocConsumer<MoodHistoryCubit, MoodHistoryState>(
+          listenWhen: (previous, current) =>
+              previous.successMessage != current.successMessage ||
+              previous.errorMessage != current.errorMessage,
+          listener: (context, state) {
+            // Kegagalan memuat sudah punya layarnya sendiri; menumpuknya dengan
+            // snackbar hanya membuat pesan yang sama muncul dua kali.
+            if (state.status == MoodHistoryStatus.failure) return;
+
+            final message = state.successMessage ?? state.errorMessage;
+            if (message == null) return;
+
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(message)));
+            context.read<MoodHistoryCubit>().clearMessages();
+          },
           builder: (context, state) {
             if (state.isLoading) {
               return const Center(child: CircularProgressIndicator(color: AppColors.midnight));
@@ -59,7 +76,9 @@ class _MoodHistoryView extends StatelessWidget {
                   const _Header(),
                   const SizedBox(height: AppSpacing.lg),
                   if (state.isEmpty) ...[
-                    const _EmptyHistory(),
+                    _EmptyHistory(state: state),
+                    const SizedBox(height: AppSpacing.lg),
+                    _MonthlyCalendarCard(state: state),
                     const SizedBox(height: AppSpacing.lg),
                     const SebaranEmosiCard(),
                   ] else ...[
@@ -75,8 +94,6 @@ class _MoodHistoryView extends StatelessWidget {
                       _SummaryRow(stats: state.stats),
                       const SizedBox(height: AppSpacing.md),
                       _MoodRhythmCard(stats: state.stats),
-                      const SizedBox(height: AppSpacing.md),
-                      _EmotionDistributionCard(stats: state.stats),
                       if (state.stats.topTriggers.isNotEmpty) ...[
                         const SizedBox(height: AppSpacing.md),
                         _TriggerCard(stats: state.stats),
@@ -123,13 +140,18 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// Belum ada satu pun check-in — arahkan ke Beranda, bukan tampilkan
-/// kalender kosong yang tidak bisa diapa-apakan dari sini.
+/// Belum ada satu pun check-in. Kalender tetap ditampilkan di bawah kartu ini
+/// karena sekarang ia bisa diketuk — jalan memulai ada di layar ini juga,
+/// bukan hanya di Beranda.
 class _EmptyHistory extends StatelessWidget {
-  const _EmptyHistory();
+  const _EmptyHistory({required this.state});
+
+  final MoodHistoryState state;
 
   @override
   Widget build(BuildContext context) {
+    final canCheckIn = state.canCheckInOn(DateTime.now());
+
     return _Card(
       child: Column(
         children: [
@@ -153,15 +175,19 @@ class _EmptyHistory extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Riwayat terbentuk dari check-in harian. Isi check-in pertamamu di Beranda.',
+            'Riwayat terbentuk dari check-in harian. Mulai dari hari ini, atau '
+            'ketuk tanggal mana pun di kalender di bawah.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppColors.warmTextSecondary, height: 1.4),
           ),
           const SizedBox(height: AppSpacing.md),
           ElevatedButton.icon(
-            onPressed: () => MahasiswaShellPage.switchTab(context, 0),
-            icon: const Icon(Icons.home_rounded, size: 18),
-            label: const Text('Ke Beranda', style: TextStyle(fontWeight: FontWeight.w700)),
+            onPressed: canCheckIn ? () => _openCheckin(context, date: DateTime.now()) : null,
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text(
+              'Check-in hari ini',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.midnight,
               foregroundColor: Colors.white,
@@ -180,6 +206,70 @@ class _EmptyHistory extends StatelessWidget {
 // ------------------------------------------------------------------
 // Kalender bulanan
 // ------------------------------------------------------------------
+
+/// Membuka form check-in untuk [date]. Bila tanggal itu sudah terisi, form
+/// terbuka dalam mode ubah — server melakukan upsert per tanggal, jadi mengisi
+/// ulang berarti memperbaiki, bukan menambah baris kedua.
+///
+/// Tanggal di luar batas ditolak di sini dengan alasan yang jelas, bukan
+/// dibiarkan sampai server menolaknya setelah mahasiswa mengisi seluruh form.
+Future<void> _openCheckin(
+  BuildContext context, {
+  required DateTime date,
+  DailyMetric? existing,
+}) async {
+  final cubit = context.read<MoodHistoryCubit>();
+  final beranda = context.read<BerandaCubit>();
+  final state = cubit.state;
+
+  if (!state.canCheckInOn(date)) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(_blockedReason(state, date))));
+    return;
+  }
+
+  final saved = await CheckinSheet.show(
+    context,
+    options: state.options,
+    existing: existing,
+    initialDate: date,
+    onSubmit: ({
+      required moodScore,
+      required stressLevel,
+      required sleepHours,
+      required academicTrigger,
+      required date,
+    }) =>
+        cubit.saveCheckin(
+      moodScore: moodScore,
+      stressLevel: stressLevel,
+      sleepHours: sleepHours,
+      academicTrigger: academicTrigger,
+      date: date,
+    ),
+  );
+
+  // Beranda memegang ringkasan mingguan dan status "sudah check-in hari ini".
+  // Tanpa penyegaran ini ia tetap mengaku belum terisi sampai aplikasi dibuka
+  // ulang, padahal mahasiswa baru saja mengisinya di layar ini.
+  if (saved) await beranda.refresh();
+}
+
+String _blockedReason(MoodHistoryState state, DateTime date) {
+  if (!state.options.isLoaded) {
+    return 'Pilihan check-in belum termuat. Tarik layar ke bawah untuk memuat ulang.';
+  }
+
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  if (DateTime(date.year, date.month, date.day).isAfter(today)) {
+    return 'Hari itu belum tiba.';
+  }
+
+  return 'Check-in hanya bisa diisi mundur maksimal '
+      '${state.options.maxBackdateDays} hari.';
+}
 
 class _MonthlyCalendarCard extends StatelessWidget {
   const _MonthlyCalendarCard({required this.state});
@@ -234,6 +324,18 @@ class _MonthlyCalendarCard extends StatelessWidget {
             '${monthly.checkinCount > 0 ? ' · rata-rata mood ${monthly.avgMood.toStringAsFixed(1)}/5' : ''}',
             style: const TextStyle(fontSize: 12, color: AppColors.warmTextSecondary),
           ),
+          if (state.options.isLoaded) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Ketuk tanggal untuk mengisi atau mengubah check-in '
+              '(maksimal ${state.options.maxBackdateDays} hari ke belakang).',
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.warmTextMuted,
+                height: 1.3,
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
@@ -272,7 +374,12 @@ class _MonthlyCalendarCard extends StatelessWidget {
                 if (index < leadingBlanks) return const SizedBox.shrink();
 
                 final day = index - leadingBlanks + 1;
-                return _DayCell(day: day, metric: monthly.forDay(day));
+                final date = DateTime(firstDate.year, firstDate.month, day);
+                return _DayCell(
+                  date: date,
+                  metric: monthly.forDay(day),
+                  isCheckinAllowed: state.canCheckInOn(date),
+                );
               },
             ),
           const SizedBox(height: AppSpacing.sm),
@@ -283,80 +390,113 @@ class _MonthlyCalendarCard extends StatelessWidget {
   }
 }
 
+/// Satu sel kalender.
+///
+/// Sel yang masih boleh diisi bisa diketuk: yang kosong membuka check-in baru,
+/// yang terisi membuka mode ubah. Sel di luar batas mundur tetap ditampilkan
+/// apa adanya — riwayat lama tidak boleh terlihat seperti masih bisa diubah.
 class _DayCell extends StatelessWidget {
-  const _DayCell({required this.day, this.metric});
+  const _DayCell({
+    required this.date,
+    required this.isCheckinAllowed,
+    this.metric,
+  });
 
-  final int day;
+  final DateTime date;
+  final bool isCheckinAllowed;
   final DailyMetric? metric;
 
   @override
   Widget build(BuildContext context) {
     final filled = metric != null;
+    final day = date.day;
+    final radius = BorderRadius.circular(AppSpacing.radiusSm / 2);
+
+    final String tooltip;
+    if (filled) {
+      tooltip = '$day: ${metric!.moodLabel}'
+          '${isCheckinAllowed ? ' · ketuk untuk mengubah' : ''}';
+    } else {
+      tooltip = isCheckinAllowed ? '$day: ketuk untuk check-in' : '$day: belum check-in';
+    }
 
     return Tooltip(
-      message: filled
-          ? '$day: ${metric!.moodLabel}'
-              '${metric!.emotionLabelText.isNotEmpty ? ' · ${metric!.emotionLabelText}' : ''}'
-          : '$day: belum check-in',
-      child: Container(
-        decoration: BoxDecoration(
-          color: filled ? MoodVisuals.backgroundForScore(metric!.moodScore) : AppColors.creamAlt,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm / 2),
-          border: Border.all(
-            color: filled ? MoodVisuals.colorForScore(metric!.moodScore) : AppColors.cartoonBorder,
-            width: filled ? 1.5 : 1,
+      message: tooltip,
+      child: Material(
+        color: filled ? MoodVisuals.backgroundForScore(metric!.moodScore) : AppColors.creamAlt,
+        borderRadius: radius,
+        child: InkWell(
+          // Sel di luar batas tetap bisa diketuk — bukan untuk membuka form,
+          // melainkan untuk menjawab "kenapa tidak bisa?". Sel mati yang diam
+          // saja membuat pengguna mengetuk berulang tanpa pernah tahu sebabnya.
+          onTap: () => _openCheckin(context, date: date, existing: metric),
+          borderRadius: radius,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border: Border.all(
+                color: filled
+                    ? MoodVisuals.colorForScore(metric!.moodScore)
+                    : (isCheckinAllowed ? AppColors.midnight : AppColors.cartoonBorder),
+                width: filled ? 1.5 : 1,
+              ),
+            ),
+            child: filled
+                ? ClipRRect(
+                    borderRadius: radius,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(2.0),
+                            child: CartoonMoodBlob(
+                              mood: MoodVisuals.forScore(metric!.moodScore),
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 1,
+                          right: 2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.88),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              '$day',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.midnight,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$day',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: isCheckinAllowed ? FontWeight.w700 : FontWeight.w400,
+                          color: isCheckinAllowed
+                              ? AppColors.midnight
+                              : AppColors.warmTextMuted,
+                        ),
+                      ),
+                      if (isCheckinAllowed)
+                        const Icon(Icons.add_rounded, size: 12, color: AppColors.midnight),
+                    ],
+                  ),
           ),
         ),
-        child: filled
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm / 2),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(2.0),
-                        child: CartoonMoodBlob(
-                          mood: MoodVisuals.forEmotion(
-                            metric!.emotionLabel,
-                            moodScore: metric!.moodScore,
-                          ),
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 1,
-                      right: 2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.88),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Text(
-                          '$day',
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.midnight,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            : Center(
-                child: Text(
-                  '$day',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.warmTextMuted,
-                  ),
-                ),
-              ),
       ),
     );
   }
@@ -693,100 +833,6 @@ class _MoodRhythmCard extends StatelessWidget {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmotionDistributionCard extends StatelessWidget {
-  const _EmotionDistributionCard({required this.stats});
-
-  final MoodStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    if (stats.emotionDistribution.isEmpty) {
-      return const _Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Sebaran Emosi',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-                color: AppColors.midnight,
-              ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              'Belum ada check-in yang diberi label emosi. Emosi bersifat opsional. '
-              'Mengisinya membuat sebaran ini punya arti.',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.warmTextSecondary,
-                height: 1.35,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Sebaran Emosi (Check-in)',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: AppColors.midnight,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          for (final share in stats.emotionDistribution)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        share.label,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.midnight,
-                        ),
-                      ),
-                      Text(
-                        '${share.percentage.toStringAsFixed(0)}% · ${share.count}x',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.midnight,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: share.fraction,
-                      minHeight: 8,
-                      backgroundColor: AppColors.creamAlt,
-                      color: MoodVisuals.forEmotion(share.emotion).color,
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );

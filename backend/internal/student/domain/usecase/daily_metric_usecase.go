@@ -41,7 +41,7 @@ func NewDailyMetricUsecase(repo repositories.DailyMetricRepository, cfg config.S
 }
 
 func (u *dailyMetricUsecase) Options(context.Context) dto.DailyMetricOptionsResponse {
-	return mapper.ToDailyMetricOptions(u.cfg.MaxBackdateDays)
+	return mapper.ToDailyMetricOptions(u.cfg.CheckinMaxBackdateDays)
 }
 
 func (u *dailyMetricUsecase) WeeklySummary(ctx context.Context, userID string) (dto.WeeklyMoodSummaryResponse, error) {
@@ -117,13 +117,6 @@ func (u *dailyMetricUsecase) SaveMetric(ctx context.Context, userID string, req 
 		return dto.DailyMetricResponse{}, err
 	}
 
-	if !constants.IsValidCheckinEmotion(req.EmotionLabel) {
-		return dto.DailyMetricResponse{}, utils.NewFieldErrors([]utils.FieldError{{
-			Field:   "emotion_label",
-			Code:    utils.CodeInvalidEnum,
-			Message: "Emosi tidak termasuk pilihan yang tersedia",
-		}})
-	}
 	if !constants.IsValidAcademicTrigger(req.AcademicTrigger) {
 		return dto.DailyMetricResponse{}, utils.NewFieldErrors([]utils.FieldError{{
 			Field:   "academic_trigger",
@@ -132,13 +125,17 @@ func (u *dailyMetricUsecase) SaveMetric(ctx context.Context, userID string, req 
 		}})
 	}
 
+	// EmotionLabel sengaja tidak diisi. Check-in hanya menanyakan "bagaimana
+	// perasaanmu" pada skala 1..5; label emosi terpisah dulu menanyakan hal yang
+	// sama dua kali. Kolomnya dipertahankan untuk data lama, tetapi tidak ada
+	// lagi jalur yang menulisinya — emosi bernama hanya datang dari analisis
+	// jurnal (D-3).
 	metric := models.StudentDailyMetric{
 		UserID:          userID,
 		MetricDate:      metricDate,
 		MoodScore:       req.MoodScore,
 		StressLevel:     req.StressLevel,
 		SleepHours:      req.SleepHours,
-		EmotionLabel:    req.EmotionLabel,
 		AcademicTrigger: req.AcademicTrigger,
 	}
 
@@ -150,8 +147,8 @@ func (u *dailyMetricUsecase) SaveMetric(ctx context.Context, userID string, req 
 	return mapper.ToDailyMetricResponse(metric), nil
 }
 
-// resolveMetricDate memvalidasi tanggal check-in terhadap dua batas:
-// tidak boleh ke masa depan, dan tidak lebih lama dari MaxBackdateDays.
+// resolveMetricDate memvalidasi tanggal check-in terhadap dua batas: tidak
+// boleh ke masa depan, dan tidak lebih lama dari CheckinMaxBackdateDays.
 func (u *dailyMetricUsecase) resolveMetricDate(raw string) (time.Time, error) {
 	today := apptime.Today()
 	if raw == "" {
@@ -168,11 +165,11 @@ func (u *dailyMetricUsecase) resolveMetricDate(raw string) (time.Time, error) {
 		return time.Time{}, utils.NewError(utils.CodeFutureDateNotAllowed)
 	}
 
-	earliest := today.AddDate(0, 0, -u.cfg.MaxBackdateDays)
+	earliest := today.AddDate(0, 0, -u.cfg.CheckinMaxBackdateDays)
 	if parsed.Before(earliest) {
 		return time.Time{}, utils.NewErrorWithMessage(
 			utils.CodeBackdateLimitExceeded,
-			fmt.Sprintf("Check-in hanya dapat diisi mundur maksimal %d hari", u.cfg.MaxBackdateDays),
+			fmt.Sprintf("Check-in hanya dapat diisi mundur maksimal %d hari", u.cfg.CheckinMaxBackdateDays),
 		)
 	}
 	return parsed, nil

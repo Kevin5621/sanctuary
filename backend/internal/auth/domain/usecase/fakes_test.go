@@ -48,8 +48,6 @@ func (f *fakeUserRepo) FindByID(_ context.Context, id string) (*models.User, err
 
 func (f *fakeUserRepo) TouchLastLogin(context.Context, *gorm.DB, string) error { return nil }
 
-func (f *fakeUserRepo) CountAdvisees(context.Context, string) (int64, error) { return 0, nil }
-
 func (f *fakeUserRepo) Create(_ context.Context, user *models.User) error {
 	if f.createErr != nil {
 		return f.createErr

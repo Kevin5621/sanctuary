@@ -37,6 +37,16 @@ type JournalRepository interface {
 	//     dilihat mahasiswa adalah "perasaanku 30 hari terakhir", bukan "kapan
 	//     aku menekan tombol analisis".
 	EmotionDistributionForUser(ctx context.Context, userID string, from, to time.Time) ([]EmotionCount, error)
+	// EmotionDistributionForUsers adalah versi kelompok dari query di atas,
+	// dipakai indikator EWS #2 (D-3) dan sebaran emosi kelompok dosen (L-KON-03).
+	//
+	// Ini SATU-SATUNYA query jurnal yang menerima banyak user id, dan ia tetap
+	// menuruti aturan keras repository ini: yang ter-select hanya label emosi
+	// dan jumlahnya. Tidak ada judul, tidak ada isi, tidak ada id jurnal —
+	// sehingga tulisan pribadi tidak pernah ikut terbawa ke jalur dosen.
+	// Penyaringan k-anonymity dan izin berbagi dilakukan pemanggil sebelum
+	// daftar id sampai ke sini.
+	EmotionDistributionForUsers(ctx context.Context, userIDs []string, from, to time.Time) ([]EmotionCount, error)
 	// CountAnalyzedForUserRange melengkapi sebaran di atas dengan jumlah jurnal
 	// yang berpenanda krisis pada rentang yang sama.
 	CountCrisisFlaggedForUserRange(ctx context.Context, userID string, from, to time.Time) (int64, error)
@@ -153,6 +163,25 @@ func (r *journalRepository) EmotionDistributionForUser(ctx context.Context, user
 		Model(&models.StudentJournal{}).
 		Select("emotion_label, COUNT(*) AS total").
 		Where("user_id = ? AND analyzed_at IS NOT NULL AND emotion_label <> ''", userID).
+		Where("journal_date BETWEEN ? AND ?", from, to).
+		Group("emotion_label").
+		Scan(&counts).Error
+	return counts, utils.TranslateDBError(err, "")
+}
+
+func (r *journalRepository) EmotionDistributionForUsers(ctx context.Context, userIDs []string, from, to time.Time) ([]EmotionCount, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+
+	ctx, cancel := utils.DBContext(ctx)
+	defer cancel()
+
+	var counts []EmotionCount
+	err := r.db.WithContext(ctx).
+		Model(&models.StudentJournal{}).
+		Select("emotion_label, COUNT(*) AS total").
+		Where("user_id IN ? AND analyzed_at IS NOT NULL AND emotion_label <> ''", userIDs).
 		Where("journal_date BETWEEN ? AND ?", from, to).
 		Group("emotion_label").
 		Scan(&counts).Error

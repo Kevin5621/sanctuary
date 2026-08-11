@@ -135,13 +135,15 @@ func (u *journalUsecase) EmotionDistribution(ctx context.Context, userID string,
 }
 
 // resolveJournalDate memvalidasi tanggal jurnal terhadap dua batas: tidak boleh
-// ke masa depan, dan tidak lebih lama dari MaxBackdateDays (D-8).
+// ke masa depan, dan tidak lebih lama dari JournalMaxBackdateDays (D-8).
 //
-// Sebelumnya hanya batas "masa depan" yang ditegakkan di sini, sementara D-8
-// sudah berlaku untuk check-in mood. Akibatnya jurnal dapat diberi tanggal
-// mundur sejauh apa pun — dan karena EWS #2 membaca jurnal, entri lama yang
-// dikarang belakangan ikut menggeser indikator. Aturan ini disamakan dengan
-// dailyMetricUsecase.resolveMetricDate agar keduanya memakai batas yang sama.
+// Sebelumnya hanya batas "masa depan" yang ditegakkan di sini. Akibatnya jurnal
+// dapat diberi tanggal mundur sejauh apa pun — dan karena EWS #2 membaca
+// jurnal, entri lama yang dikarang belakangan ikut menggeser indikator.
+//
+// Batas jurnal tetap 7 hari sementara check-in dilonggarkan menjadi 30: yang
+// diisi check-in adalah angka yang masih bisa diingat kasar, sedangkan jurnal
+// adalah cerita hari itu.
 func (u *journalUsecase) resolveJournalDate(raw string) (time.Time, error) {
 	today := apptime.Today()
 	if raw == "" {
@@ -156,11 +158,11 @@ func (u *journalUsecase) resolveJournalDate(raw string) (time.Time, error) {
 		return time.Time{}, utils.NewError(utils.CodeFutureDateNotAllowed)
 	}
 
-	earliest := today.AddDate(0, 0, -u.cfg.MaxBackdateDays)
+	earliest := today.AddDate(0, 0, -u.cfg.JournalMaxBackdateDays)
 	if parsed.Before(earliest) {
 		return time.Time{}, utils.NewErrorWithMessage(
 			utils.CodeBackdateLimitExceeded,
-			fmt.Sprintf("Jurnal hanya dapat diberi tanggal mundur maksimal %d hari", u.cfg.MaxBackdateDays),
+			fmt.Sprintf("Jurnal hanya dapat diberi tanggal mundur maksimal %d hari", u.cfg.JournalMaxBackdateDays),
 		)
 	}
 	return parsed, nil

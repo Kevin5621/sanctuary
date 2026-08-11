@@ -30,8 +30,10 @@ func RegisterRoutes(
 	ewsRepo := repositories.NewEarlyWarningRepository(db)
 	advisorNoteRepo := repositories.NewAdvisorNoteRepository(db)
 
-	ewsUC := usecase.NewEWSUsecase(shared.Metrics, shared.Dass, ewsRepo, cfg.EWS)
-	mentorUC := usecase.NewMentorUsecase(adviseeRepo, shared.Privacy, shared.Metrics, ewsUC, audits, advisorNoteRepo)
+	ewsUC := usecase.NewEWSUsecase(shared.Metrics, shared.Journals, shared.Dass, ewsRepo, cfg.EWS)
+	mentorUC := usecase.NewMentorUsecase(
+		adviseeRepo, shared.Privacy, shared.Metrics, shared.Journals, ewsUC, audits, advisorNoteRepo,
+	)
 
 	mentorHandler := handler.NewMentorHandler(mentorUC)
 

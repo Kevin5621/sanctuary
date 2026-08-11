@@ -59,7 +59,6 @@ class BerandaCubit extends Cubit<BerandaState> {
     required int moodScore,
     required int stressLevel,
     required double sleepHours,
-    String emotionLabel = '',
     String academicTrigger = '',
     DateTime? date,
   }) async {
@@ -70,7 +69,6 @@ class BerandaCubit extends Cubit<BerandaState> {
         moodScore: moodScore,
         stressLevel: stressLevel,
         sleepHours: sleepHours,
-        emotionLabel: emotionLabel,
         academicTrigger: academicTrigger,
         metricDate: date == null ? null : formatApiDate(date),
       );

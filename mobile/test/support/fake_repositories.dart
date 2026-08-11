@@ -5,6 +5,7 @@ import 'package:sanctuary/features/mahasiswa/data/repositories/contact_request_r
 import 'package:sanctuary/features/mahasiswa/data/repositories/daily_metric_repository.dart';
 import 'package:sanctuary/features/mahasiswa/data/repositories/dass_repository.dart';
 import 'package:sanctuary/features/mahasiswa/data/repositories/journal_repository.dart';
+import 'package:sanctuary/features/mahasiswa/domain/entities/advisor.dart';
 import 'package:sanctuary/features/mahasiswa/domain/entities/contact_request.dart';
 import 'package:sanctuary/features/mahasiswa/domain/entities/daily_metric.dart';
 import 'package:sanctuary/features/mahasiswa/domain/entities/dass21.dart';
@@ -36,6 +37,7 @@ class FakeDailyMetricRepository extends DailyMetricRepository {
     CheckinOptions? options,
     this.failWeekly = false,
     this.failOptions = false,
+    this.failSave = false,
   })  : summary = summary ?? emptyWeekly(),
         monthly = monthly ?? const MonthlyMood.empty(),
         stats = stats ?? const MoodStats.empty(),
@@ -49,6 +51,7 @@ class FakeDailyMetricRepository extends DailyMetricRepository {
 
   bool failWeekly;
   bool failOptions;
+  bool failSave;
 
   /// Argumen check-in terakhir — dipakai memastikan klien tidak mengarang nilai.
   Map<String, dynamic>? lastSaved;
@@ -72,9 +75,8 @@ class FakeDailyMetricRepository extends DailyMetricRepository {
           ScaleOption(value: 1, label: 'Sangat santai'),
           ScaleOption(value: 5, label: 'Sangat tertekan'),
         ],
-        emotions: [CodedOption(value: 'CALM', label: 'Tenang')],
         academicTriggers: [],
-        maxBackdateDays: 7,
+        maxBackdateDays: 30,
       );
 
   @override
@@ -106,15 +108,15 @@ class FakeDailyMetricRepository extends DailyMetricRepository {
     required int moodScore,
     required int stressLevel,
     required double sleepHours,
-    String emotionLabel = '',
     String academicTrigger = '',
     String? metricDate,
   }) async {
+    if (failSave) throw networkError;
+
     lastSaved = {
       'mood_score': moodScore,
       'stress_level': stressLevel,
       'sleep_hours': sleepHours,
-      'emotion_label': emotionLabel,
       'academic_trigger': academicTrigger,
       'metric_date': metricDate,
     };
@@ -124,7 +126,6 @@ class FakeDailyMetricRepository extends DailyMetricRepository {
       moodScore: moodScore,
       stressLevel: stressLevel,
       sleepHours: sleepHours,
-      emotionLabel: emotionLabel,
       academicTrigger: academicTrigger,
     );
   }
@@ -141,7 +142,11 @@ class FakeContactRequestRepository extends ContactRequestRepository {
   bool cancelled = false;
   String? lastNote;
 
-  static ContactRequestState withAdvisor({bool hasOpenRequest = false}) => ContactRequestState(
+  static ContactRequestState withAdvisor({
+    bool hasOpenRequest = false,
+    int advisorCount = 1,
+  }) =>
+      ContactRequestState(
         hasOpenRequest: hasOpenRequest,
         request: hasOpenRequest
             ? ContactRequest(
@@ -152,7 +157,10 @@ class FakeContactRequestRepository extends ContactRequestRepository {
                 isOpen: true,
               )
             : null,
-        advisorName: 'Dr. Sinta Pembimbing',
+        advisors: [
+          for (var i = 0; i < advisorCount; i++)
+            Advisor(id: 'advisor-$i', fullName: 'Pembimbing ${i + 1}'),
+        ],
         canRequest: !hasOpenRequest,
         explanation: 'Pembimbingmu hanya melihat namamu dan waktu permintaan.',
       );
@@ -180,14 +188,17 @@ class FakeJournalRepository extends JournalRepository {
   FakeJournalRepository({
     List<JournalListItem>? entries,
     EmotionHistory? emotionHistory,
+    EmotionDistribution? emotionDistribution,
     this.hasNextPage = false,
     this.failList = false,
   })  : entries = entries ?? const [],
         emotionHistory = emotionHistory ?? const EmotionHistory.empty(),
+        emotionDistribution = emotionDistribution ?? const EmotionDistribution.initial(),
         super(dummyClient());
 
   List<JournalListItem> entries;
   EmotionHistory emotionHistory;
+  EmotionDistribution emotionDistribution;
   bool hasNextPage;
   bool failList;
 
@@ -269,6 +280,12 @@ class FakeJournalRepository extends JournalRepository {
   Future<EmotionHistory> fetchEmotionHistory() async {
     if (failList) throw networkError;
     return emotionHistory;
+  }
+
+  @override
+  Future<EmotionDistribution> fetchEmotionDistribution({int rangeDays = 30}) async {
+    if (failList) throw networkError;
+    return emotionDistribution;
   }
 }
 

@@ -30,14 +30,6 @@ type MoodAverages struct {
 	Sleep  float64
 }
 
-// EmotionShare adalah porsi satu label emosi pada satu periode.
-type EmotionShare struct {
-	Emotion    string
-	Count      int
-	Percentage float64
-	IsNegative bool
-}
-
 // TriggerShare adalah frekuensi satu pemicu akademik.
 type TriggerShare struct {
 	Trigger string
@@ -124,44 +116,6 @@ func LongestStreak(metrics []models.StudentDailyMetric) int {
 		}
 	}
 	return longest
-}
-
-// EmotionShares menyusun sebaran emosi, diurutkan dari yang paling sering.
-// Check-in tanpa label emosi tidak ikut dihitung agar persentasenya tetap
-// mencerminkan hari yang benar-benar diberi label.
-func EmotionShares(metrics []models.StudentDailyMetric) []EmotionShare {
-	counts := map[string]int{}
-	labeled := 0
-	for _, m := range metrics {
-		if m.EmotionLabel == "" {
-			continue
-		}
-		counts[m.EmotionLabel]++
-		labeled++
-	}
-	if labeled == 0 {
-		return nil
-	}
-
-	shares := make([]EmotionShare, 0, len(counts))
-	for emotion, count := range counts {
-		shares = append(shares, EmotionShare{
-			Emotion:    emotion,
-			Count:      count,
-			Percentage: round2(float64(count) / float64(labeled) * 100),
-			IsNegative: constants.IsNegativeEmotion(emotion),
-		})
-	}
-
-	// Urutan stabil: frekuensi menurun, lalu kode emosi agar hasilnya
-	// deterministik (map di Go tidak menjamin urutan iterasi).
-	sort.Slice(shares, func(i, j int) bool {
-		if shares[i].Count != shares[j].Count {
-			return shares[i].Count > shares[j].Count
-		}
-		return shares[i].Emotion < shares[j].Emotion
-	})
-	return shares
 }
 
 // TopTriggers mengembalikan pemicu akademik terbanyak, maksimal limit item.

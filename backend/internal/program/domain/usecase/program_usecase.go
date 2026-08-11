@@ -26,7 +26,11 @@ type ProgramUsecase interface {
 	Dashboard(ctx context.Context, access Access, periodDays int) (dto.ProgramDashboardResponse, error)
 	Advisors(ctx context.Context, access Access) ([]dto.AdvisorLoadResponse, error)
 	Students(ctx context.Context, access Access) ([]dto.ProgramStudentResponse, error)
-	AssignAdvisor(ctx context.Context, access Access, req dto.AssignAdvisorRequest) error
+	// SetAdvisees menyetel daftar bimbingan seorang dosen (layar per-dosen).
+	SetAdvisees(ctx context.Context, access Access, advisorID string, req dto.SetAdviseesRequest) error
+	// SetStudentAdvisors menyetel daftar pembimbing seorang mahasiswa
+	// (layar per-mahasiswa — satu-satunya cara memberi pembimbing kedua).
+	SetStudentAdvisors(ctx context.Context, access Access, studentID string, req dto.SetStudentAdvisorsRequest) error
 	CohortReport(ctx context.Context, access Access, periodDays int) ([]dto.CohortReportResponse, error)
 	// Profile mengisi tab Profil kaprodi (K-PRO-01).
 	Profile(ctx context.Context, access Access) (dto.ProgramProfileResponse, error)
@@ -196,28 +200,66 @@ func (u *programUsecase) Students(ctx context.Context, access Access) ([]dto.Pro
 		return nil, err
 	}
 
+	ids := make([]string, 0, len(students))
+	for _, s := range students {
+		ids = append(ids, s.ID)
+	}
+	advisorMap, err := u.programs.AdvisorsForStudents(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
 	out := make([]dto.ProgramStudentResponse, 0, len(students))
 	for _, s := range students {
+		advisors := advisorMap[s.ID]
+		items := make([]dto.AdvisorBriefResponse, 0, len(advisors))
+		for _, a := range advisors {
+			items = append(items, dto.AdvisorBriefResponse{
+				AdvisorID:      a.AdvisorID,
+				FullName:       a.FullName,
+				LecturerNumber: a.LecturerNumber,
+			})
+		}
+
 		out = append(out, dto.ProgramStudentResponse{
 			ID:            s.ID,
 			FullName:      s.FullName,
 			StudentNumber: s.StudentNumber,
 			Email:         s.Email,
-			AdvisorID:     s.AdvisorID,
-			AdvisorName:   s.AdvisorName,
+			Advisors:      items,
 		})
 	}
 	return out, nil
 }
 
-func (u *programUsecase) AssignAdvisor(ctx context.Context, access Access, req dto.AssignAdvisorRequest) error {
+func (u *programUsecase) SetAdvisees(
+	ctx context.Context,
+	access Access,
+	advisorID string,
+	req dto.SetAdviseesRequest,
+) error {
 	if access.ProgramID == "" {
-		return utils.NewError(utils.CodeForbidden).WithDetails(map[string]any{
-			"reason": "akun kaprodi belum terhubung ke program studi",
-		})
+		return errProgramNotLinked()
 	}
+	return u.programs.SetAdviseesForAdvisor(ctx, access.ProgramID, advisorID, req.StudentIDs, access.UserID)
+}
 
-	return u.programs.AssignAdvisor(ctx, access.ProgramID, req.AdvisorID, req.StudentIDs)
+func (u *programUsecase) SetStudentAdvisors(
+	ctx context.Context,
+	access Access,
+	studentID string,
+	req dto.SetStudentAdvisorsRequest,
+) error {
+	if access.ProgramID == "" {
+		return errProgramNotLinked()
+	}
+	return u.programs.SetAdvisorsForStudent(ctx, access.ProgramID, studentID, req.AdvisorIDs, access.UserID)
+}
+
+func errProgramNotLinked() error {
+	return utils.NewError(utils.CodeForbidden).WithDetails(map[string]any{
+		"reason": "akun kaprodi belum terhubung ke program studi",
+	})
 }
 
 func (u *programUsecase) CohortReport(ctx context.Context, access Access, periodDays int) ([]dto.CohortReportResponse, error) {

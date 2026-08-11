@@ -51,8 +51,9 @@ func TestRegister_CreatesStudentAndIssuesSession(t *testing.T) {
 		t.Errorf("role akun baru = %q, want peran mahasiswa", created.RoleID)
 	}
 	// Pembimbing adalah keputusan prodi — menebaknya berarti mengalirkan data
-	// mahasiswa ke dosen yang belum tentu berhak.
-	if created.AdvisorID != nil {
+	// mahasiswa ke dosen yang belum tentu berhak. Pendaftaran tidak menyentuh
+	// student_advisors sama sekali.
+	if len(created.AdvisorLinks) != 0 {
 		t.Error("pendaftar baru tidak boleh langsung punya dosen pembimbing")
 	}
 	if created.Email != "alya@sanctuary.ac.id" {

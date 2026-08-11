@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/widgets/floating_cartoon_navbar.dart';
+import '../../data/repositories/contact_request_repository.dart';
+import '../../data/repositories/daily_metric_repository.dart';
 import '../../data/repositories/journal_repository.dart';
+import '../cubit/beranda_cubit.dart';
+import '../cubit/mood_history_cubit.dart';
 import '../cubit/sebaran_emosi_cubit.dart';
 import 'beranda_tab.dart';
 import 'jurnal_tab.dart';
@@ -81,13 +85,33 @@ class _MahasiswaShellPageState extends State<MahasiswaShellPage> {
 
   @override
   Widget build(BuildContext context) {
-    // SebaranEmosiCubit hidup di level shell, bukan di dalam tab Mood.
-    // Alasannya: tab Jurnal perlu menyegarkannya setelah sebuah analisis
-    // selesai, sehingga grafik di tab Mood tidak tertinggal satu analisis dari
-    // kenyataan. Satu instance dipakai bersama kedua tab.
-    return BlocProvider<SebaranEmosiCubit>(
-      create: (context) =>
-          SebaranEmosiCubit(context.read<JournalRepository>())..load(),
+    // Beberapa cubit hidup di level shell, bukan di dalam satu tab, karena
+    // tab lain perlu menyegarkannya:
+    //
+    // - SebaranEmosiCubit: tab Jurnal menyegarkannya setelah sebuah analisis
+    //   selesai, sehingga grafik di tab Mood tidak tertinggal satu analisis
+    //   dari kenyataan.
+    // - BerandaCubit & MoodHistoryCubit: check-in kini bisa diisi dari dua
+    //   layar — tombol di Beranda dan kalender di tab Mood. IndexedStack
+    //   menjaga keduanya tetap hidup, jadi tanpa instance bersama yang satu
+    //   tidak pernah tahu yang lain baru saja menyimpan. Kalender Mood yang
+    //   basi berbahaya: hari yang sudah terisi terlihat kosong, dan mengetuknya
+    //   akan menimpa isian tadi dengan nilai bawaan form.
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<SebaranEmosiCubit>(
+          create: (context) => SebaranEmosiCubit(context.read<JournalRepository>())..load(),
+        ),
+        BlocProvider<BerandaCubit>(
+          create: (context) => BerandaCubit(
+            metrics: context.read<DailyMetricRepository>(),
+            contactRequests: context.read<ContactRequestRepository>(),
+          )..load(),
+        ),
+        BlocProvider<MoodHistoryCubit>(
+          create: (context) => MoodHistoryCubit(context.read<DailyMetricRepository>())..load(),
+        ),
+      ],
       child: Scaffold(
         extendBody: true, // Floating navbar over scrollable background
         body: IndexedStack(

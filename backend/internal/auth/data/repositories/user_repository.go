@@ -24,7 +24,6 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	TouchLastLogin(ctx context.Context, tx *gorm.DB, userID string) error
-	CountAdvisees(ctx context.Context, advisorID string) (int64, error)
 
 	Create(ctx context.Context, user *models.User) error
 	Update(ctx context.Context, user *models.User, fields map[string]any) error
@@ -83,17 +82,6 @@ func (r *userRepository) TouchLastLogin(ctx context.Context, tx *gorm.DB, userID
 		Where("id = ?", userID).
 		UpdateColumn("last_login_at", gorm.Expr("now()")).Error
 	return utils.TranslateDBError(err, "")
-}
-
-func (r *userRepository) CountAdvisees(ctx context.Context, advisorID string) (int64, error) {
-	ctx, cancel := utils.DBContext(ctx)
-	defer cancel()
-
-	var total int64
-	err := r.db.WithContext(ctx).Model(&models.User{}).
-		Where("advisor_id = ? AND is_active = true", advisorID).
-		Count(&total).Error
-	return total, utils.TranslateDBError(err, "")
 }
 
 func (r *userRepository) Create(ctx context.Context, user *models.User) error {

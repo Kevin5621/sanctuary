@@ -741,6 +741,39 @@ class _IdentityCard extends StatelessWidget {
                 ),
             ],
           ),
+
+          // Pendampingan bersama: fakta administratif, bukan indikator kondisi.
+          // Tanpa ini, dua pembimbing mudah menghubungi mahasiswa yang sama
+          // pada hari yang sama tanpa tahu satu sama lain.
+          if (indicator.isCoAdvised) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.creamAlt,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.people_alt_rounded,
+                      size: 15, color: AppColors.warmTextMuted),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Dibimbing bersama ${indicator.coAdvisors.join(', ')}.',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        height: 1.35,
+                        color: AppColors.warmTextSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

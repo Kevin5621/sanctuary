@@ -18,7 +18,8 @@ func newJournalUC(repo *fakeJournalRepo) JournalUsecase {
 	// Nilai yang sama dengan default config, agar batas D-8 (7 hari) yang
 	// diuji di sini benar-benar batas yang dipakai aplikasi.
 	return NewJournalUsecase(repo, service.NewEmotionAnalyzer(), config.StudentConfig{
-		MaxBackdateDays:        7,
+		CheckinMaxBackdateDays: 30,
+		JournalMaxBackdateDays: 7,
 		MoodStatsDefaultPeriod: 30,
 		MoodStatsMaxPeriod:     365,
 	})

@@ -63,23 +63,33 @@ type EWSUsecase interface {
 	// EvaluateMany dipakai daftar bimbingan; memakai cache log harian bila masih segar.
 	EvaluateMany(ctx context.Context, studentIDs []string, advisorID *string) (map[string]EWSResult, error)
 	// Calculate adalah inti kalkulasi murni (tanpa I/O) — mudah diuji unit.
-	Calculate(studentID string, metrics []studentmodels.StudentDailyMetric, dass []studentmodels.Dass21Result) EWSResult
+	//
+	// emotions berisi hitungan label emosi hasil analisis JURNAL pada jendela
+	// yang sama; hanya label dan jumlahnya, tanpa satu pun teks jurnal.
+	Calculate(
+		studentID string,
+		metrics []studentmodels.StudentDailyMetric,
+		emotions []studentrepo.EmotionCount,
+		dass []studentmodels.Dass21Result,
+	) EWSResult
 }
 
 type ewsUsecase struct {
-	metrics studentrepo.DailyMetricRepository
-	dass    studentrepo.DassRepository
-	logs    mentorrepo.EarlyWarningRepository
-	cfg     config.EWSConfig
+	metrics  studentrepo.DailyMetricRepository
+	journals studentrepo.JournalRepository
+	dass     studentrepo.DassRepository
+	logs     mentorrepo.EarlyWarningRepository
+	cfg      config.EWSConfig
 }
 
 func NewEWSUsecase(
 	metrics studentrepo.DailyMetricRepository,
+	journals studentrepo.JournalRepository,
 	dass studentrepo.DassRepository,
 	logs mentorrepo.EarlyWarningRepository,
 	cfg config.EWSConfig,
 ) EWSUsecase {
-	return &ewsUsecase{metrics: metrics, dass: dass, logs: logs, cfg: cfg}
+	return &ewsUsecase{metrics: metrics, journals: journals, dass: dass, logs: logs, cfg: cfg}
 }
 
 func (u *ewsUsecase) Evaluate(ctx context.Context, studentID string, advisorID *string) (EWSResult, error) {
@@ -90,12 +100,19 @@ func (u *ewsUsecase) Evaluate(ctx context.Context, studentID string, advisorID *
 	if err != nil {
 		return EWSResult{}, err
 	}
+	// D-3: emosi negatif dihitung dari analisis jurnal, bukan check-in mood —
+	// mood sudah diwakili indikator #1, dan menghitungnya lagi di sini membuat
+	// satu hari buruk menaikkan skor dua kali.
+	emotions, err := u.journals.EmotionDistributionForUser(ctx, studentID, from, to)
+	if err != nil {
+		return EWSResult{}, err
+	}
 	dassResults, err := u.dass.LatestTwoForUser(ctx, studentID)
 	if err != nil {
 		return EWSResult{}, err
 	}
 
-	result := u.Calculate(studentID, metrics, dassResults)
+	result := u.Calculate(studentID, metrics, emotions, dassResults)
 
 	if err := u.persist(ctx, result, advisorID); err != nil {
 		return result, err
@@ -136,6 +153,7 @@ func (u *ewsUsecase) EvaluateMany(ctx context.Context, studentIDs []string, advi
 func (u *ewsUsecase) Calculate(
 	studentID string,
 	metrics []studentmodels.StudentDailyMetric,
+	emotions []studentrepo.EmotionCount,
 	dassResults []studentmodels.Dass21Result,
 ) EWSResult {
 	now := apptime.Now()
@@ -158,7 +176,7 @@ func (u *ewsUsecase) Calculate(
 
 	indicators := []Indicator{
 		u.indicatorLowMoodStreak(metrics),
-		u.indicatorNegativeEmotion(metrics),
+		u.indicatorNegativeEmotion(emotions),
 		u.indicatorDassWorsening(dassResults),
 		u.indicatorLowSleep(metrics),
 	}
@@ -217,16 +235,21 @@ func (u *ewsUsecase) indicatorLowMoodStreak(metrics []studentmodels.StudentDaily
 	}
 }
 
-// Indikator 2 — rasio emosi negatif > 60% dengan minimal 4 data beremosi.
-func (u *ewsUsecase) indicatorNegativeEmotion(metrics []studentmodels.StudentDailyMetric) Indicator {
+// Indikator 2 — rasio emosi negatif > 60% dengan minimal 4 hasil analisis.
+//
+// Sumbernya HANYA analisis jurnal (D-3). Sebelumnya indikator ini membaca
+// emotion_label pada check-in mood, padahal mood check-in sudah diwakili
+// indikator #1 — satu hari buruk terhitung dua kali. Sejak label emosi dihapus
+// dari form check-in, kolom itu juga tidak lagi terisi.
+func (u *ewsUsecase) indicatorNegativeEmotion(emotions []studentrepo.EmotionCount) Indicator {
 	labeled, negative := 0, 0
-	for _, m := range metrics {
-		if m.EmotionLabel == "" {
+	for _, e := range emotions {
+		if e.EmotionLabel == "" {
 			continue
 		}
-		labeled++
-		if constants.IsNegativeEmotion(m.EmotionLabel) {
-			negative++
+		labeled += e.Total
+		if constants.IsNegativeEmotion(e.EmotionLabel) {
+			negative += e.Total
 		}
 	}
 
@@ -236,9 +259,9 @@ func (u *ewsUsecase) indicatorNegativeEmotion(metrics []studentmodels.StudentDai
 	}
 
 	triggered := labeled >= u.cfg.NegativeEmotionSamples && ratio > u.cfg.NegativeEmotionRatio
-	detail := fmt.Sprintf("%d dari %d catatan emosi bernada negatif", negative, labeled)
+	detail := fmt.Sprintf("%d dari %d jurnal teranalisis bernada negatif", negative, labeled)
 	if labeled < u.cfg.NegativeEmotionSamples {
-		detail = fmt.Sprintf("Baru %d catatan emosi (minimal %d untuk dinilai)", labeled, u.cfg.NegativeEmotionSamples)
+		detail = fmt.Sprintf("Baru %d jurnal teranalisis (minimal %d untuk dinilai)", labeled, u.cfg.NegativeEmotionSamples)
 	}
 
 	return Indicator{
