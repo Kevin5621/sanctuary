@@ -12,15 +12,13 @@ import (
 
 func ToDailyMetricResponse(m models.StudentDailyMetric) dto.DailyMetricResponse {
 	return dto.DailyMetricResponse{
-		Date:             apptime.FormatDate(m.MetricDate),
-		MoodScore:        m.MoodScore,
-		MoodLabel:        service.MoodScaleLabel(m.MoodScore),
-		StressLevel:      m.StressLevel,
-		StressLabel:      service.StressScaleLabel(m.StressLevel),
-		SleepHours:       m.SleepHours,
-		EmotionLabel:     m.EmotionLabel,
-		EmotionLabelText: service.EmotionLabelText(m.EmotionLabel),
-		AcademicTrigger:  m.AcademicTrigger,
+		Date:            apptime.FormatDate(m.MetricDate),
+		MoodScore:       m.MoodScore,
+		MoodLabel:       service.MoodScaleLabel(m.MoodScore),
+		StressLevel:     m.StressLevel,
+		StressLabel:     service.StressScaleLabel(m.StressLevel),
+		SleepHours:      m.SleepHours,
+		AcademicTrigger: m.AcademicTrigger,
 	}
 }
 
@@ -76,15 +74,11 @@ func ToDailyMetricOptions(maxBackdateDays int) dto.DailyMetricOptionsResponse {
 		stressScale = append(stressScale, dto.ScaleOptionResponse{Value: option.Value, Label: option.Label})
 	}
 
-	emotions := make([]dto.CodedOptionResponse, 0, len(constants.EmotionCheckinOptions))
-	for _, option := range constants.EmotionCheckinOptions {
-		emotions = append(emotions, dto.CodedOptionResponse{Value: option.Value, Label: option.Label})
-	}
-
+	// Tidak ada daftar emosi di sini. Form check-in hanya menanyakan skala mood,
+	// stres, jam tidur, dan pemicu; emosi bernama datang dari analisis jurnal.
 	return dto.DailyMetricOptionsResponse{
 		MoodScale:       moodScale,
 		StressScale:     stressScale,
-		Emotions:        emotions,
 		MaxBackdateDays: maxBackdateDays,
 	}
 }
@@ -144,16 +138,6 @@ func ToMoodStats(periodDays int, from, to time.Time, metrics []models.StudentDai
 	response.AvgSleepHours = averages.Sleep
 	response.CurrentStreak = service.CurrentStreak(metrics, apptime.Today())
 	response.LongestStreak = service.LongestStreak(metrics)
-
-	for _, share := range service.EmotionShares(metrics) {
-		response.EmotionDistribution = append(response.EmotionDistribution, dto.EmotionShareResponse{
-			Emotion:    share.Emotion,
-			Label:      service.EmotionLabelText(share.Emotion),
-			Count:      share.Count,
-			Percentage: share.Percentage,
-			IsNegative: share.IsNegative,
-		})
-	}
 
 	for _, share := range service.TopTriggers(metrics, 3) {
 		response.TopTriggers = append(response.TopTriggers, dto.TriggerShareResponse{

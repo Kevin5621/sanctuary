@@ -34,10 +34,9 @@ type conditionProfile struct {
 
 	// Deret berikut dibaca dari index 0 = hari terlama pada jendela terkini,
 	// index terakhir = kemarin. Panjangnya menentukan berapa hari yang diisi.
-	Moods    []int
-	Stress   []int
-	Sleep    []float64
-	Emotions []string
+	Moods  []int
+	Stress []int
+	Sleep  []float64
 
 	// FilledToday mengisi check-in hari ini juga, sehingga ada akun demo yang
 	// memperlihatkan state "sudah check-in" di Beranda.
@@ -52,7 +51,6 @@ type conditionProfile struct {
 	// BaselineFillRate adalah peluang sebuah hari terisi (0..1). Nilai di bawah
 	// 1 membuat kalender punya lubang, seperti pemakaian sungguhan.
 	BaselineFillRate float64
-	BaselineEmotions []string
 
 	Journals       []journalSeed
 	Dass           []dassSeed
@@ -97,20 +95,11 @@ var profileIntervention = conditionProfile{
 	Moods:                 []int{3, 2, 2, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 2},
 	Stress:                []int{4, 4, 5, 5, 5, 5, 4, 5, 5, 5, 4, 5, 5, 5},
 	Sleep:                 []float64{6.0, 5.5, 4.5, 4.0, 4.5, 4.0, 5.0, 4.5, 4.0, 4.5, 5.0, 4.0, 4.5, 4.0},
-	Emotions: []string{
-		constants.EmotionTired, constants.EmotionAnxious, constants.EmotionSad, constants.EmotionSad,
-		constants.EmotionAnxious, constants.EmotionSad, constants.EmotionTired, constants.EmotionAnxious,
-		constants.EmotionSad, constants.EmotionSad, constants.EmotionNeutral, constants.EmotionAnxious,
-		constants.EmotionSad, constants.EmotionTired,
-	},
 	BaselineDays:     metricHistoryDays,
 	BaselineMood:     3,
 	BaselineStress:   4,
 	BaselineSleep:    6.0,
 	BaselineFillRate: 0.8,
-	BaselineEmotions: []string{
-		constants.EmotionNeutral, constants.EmotionTired, constants.EmotionAnxious, constants.EmotionCalm,
-	},
 	Journals: []journalSeed{
 		{
 			DaysAgo:  1,
@@ -159,20 +148,11 @@ var profileRisk = conditionProfile{
 	Moods:                 []int{3, 2, 3, 3, 2, 3, 3, 2, 3, 3, 2, 3, 3, 3},
 	Stress:                []int{4, 4, 3, 4, 4, 3, 4, 4, 4, 3, 4, 4, 3, 4},
 	Sleep:                 []float64{6.5, 4.5, 6.0, 7.0, 4.0, 6.5, 7.0, 6.0, 6.5, 7.0, 4.5, 6.5, 7.0, 6.0},
-	Emotions: []string{
-		constants.EmotionAnxious, constants.EmotionSad, constants.EmotionAnxious, constants.EmotionNeutral,
-		constants.EmotionTired, constants.EmotionAnxious, constants.EmotionCalm, constants.EmotionSad,
-		constants.EmotionAnxious, constants.EmotionNeutral, constants.EmotionTired, constants.EmotionAnxious,
-		constants.EmotionCalm, constants.EmotionSad,
-	},
 	BaselineDays:     metricHistoryDays,
 	BaselineMood:     3,
 	BaselineStress:   3,
 	BaselineSleep:    6.5,
 	BaselineFillRate: 0.75,
-	BaselineEmotions: []string{
-		constants.EmotionNeutral, constants.EmotionCalm, constants.EmotionAnxious, constants.EmotionJoy,
-	},
 	Journals: []journalSeed{
 		{
 			DaysAgo:  2,
@@ -209,20 +189,11 @@ var profileWatch = conditionProfile{
 	Moods:                 []int{4, 3, 4, 3, 4, 4, 3, 4, 4, 3, 4, 4, 3, 4},
 	Stress:                []int{3, 3, 2, 3, 3, 2, 3, 3, 2, 3, 3, 2, 3, 3},
 	Sleep:                 []float64{7.0, 4.5, 7.5, 7.0, 6.5, 4.0, 7.0, 7.5, 6.5, 7.0, 7.5, 6.5, 7.0, 7.5},
-	Emotions: []string{
-		constants.EmotionNeutral, constants.EmotionTired, constants.EmotionCalm, constants.EmotionNeutral,
-		constants.EmotionJoy, constants.EmotionTired, constants.EmotionCalm, constants.EmotionNeutral,
-		constants.EmotionCalm, constants.EmotionNeutral, constants.EmotionJoy, constants.EmotionCalm,
-		constants.EmotionNeutral, constants.EmotionCalm,
-	},
 	BaselineDays:     metricHistoryDays,
 	BaselineMood:     4,
 	BaselineStress:   3,
 	BaselineSleep:    7.0,
 	BaselineFillRate: 0.7,
-	BaselineEmotions: []string{
-		constants.EmotionCalm, constants.EmotionNeutral, constants.EmotionJoy, constants.EmotionTired,
-	},
 	Journals: []journalSeed{
 		{
 			DaysAgo:  4,
@@ -254,21 +225,12 @@ var profileNormal = conditionProfile{
 	Moods:                 []int{4, 4, 5, 4, 4, 5, 4, 5, 4, 4, 5, 4, 4, 5},
 	Stress:                []int{2, 2, 1, 2, 2, 2, 1, 2, 2, 1, 2, 2, 2, 1},
 	Sleep:                 []float64{7.5, 8.0, 7.0, 7.5, 8.0, 7.5, 7.0, 8.0, 7.5, 7.5, 8.0, 7.0, 7.5, 8.0},
-	Emotions: []string{
-		constants.EmotionCalm, constants.EmotionJoy, constants.EmotionCalm, constants.EmotionNeutral,
-		constants.EmotionJoy, constants.EmotionCalm, constants.EmotionJoy, constants.EmotionCalm,
-		constants.EmotionNeutral, constants.EmotionJoy, constants.EmotionCalm, constants.EmotionJoy,
-		constants.EmotionCalm, constants.EmotionJoy,
-	},
 	FilledToday:      true,
 	BaselineDays:     metricHistoryDays,
 	BaselineMood:     4,
 	BaselineStress:   2,
 	BaselineSleep:    7.5,
 	BaselineFillRate: 0.85,
-	BaselineEmotions: []string{
-		constants.EmotionJoy, constants.EmotionCalm, constants.EmotionNeutral, constants.EmotionCalm,
-	},
 	Journals: []journalSeed{
 		{
 			DaysAgo:  1,
@@ -304,13 +266,11 @@ var profileNormalSummaryOnly = conditionProfile{
 	Moods:                 profileNormal.Moods,
 	Stress:                profileNormal.Stress,
 	Sleep:                 profileNormal.Sleep,
-	Emotions:              profileNormal.Emotions,
 	BaselineDays:          metricHistoryDays,
 	BaselineMood:          4,
 	BaselineStress:        2,
 	BaselineSleep:         7.5,
 	BaselineFillRate:      0.6,
-	BaselineEmotions:      profileNormal.BaselineEmotions,
 	Journals: []journalSeed{
 		{
 			DaysAgo:  3,
@@ -333,20 +293,11 @@ var profileClosed = conditionProfile{
 	Moods:                 []int{3, 2, 3, 2, 3, 3, 2, 3, 3, 2, 3, 3, 2, 3},
 	Stress:                []int{4, 4, 3, 4, 4, 3, 4, 3, 4, 4, 3, 4, 4, 3},
 	Sleep:                 []float64{6.0, 5.5, 6.5, 6.0, 5.0, 6.5, 6.0, 6.5, 5.5, 6.0, 6.5, 6.0, 5.5, 6.5},
-	Emotions: []string{
-		constants.EmotionAnxious, constants.EmotionSad, constants.EmotionNeutral, constants.EmotionAnxious,
-		constants.EmotionTired, constants.EmotionNeutral, constants.EmotionCalm, constants.EmotionAnxious,
-		constants.EmotionNeutral, constants.EmotionSad, constants.EmotionCalm, constants.EmotionNeutral,
-		constants.EmotionAnxious, constants.EmotionCalm,
-	},
 	BaselineDays:     metricHistoryDays,
 	BaselineMood:     3,
 	BaselineStress:   3,
 	BaselineSleep:    6.5,
 	BaselineFillRate: 0.65,
-	BaselineEmotions: []string{
-		constants.EmotionNeutral, constants.EmotionAnxious, constants.EmotionCalm, constants.EmotionTired,
-	},
 	Journals: []journalSeed{
 		{
 			DaysAgo:  2,
@@ -373,13 +324,11 @@ var profileWatchWithRequest = conditionProfile{
 	Moods:                 profileWatch.Moods,
 	Stress:                profileWatch.Stress,
 	Sleep:                 profileWatch.Sleep,
-	Emotions:              profileWatch.Emotions,
 	BaselineDays:          metricHistoryDays,
 	BaselineMood:          4,
 	BaselineStress:        3,
 	BaselineSleep:         7.0,
 	BaselineFillRate:      0.7,
-	BaselineEmotions:      profileWatch.BaselineEmotions,
 	Journals: []journalSeed{
 		{
 			DaysAgo:  1,
@@ -410,7 +359,6 @@ var profileInsufficient = conditionProfile{
 	Moods:                 []int{4, 3},
 	Stress:                []int{2, 3},
 	Sleep:                 []float64{7.0, 6.5},
-	Emotions:              []string{constants.EmotionCalm, constants.EmotionNeutral},
 	BaselineDays:          0,
 	ExpectedLevel:         constants.EWSLevelInsufficient,
 }
@@ -426,13 +374,11 @@ var profileRiskNoStats = conditionProfile{
 	Moods:                 profileRisk.Moods,
 	Stress:                profileRisk.Stress,
 	Sleep:                 profileRisk.Sleep,
-	Emotions:              profileRisk.Emotions,
 	BaselineDays:          metricHistoryDays,
 	BaselineMood:          3,
 	BaselineStress:        3,
 	BaselineSleep:         6.5,
 	BaselineFillRate:      0.55,
-	BaselineEmotions:      profileRisk.BaselineEmotions,
 	Journals: []journalSeed{
 		{
 			DaysAgo:  2,
@@ -456,7 +402,6 @@ var profileNewcomer = conditionProfile{
 	Moods:                 []int{3},
 	Stress:                []int{3},
 	Sleep:                 []float64{7.0},
-	Emotions:              []string{constants.EmotionNeutral},
 	BaselineDays:          0,
 	ExpectedLevel:         constants.EWSLevelInsufficient,
 }

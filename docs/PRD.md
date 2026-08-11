@@ -104,13 +104,13 @@ Titik-titik di mana dokumen fungsi, skema DB, dan kode belum sepakat. Rekomendas
 | ID | Isu | Rekomendasi | Dampak |
 |---|---|---|---|
 | **D-1** | Dokumen menyebut data "tersimpan di perangkat mahasiswa", tetapi arsitektur adalah **full online** — semua di PostgreSQL. | Terima full online. Yang dijamin bukan *lokasi* melainkan *keterbacaan*: hanya pemilik yang bisa membaca (I-1). **Copy di aplikasi wajib diperbaiki** — jangan pernah menulis "tersimpan di perangkatmu", tulis "hanya kamu yang bisa membacanya". Berbohong soal ini merusak kepercayaan yang jadi fondasi produk. | Copy layar Privasi & Onboarding |
-| **D-2** | Dokumen menyebut **4 label emosi** IndoBERT; `constants/privacy.go` mendefinisikan **7**. | Model IndoBERT mengeluarkan 4 label kanonik: `JOY`, `SAD`, `ANGRY`, `ANXIOUS`. `NEUTRAL` dipakai saat confidence < ambang. `CALM` & `TIRED` adalah label **mood check-in manual**, bukan keluaran model — pisahkan kedua himpunan agar "Tentang model ini" tidak menyesatkan. | `constants`, layar edukasi model, EWS #2 |
-| **D-3** | EWS #2 menghitung "emosi negatif" — dari analisis jurnal, mood check-in, atau keduanya? | **Hanya dari analisis jurnal.** Mood check-in sudah diwakili indikator #1; mencampurnya membuat satu hari buruk dihitung dua kali. | `ews_usecase` |
+| **D-2** | Dokumen menyebut **4 label emosi** IndoBERT; `constants/privacy.go` mendefinisikan **7**. | Himpunan label **check-in manual dihapus** — check-in kini hanya menanyakan skala mood 1..5, sehingga satu-satunya sumber emosi bernama adalah analisis jurnal dan tidak ada lagi dua himpunan yang bisa tertukar. Sisa perbedaan ada di analyzer: leksikon mock saat ini mengeluarkan tujuh label, sementara IndoBERT nanti mengeluarkan 4 kanonik (`JOY`,`SAD`,`ANGRY`,`ANXIOUS`) + `NEUTRAL`. Layar "Tentang model ini" harus menyebut label yang benar-benar dikeluarkan analyzer yang sedang aktif. | `constants`, layar edukasi model, EWS #2 |
+| **D-3** | EWS #2 menghitung "emosi negatif" — dari analisis jurnal, mood check-in, atau keduanya? | **Hanya dari analisis jurnal.** Mood check-in sudah diwakili indikator #1; mencampurnya membuat satu hari buruk dihitung dua kali. Kode sempat menyimpang (membaca `emotion_label` check-in) dan dikembalikan saat label itu dihapus; dijaga `TestNegativeEmotion_IgnoresCheckinEmotionLabels`. Berlaku juga untuk sebaran emosi kelompok dosen (L-KON-03). | `ews_usecase`, `mentor_usecase` |
 | **D-4** | Indikator "kurang tidur" tidak menyebut ambang jam maupun jendela waktu. | `sleep_hours < 5` pada **≥ 2 malam dalam 7 hari terakhir**. Sudah sesuai kode; kunci di config `EWS_LOW_SLEEP_*`. | — (sudah selaras) |
 | **D-5** | Terapis AI mengirim teks ke Google Gemini — teks keluar dari sistem, bertentangan dengan semangat I-1. | Wajib **consent sekali di awal** yang menjelaskan bahwa isi percakapan diproses layanan pihak ketiga, plus opsi menolak (tab tetap ada, isinya latihan mandiri). Tanpa ini, tab Terapis AI tidak boleh rilis. | 🔒 memblokir `M-AI-*` |
 | **D-6** | `student_contact_requests.note` ada di skema, tapi dosen "hanya melihat nama dan waktu, tanpa sebab". | Kolom tetap ada (mahasiswa boleh menulis untuk dirinya sendiri) tetapi **tidak pernah masuk response dosen**. Tambahkan test yang gagal bila `note` bocor. | `mentor_dto` |
 | **D-7** | Mahasiswa `CLOSED` menekan "minta dihubungi" — muncul di daftar dosen atau tidak? | **Muncul.** Menekan tombol itu adalah persetujuan eksplisit dan spesifik, mengalahkan `share_level`. Yang muncul hanya nama + waktu, tanpa indikator apa pun. | `mentor_usecase` |
-| **D-8** | Backdate check-in mood dan jurnal — sampai berapa lama ke belakang? | Maksimal **7 hari**. Lebih jauh dari itu ingatan sudah tidak akurat dan hanya mengotori EWS. | `daily_metric_usecase`, `journal_usecase` |
+| **D-8** | Backdate check-in mood dan jurnal — sampai berapa lama ke belakang? | **Dipisah.** Check-in mood maksimal **30 hari** (`STUDENT_CHECKIN_MAX_BACKDATE_DAYS`) — kalender tab Mood bisa diketuk untuk menutup celah sebulan ke belakang, dan yang diisi hanyalah angka yang masih bisa diingat kasar. Jurnal tetap **7 hari** (`STUDENT_JOURNAL_MAX_BACKDATE_DAYS`): ia berisi cerita, dan cerita yang ditulis sebulan kemudian bukan lagi catatan hari itu. | `daily_metric_usecase`, `journal_usecase` |
 | **D-9** | Metrik kaprodi "jumlah mahasiswa perlu intervensi" — angka kecil bisa menunjuk orang. | Tampilkan sebagai **persentase** dari kelompok yang sudah lolos k ≥ 5, bukan hitungan mentah. | `program_usecase` |
 | **D-10** | `emergency_contacts` global, dokumen bilang "berlaku seluruh pengguna program studi". | Biarkan global — deployment saat ini satu kampus. Kolom `study_program_id` ditambahkan hanya bila multi-prodi benar-benar datang. | — |
 
@@ -130,7 +130,7 @@ Alasannya: check-in adalah tindakan harian yang harus ada di layar pertama, seme
 | M-BER-03 | Kalender mood mingguan | ✅ | ✅ | hari kosong = state "belum check-in" |
 | M-BER-04 | Pintasan ke skrining DASS-21 | ✅ | ✅ | |
 | M-BER-05 | Empty state pengguna baru | ✅ | ✅ | `isFirstTime` → ajakan check-in pertama, bukan kalender kosong |
-| M-BER-06 | **Form check-in** (bottom sheet) | ✅ | ✅ | pilihan skala/emosi/pemicu/batas backdate dari `GET …/options` |
+| M-BER-06 | **Form check-in** (bottom sheet) | ✅ | ✅ | mood, stres, tidur, pemicu — TANPA pilihan emosi (D-2); skala & batas backdate dari `GET …/options` |
 | M-BER-07 | Mode ubah check-in hari ini | ✅ | ✅ | upsert per tanggal; sheet terbuka terisi nilai lama |
 
 **Catatan perubahan perilaku.** Pintasan mood di header dulu langsung menyimpan dengan `stress=2, sleep=7.0` yang tidak pernah diisi siapa pun. Sekarang pintasan itu **membuka form dengan mood terpilih**, tidak menyimpan diam-diam — dua angka karangan tadi ikut dibaca indikator EWS `LOW_SLEEP_NIGHTS`, dan dosen akan menerima sinyal yang tidak dimaksudkan siapa pun.
@@ -140,9 +140,9 @@ Alasannya: check-in adalah tindakan harian yang harus ada di layar pertama, seme
 | ID | Fitur | BE | FE | Catatan |
 |---|---|:--:|:--:|---|
 | M-MOOD-01 | ~~Check-in harian di tab ini~~ | — | — | **dipindah ke `M-BER-06`** |
-| M-MOOD-02 | Pemilih tanggal untuk hari yang terlewat | ✅ | ✅ | batas backdate dari server (`max_backdate_days`), divalidasi ulang di usecase |
+| M-MOOD-02 | Pemilih tanggal untuk hari yang terlewat | ✅ | ✅ | tanggal kosong di kalender bisa diketuk untuk check-in tanggal itu; batas 30 hari dari server (`max_backdate_days`), divalidasi ulang di usecase |
 | M-MOOD-03 | Grafik ritme mood | ✅ | ✅ | `GET …/stats?period_days=30\|90\|120` |
-| M-MOOD-04 | Sebaran emosi | ✅ | ✅ | dari label check-in; sebaran hasil model ada di `M-PRO-02` |
+| M-MOOD-04 | Sebaran emosi | ✅ | ✅ | dari analisis jurnal (D-3) — check-in tidak lagi punya label emosi; riwayat hasil model ada di `M-PRO-02` |
 | M-MOOD-05 | Satu check-in per hari (ubah, bukan duplikat) | ✅ | ✅ | unique index + upsert |
 | M-MOOD-06 | **Kalender mood bulanan** | ✅ | ✅ | `GET …/monthly?month=YYYY-MM`, navigasi antar bulan |
 | M-MOOD-07 | Pemicu tersering + rangkaian check-in | ✅ | ✅ | `top_triggers`, `current_streak`, `longest_streak` |
@@ -215,7 +215,7 @@ Peran **pemantau, bukan pembaca**: yang diterima hasil hitungan, bukan tulisan.
 |---|---|:--:|:--:|---|
 | L-KON-01 | Agregat kelompok bimbingan | ✅ | ✅ | `InsufficientDataCard` bila k < 5 — null tidak pernah jadi 0 |
 | L-KON-02 | Sebaran tingkat perhatian | ✅ | ✅ | seeder ditambah 2 mahasiswa agar ambang EWS terpenuhi & fitur ini bisa diuji |
-| L-KON-03 | Sebaran emosi hasil analisis jurnal | ✅ | ✅ | label saja; entitas `EmotionShare` tidak punya slot untuk teks |
+| L-KON-03 | Sebaran emosi hasil analisis jurnal | ✅ | ✅ | sumbernya `JournalRepository.EmotionDistributionForUsers` — label + jumlah saja, tidak ada kolom teks yang ikut ter-select |
 | L-KON-04 | Pemilih periode 30 / 90 / 120 hari | ✅ | ✅ | |
 
 ### 6.3 Tab Profil — `L-PRO` 🟡
@@ -234,7 +234,7 @@ Implementasi: [`ews_usecase.go`](../backend/internal/mentor/domain/usecase/ews_u
 | Indikator | Menyala bila | Status |
 |---|---|:--:|
 | `LOW_MOOD_STREAK` | mood ≤ 2 **lebih dari** 5 hari berturut-turut (hari tanpa check-in memutus rangkaian) | ✅ |
-| `NEGATIVE_EMOTION_RATIO` | emosi negatif > 60%, minimal 4 hasil analisis jurnal (D-3) | ✅ |
+| `NEGATIVE_EMOTION_RATIO` | emosi negatif > 60%, minimal 4 hasil analisis jurnal (D-3) | ✅ dijaga `TestDemoProfilesMatchExpectedEWSLevel` |
 | `DASS_WORSENING` | total skor naik, atau muncul kategori Severe yang sebelumnya tidak ada | 🟡 tidak pernah terpicu sampai `M-PRO-01` ada |
 | `LOW_SLEEP_NIGHTS` | tidur < 5 jam pada ≥ 2 malam dalam 7 hari (D-4) | ✅ |
 
@@ -325,7 +325,7 @@ Base `/api/v1`. `me` selalu berarti pemilik token — tidak ada endpoint yang me
 | GET/PUT | `/students/me/privacy-settings` | Mahasiswa | ✅ |
 | GET | `/students/me/privacy-settings/options` | Mahasiswa | ✅ |
 | POST | `/students/me/daily-metrics` | Mahasiswa | ✅ upsert per tanggal |
-| GET | `/students/me/daily-metrics/options` | Mahasiswa | ✅ skala, emosi, pemicu, batas backdate |
+| GET | `/students/me/daily-metrics/options` | Mahasiswa | ✅ skala mood & stres, batas backdate (30 hari) |
 | GET | `/students/me/daily-metrics/weekly-summary` | Mahasiswa | ✅ |
 | GET | `/students/me/daily-metrics/monthly?month=YYYY-MM` | Mahasiswa | ✅ M-MOOD-06 |
 | GET | `/students/me/daily-metrics/stats?period_days=30` | Mahasiswa | ✅ M-MOOD-03/04/07 |

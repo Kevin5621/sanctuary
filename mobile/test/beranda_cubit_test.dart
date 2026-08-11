@@ -118,7 +118,6 @@ void main() {
       moodScore: 2,
       stressLevel: 5,
       sleepHours: 4.5,
-      emotionLabel: 'ANXIOUS',
       academicTrigger: 'SKRIPSI',
       date: DateTime(2026, 8, 4),
     );
@@ -128,7 +127,6 @@ void main() {
       'mood_score': 2,
       'stress_level': 5,
       'sleep_hours': 4.5,
-      'emotion_label': 'ANXIOUS',
       'academic_trigger': 'SKRIPSI',
       'metric_date': '2026-08-04',
     });

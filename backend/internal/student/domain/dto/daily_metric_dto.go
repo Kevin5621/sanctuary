@@ -2,6 +2,10 @@ package dto
 
 // DailyMetricResponse adalah satu titik check-in harian (kuantitatif saja —
 // tidak ada konten bebas, sehingga aman ditampilkan di ringkasan Beranda).
+//
+// Tidak ada label emosi di sini. Check-in menanyakan satu hal tentang perasaan
+// — skala mood 1..5 — dan itulah yang digambar kalender. Emosi bernama (JOY,
+// SAD, …) hanya lahir dari analisis jurnal (D-3).
 type DailyMetricResponse struct {
 	Date        string  `json:"date"` // YYYY-MM-DD
 	MoodScore   int     `json:"mood_score"`
@@ -9,9 +13,6 @@ type DailyMetricResponse struct {
 	StressLevel int     `json:"stress_level"`
 	StressLabel string  `json:"stress_label"`
 	SleepHours  float64 `json:"sleep_hours"`
-
-	EmotionLabel     string `json:"emotion_label,omitempty"`
-	EmotionLabelText string `json:"emotion_label_text,omitempty"`
 
 	AcademicTrigger string `json:"academic_trigger,omitempty"`
 }
@@ -37,7 +38,6 @@ type SaveDailyMetricRequest struct {
 	MoodScore       int     `json:"mood_score" binding:"required,min=1,max=5"`
 	StressLevel     int     `json:"stress_level" binding:"required,min=1,max=5"`
 	SleepHours      float64 `json:"sleep_hours" binding:"min=0,max=24"`
-	EmotionLabel    string  `json:"emotion_label" binding:"omitempty,max=24"`
 	AcademicTrigger string  `json:"academic_trigger" binding:"omitempty,max=255"`
 }
 
@@ -58,7 +58,6 @@ type CodedOptionResponse struct {
 type DailyMetricOptionsResponse struct {
 	MoodScale   []ScaleOptionResponse `json:"mood_scale"`
 	StressScale []ScaleOptionResponse `json:"stress_scale"`
-	Emotions    []CodedOptionResponse `json:"emotions"`
 	// MaxBackdateDays memberi tahu klien sampai berapa hari ke belakang
 	// pemilih tanggal boleh dibuka, sehingga batas itu tidak diduplikasi.
 	MaxBackdateDays int `json:"max_backdate_days"`
@@ -115,9 +114,11 @@ type MoodStatsResponse struct {
 	From       string `json:"from"`
 	To         string `json:"to"`
 
-	Points              []MoodTrendPoint       `json:"points"`
-	EmotionDistribution []EmotionShareResponse `json:"emotion_distribution"`
-	TopTriggers         []TriggerShareResponse `json:"top_triggers"`
+	// Tidak ada sebaran emosi di sini. Statistik ini dibangun dari check-in yang
+	// kuantitatif; sebaran emosi milik tab Mood dilayani endpoint jurnal
+	// (M-MOOD-04 / D-3) agar satu hari buruk tidak terhitung dua kali.
+	Points      []MoodTrendPoint       `json:"points"`
+	TopTriggers []TriggerShareResponse `json:"top_triggers"`
 
 	CheckinCount  int     `json:"checkin_count"`
 	AvgMood       float64 `json:"avg_mood"`

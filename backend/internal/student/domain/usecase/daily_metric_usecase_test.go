@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/gilabs/sanctuary/internal/core/apptime"
-	"github.com/gilabs/sanctuary/internal/core/constants"
 	"github.com/gilabs/sanctuary/internal/core/infrastructure/config"
 	"github.com/gilabs/sanctuary/internal/core/utils"
 	"github.com/gilabs/sanctuary/internal/student/data/models"
@@ -15,7 +14,8 @@ import (
 
 func testStudentConfig() config.StudentConfig {
 	return config.StudentConfig{
-		MaxBackdateDays:        7,
+		CheckinMaxBackdateDays: 30,
+		JournalMaxBackdateDays: 7,
 		MoodStatsDefaultPeriod: 30,
 		MoodStatsMaxPeriod:     365,
 	}
@@ -26,7 +26,6 @@ func validCheckin() dto.SaveDailyMetricRequest {
 		MoodScore:       4,
 		StressLevel:     2,
 		SleepHours:      7.5,
-		EmotionLabel:    constants.EmotionCalm,
 		AcademicTrigger: "Tugas kuliah",
 	}
 }
@@ -57,6 +56,55 @@ func TestSaveMetric_DefaultsToToday(t *testing.T) {
 	}
 }
 
+// Batas mundur check-in adalah 30 hari — inilah yang membuat kalender tab Mood
+// bisa diketuk untuk menutup celah sebulan ke belakang. Batasnya terpisah dari
+// jurnal (D-8, 7 hari), jadi keduanya diuji terhadap config-nya masing-masing.
+func TestSaveMetric_AcceptsBackdateWithinThirtyDays(t *testing.T) {
+	repo := &fakeMetricRepo{}
+	uc := NewDailyMetricUsecase(repo, testStudentConfig())
+
+	req := validCheckin()
+	req.MetricDate = apptime.FormatDate(apptime.DaysAgo(30))
+
+	result, err := uc.SaveMetric(context.Background(), "student-1", req)
+	if err != nil {
+		t.Fatalf("tanggal 30 hari lalu masih di dalam batas: %v", err)
+	}
+	if result.Date != req.MetricDate {
+		t.Fatalf("tanggal tersimpan = %s, want %s", result.Date, req.MetricDate)
+	}
+}
+
+func TestSaveMetric_RejectsBackdateBeyondThirtyDays(t *testing.T) {
+	uc := NewDailyMetricUsecase(&fakeMetricRepo{}, testStudentConfig())
+
+	req := validCheckin()
+	req.MetricDate = apptime.FormatDate(apptime.DaysAgo(31))
+
+	_, err := uc.SaveMetric(context.Background(), "student-1", req)
+	if errorCode(err) != utils.CodeBackdateLimitExceeded {
+		t.Fatalf("kode error = %q, want %s", errorCode(err), utils.CodeBackdateLimitExceeded)
+	}
+}
+
+// Check-in tidak lagi punya label emosi: satu pertanyaan tentang perasaan sudah
+// diwakili skala mood, dan emosi bernama hanya lahir dari analisis jurnal (D-3).
+func TestSaveMetric_StoresNoEmotionLabel(t *testing.T) {
+	repo := &fakeMetricRepo{}
+	uc := NewDailyMetricUsecase(repo, testStudentConfig())
+
+	if _, err := uc.SaveMetric(context.Background(), "student-1", validCheckin()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(repo.saved) != 1 {
+		t.Fatalf("jumlah tersimpan = %d, want 1", len(repo.saved))
+	}
+	if label := repo.saved[0].EmotionLabel; label != "" {
+		t.Fatalf("emotion_label = %q, want kosong", label)
+	}
+}
+
 func TestSaveMetric_IncludesHumanReadableLabels(t *testing.T) {
 	uc := NewDailyMetricUsecase(&fakeMetricRepo{}, testStudentConfig())
 
@@ -75,11 +123,10 @@ func TestSaveMetric_AllowsEmptyOptionalFields(t *testing.T) {
 	uc := NewDailyMetricUsecase(&fakeMetricRepo{}, testStudentConfig())
 
 	req := validCheckin()
-	req.EmotionLabel = ""
 	req.AcademicTrigger = ""
 
 	if _, err := uc.SaveMetric(context.Background(), "student-1", req); err != nil {
-		t.Fatalf("emosi & pemicu bersifat opsional, dapat: %v", err)
+		t.Fatalf("pemicu bersifat opsional, dapat: %v", err)
 	}
 }
 
@@ -146,14 +193,14 @@ func TestStats_InsufficientDataHidesAverages(t *testing.T) {
 	}
 }
 
-func TestStats_BuildsDistributionAndTriggers(t *testing.T) {
+func TestStats_BuildsTriggers(t *testing.T) {
 	repo := &fakeMetricRepo{listing: []models.StudentDailyMetric{
 		{MetricDate: apptime.DaysAgo(3), MoodScore: 2, StressLevel: 4, SleepHours: 5,
-			EmotionLabel: constants.EmotionSad, AcademicTrigger: "Skripsi / tugas akhir"},
+			AcademicTrigger: "Skripsi / tugas akhir"},
 		{MetricDate: apptime.DaysAgo(2), MoodScore: 2, StressLevel: 4, SleepHours: 5,
-			EmotionLabel: constants.EmotionSad, AcademicTrigger: "Skripsi / tugas akhir"},
+			AcademicTrigger: "Skripsi / tugas akhir"},
 		{MetricDate: apptime.DaysAgo(1), MoodScore: 4, StressLevel: 2, SleepHours: 8,
-			EmotionLabel: constants.EmotionCalm, AcademicTrigger: "Ujian (UTS/UAS)"},
+			AcademicTrigger: "Ujian (UTS/UAS)"},
 	}}
 	uc := NewDailyMetricUsecase(repo, testStudentConfig())
 
@@ -164,12 +211,6 @@ func TestStats_BuildsDistributionAndTriggers(t *testing.T) {
 
 	if !stats.IsSufficient {
 		t.Fatal("tiga titik sudah cukup untuk menampilkan pola")
-	}
-	if len(stats.EmotionDistribution) != 2 {
-		t.Fatalf("sebaran emosi = %d label, want 2", len(stats.EmotionDistribution))
-	}
-	if stats.EmotionDistribution[0].Label == "" {
-		t.Error("sebaran emosi harus membawa teks tampilan")
 	}
 	if len(stats.TopTriggers) == 0 || stats.TopTriggers[0].Trigger != "Skripsi / tugas akhir" {
 		t.Fatalf("pemicu teratas = %+v, want Skripsi / tugas akhir", stats.TopTriggers)
@@ -239,10 +280,9 @@ func TestOptions_ExposesEveryChoiceAndBackdateLimit(t *testing.T) {
 		t.Fatalf("skala tidak lengkap: mood=%d stres=%d",
 			len(options.MoodScale), len(options.StressScale))
 	}
-	if len(options.Emotions) == 0 {
-		t.Fatal("daftar emosi harus dikirim server")
-	}
-	if options.MaxBackdateDays != 7 {
-		t.Fatalf("batas backdate = %d, want 7", options.MaxBackdateDays)
+	// Batas check-in terpisah dari batas jurnal; klien memakai angka ini untuk
+	// menentukan tanggal mana pada kalender yang boleh diketuk.
+	if options.MaxBackdateDays != 30 {
+		t.Fatalf("batas backdate = %d, want 30", options.MaxBackdateDays)
 	}
 }

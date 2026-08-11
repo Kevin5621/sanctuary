@@ -6,10 +6,9 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cartoon_mood_blob.dart';
 import '../../../../core/widgets/vector_illustrations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../data/repositories/contact_request_repository.dart';
-import '../../data/repositories/daily_metric_repository.dart';
 import '../../domain/entities/daily_metric.dart';
 import '../cubit/beranda_cubit.dart';
+import '../cubit/mood_history_cubit.dart';
 import '../widgets/checkin_sheet.dart';
 import '../widgets/dynamic_greeting_header.dart';
 import '../widgets/mood_visuals.dart';
@@ -18,19 +17,13 @@ import 'dass21_screening_page.dart';
 import 'latihan_napas_page.dart';
 import 'mahasiswa_shell_page.dart';
 
+/// BerandaCubit-nya disediakan MahasiswaShellPage, bukan di sini: tab Mood
+/// ikut menyimpan check-in, dan Beranda harus melihat hasilnya.
 class BerandaTab extends StatelessWidget {
   const BerandaTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => BerandaCubit(
-        metrics: context.read<DailyMetricRepository>(),
-        contactRequests: context.read<ContactRequestRepository>(),
-      )..load(),
-      child: const _BerandaView(),
-    );
-  }
+  Widget build(BuildContext context) => const _BerandaView();
 }
 
 class _BerandaView extends StatelessWidget {
@@ -275,10 +268,7 @@ class _FilledToday extends StatelessWidget {
       children: [
         Row(
           children: [
-            CartoonMoodBlob(
-              mood: MoodVisuals.forEmotion(today.emotionLabel, moodScore: today.moodScore),
-              size: 54,
-            ),
+            CartoonMoodBlob(mood: MoodVisuals.forScore(today.moodScore), size: 54),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -313,12 +303,8 @@ class _FilledToday extends StatelessWidget {
     );
   }
 
-  static String _headline(DailyMetric today) {
-    if (today.emotionLabelText.isNotEmpty) {
-      return '${today.emotionLabelText} · ${today.moodLabel}';
-    }
-    return today.moodLabel.isNotEmpty ? today.moodLabel : 'Mood ${today.moodScore}/5';
-  }
+  static String _headline(DailyMetric today) =>
+      today.moodLabel.isNotEmpty ? today.moodLabel : 'Mood ${today.moodScore}/5';
 
   static String _formatHours(double hours) =>
       hours == hours.roundToDouble() ? hours.toStringAsFixed(0) : hours.toStringAsFixed(1);
@@ -339,12 +325,36 @@ class _CheckinButton extends StatelessWidget {
   Widget build(BuildContext context) {
     // Form baru dibuka setelah pilihan dari server tersedia, supaya tidak ada
     // layar yang menampilkan daftar emosi atau batas tanggal versi klien.
+    final cubit = context.read<BerandaCubit>();
+    final moodHistory = context.read<MoodHistoryCubit>();
+
     final onPressed = state.canCheckIn
-        ? () => CheckinSheet.show(
+        ? () async {
+            final saved = await CheckinSheet.show(
               context,
               options: state.options,
               existing: state.summary.today,
-            )
+              onSubmit: ({
+                required moodScore,
+                required stressLevel,
+                required sleepHours,
+                required academicTrigger,
+                required date,
+              }) =>
+                  cubit.saveCheckin(
+                moodScore: moodScore,
+                stressLevel: stressLevel,
+                sleepHours: sleepHours,
+                academicTrigger: academicTrigger,
+                date: date,
+              ),
+            );
+
+            // Kalender di tab Mood memegang bulan yang sama. Dibiarkan basi, ia
+            // menampilkan hari ini sebagai kosong — dan mengetuknya akan
+            // menimpa check-in ini dengan nilai bawaan form.
+            if (saved) await moodHistory.refresh();
+          }
         : null;
 
     if (isOutlined) {
@@ -428,13 +438,7 @@ class _WeeklyCalendar extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   metric != null
-                      ? CartoonMoodBlob(
-                          mood: MoodVisuals.forEmotion(
-                            metric.emotionLabel,
-                            moodScore: metric.moodScore,
-                          ),
-                          size: 32,
-                        )
+                      ? CartoonMoodBlob(mood: MoodVisuals.forScore(metric.moodScore), size: 32)
                       : const EmptyDayCell(size: 32),
                   const SizedBox(height: 6),
                   Text(

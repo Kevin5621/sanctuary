@@ -41,7 +41,7 @@ func (s *Seeder) seedDailyMetrics(ctx context.Context, studentID string, profile
 	return s.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "user_id"}, {Name: "metric_date"}},
 		DoUpdates: clause.AssignmentColumns([]string{
-			"mood_score", "stress_level", "sleep_hours", "academic_trigger", "emotion_label", "updated_at",
+			"mood_score", "stress_level", "sleep_hours", "academic_trigger", "updated_at",
 		}),
 	}).CreateInBatches(&metrics, 100).Error
 }
@@ -64,7 +64,7 @@ func buildRecentMetrics(studentID string, profile conditionProfile) []studentmod
 		date := apptime.DaysAgo(days - i)
 		metrics = append(metrics, newMetric(studentID, date,
 			profile.Moods[i], profile.Stress[i], profile.Sleep[i],
-			profile.Emotions[i], triggers[i%len(triggers)],
+			triggers[i%len(triggers)],
 		))
 	}
 
@@ -72,7 +72,7 @@ func buildRecentMetrics(studentID string, profile conditionProfile) []studentmod
 		last := days - 1
 		metrics = append(metrics, newMetric(studentID, apptime.Today(),
 			profile.Moods[last], profile.Stress[last], profile.Sleep[last],
-			profile.Emotions[last], "Tugas kuliah",
+			"Tugas kuliah",
 		))
 	}
 	return metrics
@@ -84,7 +84,7 @@ func buildRecentMetrics(studentID string, profile conditionProfile) []studentmod
 // berulang kali menghasilkan riwayat yang sama persis — syarat agar data demo
 // dapat dipakai sebagai acuan pengujian.
 func buildBaselineMetrics(studentID string, profile conditionProfile) []studentmodels.StudentDailyMetric {
-	if profile.BaselineDays <= recentWindowDays || len(profile.BaselineEmotions) == 0 {
+	if profile.BaselineDays <= recentWindowDays {
 		return nil
 	}
 
@@ -103,19 +103,20 @@ func buildBaselineMetrics(studentID string, profile conditionProfile) []studentm
 
 		metrics = append(metrics, newMetric(studentID, apptime.DaysAgo(daysAgo),
 			mood, stress, sleep,
-			profile.BaselineEmotions[rng.Intn(len(profile.BaselineEmotions))],
 			baselineTriggers[rng.Intn(len(baselineTriggers))],
 		))
 	}
 	return metrics
 }
 
+// Tanpa label emosi: check-in hanya kuantitatif. Emosi bernama pada data demo
+// lahir dari analyzer yang membaca jurnal (lihat journal_seeder).
 func newMetric(
 	studentID string,
 	date time.Time,
 	mood, stress int,
 	sleep float64,
-	emotion, trigger string,
+	trigger string,
 ) studentmodels.StudentDailyMetric {
 	metric := studentmodels.StudentDailyMetric{
 		UserID:          studentID,
@@ -123,7 +124,6 @@ func newMetric(
 		MoodScore:       mood,
 		StressLevel:     stress,
 		SleepHours:      sleep,
-		EmotionLabel:    emotion,
 		AcademicTrigger: trigger,
 	}
 	metric.ID = deterministicID(fmt.Sprintf("metric:%s:%s", studentID, apptime.FormatDate(date)))

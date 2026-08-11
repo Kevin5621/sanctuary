@@ -216,6 +216,15 @@ func (f *fakeJournalRepo) EmotionDistributionForUser(_ context.Context, _ string
 	return out, nil
 }
 
+// EmotionDistributionForUsers memakai jalur hitung yang sama; fake ini hanya
+// menyimpan jurnal satu mahasiswa, jadi daftar id tidak mengubah hasilnya.
+func (f *fakeJournalRepo) EmotionDistributionForUsers(ctx context.Context, userIDs []string, from, to time.Time) ([]repositories.EmotionCount, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	return f.EmotionDistributionForUser(ctx, userIDs[0], from, to)
+}
+
 func (f *fakeJournalRepo) CountCrisisFlaggedForUserRange(_ context.Context, _ string, from, to time.Time) (int64, error) {
 	if f.err != nil {
 		return 0, f.err

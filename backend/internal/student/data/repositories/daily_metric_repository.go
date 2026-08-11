@@ -48,7 +48,6 @@ type DailyMetricRepository interface {
 	LastCheckinDates(ctx context.Context, userIDs []string) (map[string]time.Time, error)
 	// AggregateForUsers dipakai dosen (kondisi kelompok) & kaprodi (dashboard prodi).
 	AggregateForUsers(ctx context.Context, userIDs []string, from, to time.Time) (GroupAggregate, error)
-	EmotionDistribution(ctx context.Context, userIDs []string, from, to time.Time) ([]EmotionCount, error)
 	// CountActiveStudents = mahasiswa dengan minimal satu check-in pada rentang.
 	CountActiveStudents(ctx context.Context, userIDs []string, from, to time.Time) (int, error)
 }
@@ -65,8 +64,11 @@ func (r *dailyMetricRepository) Upsert(ctx context.Context, metric *models.Stude
 
 	err := r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "user_id"}, {Name: "metric_date"}},
+		// emotion_label tidak ikut diperbarui: check-in tidak lagi mengisinya,
+		// dan menimpanya dengan string kosong akan menghapus data lama hanya
+		// karena mahasiswa memperbaiki jam tidurnya.
 		DoUpdates: clause.AssignmentColumns([]string{
-			"mood_score", "stress_level", "sleep_hours", "academic_trigger", "emotion_label", "updated_at",
+			"mood_score", "stress_level", "sleep_hours", "academic_trigger", "updated_at",
 		}),
 	}).Create(metric).Error
 	return utils.TranslateDBError(err, "")
@@ -161,23 +163,6 @@ func (r *dailyMetricRepository) AggregateForUsers(ctx context.Context, userIDs [
 	return agg, utils.TranslateDBError(err, "")
 }
 
-func (r *dailyMetricRepository) EmotionDistribution(ctx context.Context, userIDs []string, from, to time.Time) ([]EmotionCount, error) {
-	if len(userIDs) == 0 {
-		return nil, nil
-	}
-
-	ctx, cancel := utils.DBContext(ctx)
-	defer cancel()
-
-	var rows []EmotionCount
-	err := r.db.WithContext(ctx).Model(&models.StudentDailyMetric{}).
-		Select("emotion_label, COUNT(*) AS total").
-		Where("user_id IN ? AND metric_date BETWEEN ? AND ? AND emotion_label <> ''", userIDs, from, to).
-		Group("emotion_label").
-		Order("total DESC").
-		Scan(&rows).Error
-	return rows, utils.TranslateDBError(err, "")
-}
 
 func (r *dailyMetricRepository) CountActiveStudents(ctx context.Context, userIDs []string, from, to time.Time) (int, error) {
 	if len(userIDs) == 0 {

@@ -49,32 +49,11 @@ var StressScaleOptions = []MoodScaleOption{
 	{5, "Sangat tertekan"},
 }
 
-// EmotionCheckinOptions adalah emosi yang dipilih SENDIRI oleh mahasiswa saat
-// check-in — berbeda dari keluaran model analisis jurnal, yang hanya mengenal
-// empat label. Perbedaan itu disengaja: mahasiswa lebih tahu perasaannya
-// daripada model, dan mencampur keduanya akan membuat "Tentang model ini"
-// menjadi tidak jujur.
-var EmotionCheckinOptions = []LabeledOption{
-	{EmotionJoy, "Senang"},
-	{EmotionCalm, "Tenang"},
-	{EmotionNeutral, "Netral"},
-	{EmotionTired, "Lelah"},
-	{EmotionAnxious, "Cemas"},
-	{EmotionSad, "Sedih"},
-	{EmotionAngry, "Marah"},
-}
-
-func IsValidCheckinEmotion(label string) bool {
-	if label == "" {
-		return true // emosi bersifat opsional pada check-in
-	}
-	for _, option := range EmotionCheckinOptions {
-		if option.Value == label {
-			return true
-		}
-	}
-	return false
-}
+// Check-in tidak lagi menanyakan label emosi. Dulu ada EmotionCheckinOptions —
+// tujuh emosi yang dipilih sendiri mahasiswa — di samping skala mood 1..5.
+// Keduanya menanyakan hal yang sama dengan dua cara, dan yang digambar kalender
+// tetap skala mood. Emosi bernama kini hanya datang dari analisis jurnal
+// (constants.Emotion*, dipakai emotion_analyzer dan EWS #2 / D-3).
 
 // Pemicu akademik kini berupa string bebas (opsional, maks 255 karakter).
 func IsValidAcademicTrigger(text string) bool {

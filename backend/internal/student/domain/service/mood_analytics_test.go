@@ -104,37 +104,9 @@ func TestLongestStreak_IgnoresGaps(t *testing.T) {
 	}
 }
 
-func TestEmotionShares_SkipsUnlabelledDays(t *testing.T) {
-	metrics := []models.StudentDailyMetric{
-		checkin(3, 2, 4, 6, constants.EmotionSad, ""),
-		checkin(2, 2, 4, 6, constants.EmotionSad, ""),
-		checkin(1, 4, 2, 7, constants.EmotionCalm, ""),
-		checkin(0, 4, 2, 7, "", ""), // tanpa label, tidak ikut dihitung
-	}
-
-	shares := EmotionShares(metrics)
-
-	if len(shares) != 2 {
-		t.Fatalf("jumlah label = %d, want 2", len(shares))
-	}
-	if shares[0].Emotion != constants.EmotionSad || shares[0].Count != 2 {
-		t.Fatalf("label teratas = %+v, want SAD x2", shares[0])
-	}
-	// Persentase dihitung dari hari BERLABEL (3), bukan total check-in (4).
-	if shares[0].Percentage != 66.67 {
-		t.Fatalf("persentase = %v, want 66.67", shares[0].Percentage)
-	}
-	if !shares[0].IsNegative {
-		t.Error("SAD harus ditandai sebagai emosi negatif")
-	}
-}
-
-func TestEmotionShares_NoLabelsReturnsNil(t *testing.T) {
-	metrics := []models.StudentDailyMetric{checkin(1, 3, 3, 7, "", "")}
-	if shares := EmotionShares(metrics); shares != nil {
-		t.Fatalf("tanpa label harus nil, dapat %v", shares)
-	}
-}
+// Sebaran emosi tidak lagi dihitung dari check-in: form check-in hanya
+// menanyakan skala mood, dan emosi bernama datang dari analisis jurnal (D-3).
+// Pengujiannya ada di mapper.BuildEmotionDistribution / journal usecase.
 
 func TestTopTriggers_SortedAndLimited(t *testing.T) {
 	metrics := []models.StudentDailyMetric{

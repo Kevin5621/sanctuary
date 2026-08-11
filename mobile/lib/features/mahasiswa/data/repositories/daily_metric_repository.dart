@@ -55,7 +55,6 @@ class DailyMetricRepository {
     required int moodScore,
     required int stressLevel,
     required double sleepHours,
-    String emotionLabel = '',
     String academicTrigger = '',
     String? metricDate,
   }) async {
@@ -63,7 +62,6 @@ class DailyMetricRepository {
       'mood_score': moodScore,
       'stress_level': stressLevel,
       'sleep_hours': sleepHours,
-      'emotion_label': emotionLabel,
       'academic_trigger': academicTrigger,
       if (metricDate != null && metricDate.isNotEmpty) 'metric_date': metricDate,
     };

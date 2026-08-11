@@ -19,8 +19,13 @@ import (
 
 // SharedRepositories dipakai domain mentor & program (read-only, agregat saja).
 type SharedRepositories struct {
-	Privacy         repositories.PrivacyRepository
-	Metrics         repositories.DailyMetricRepository
+	Privacy repositories.PrivacyRepository
+	Metrics repositories.DailyMetricRepository
+	// Journals dibagikan HANYA untuk hitungan label emosi (EWS #2 / D-3 dan
+	// sebaran emosi kelompok / L-KON-03). Method lintas-user pada repository
+	// jurnal hanya EmotionDistributionForUsers, dan ia tidak pernah men-select
+	// judul maupun isi — jalur dosen tidak punya cara membaca tulisan pribadi.
+	Journals        repositories.JournalRepository
 	Dass            repositories.DassRepository
 	ContactRequests repositories.ContactRequestRepository
 }
@@ -84,6 +89,7 @@ func RegisterRoutes(
 	return SharedRepositories{
 		Privacy:         privacyRepo,
 		Metrics:         metricRepo,
+		Journals:        journalRepo,
 		Dass:            dassRepo,
 		ContactRequests: contactRepo,
 	}
